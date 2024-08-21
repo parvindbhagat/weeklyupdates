@@ -1,8 +1,9 @@
-body {
-  padding: 50px;
-  font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
-}
+.navbar{
+  background-color: #E95957;
+ }
 
-a {
-  color: #00B7FF;
+.datafield{
+  padding: 5px;
+  border-radius: 5px;
+  max-width: 500px;
 }
