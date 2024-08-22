@@ -24,7 +24,7 @@
 <a href="/createactivity">Add New Activity (for Project Managers ONLY)</a>
 
 </div>
-<h1> Activies planned for the current week.</h1>
+<h1 style="text-align: center;">All Activies</h1>
 
 
   <div class="activitylist">
@@ -37,6 +37,7 @@
           <th class="border border-gray-300 px-4 py-2">End Date</th>
           <th class="border border-gray-300 px-4 py-2">Resource</th>
           <th class="border border-gray-300 px-4 py-2">Remarks</th>
+          <th class="border border-gray-300 px-4 py-2">Status</th>
         </tr>
       </thead>
       <tbody>
@@ -48,6 +49,7 @@
             <td class="border border-gray-300 px-4 py-2 text-center"><%= activity.endDate %></td>
             <td class="border border-gray-300 px-4 py-2 text-center"><%= activity.resource %></td>
             <td class="border border-gray-300 px-4 py-2 text-center"><%= activity.remarks %></td>
+            <td class="border border-gray-300 px-4 py-2 text-center"><%= activity.status  ? 'Completed' : 'Ongoing' %></td>
           </tr>
         <% }); %>
       </tbody>

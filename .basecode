@@ -68,7 +68,7 @@
             <td><%= activity.resource %></td>
             <td><%= activity.remarks %></td>
             <td><%= activity.weekNumber %></td>
-            <td><%= activity.Status ? 'Active' : 'Inactive' %></td>
+            <td><%= activity.Status ? 'Completed' : 'Ongoing' %></td>
             <td><%= activity.CreatedOn.toLocaleDateString('en-GB') %></td>
             <td><%= activity.updatedOn.toLocaleDateString('en-GB') %></td>
           </tr>
@@ -78,3 +78,78 @@
   <% }); %>
 </body>
 </html>
+==================================================================================
+
+======================== auth middleware =========================================
+
+function authMiddleware(req, res, next) {
+  if (req.session && req.session.isAuthenticated) {
+      return next();
+  } else {
+      res.redirect('/auth');
+  }
+}
+
+module.exports = authMiddleware;
+
+====================================================================================
+======================== auth router and passcode matching =========================
+
+const express = require('express');
+const session = require('express-session');
+const authMiddleware = require('./authMiddleware');
+const app = express();
+
+app.use(session({
+    secret: 'your_secret_key',
+    resave: false,
+    saveUninitialized: true
+}));
+
+app.get('/auth', (req, res) => {
+    res.render('auth');
+});
+
+app.post('/auth', (req, res) => {
+    const { code } = req.body;
+    const validCode = '1234'; // Replace with your actual code
+
+    if (code === validCode) {
+        req.session.isAuthenticated = true;
+        res.redirect('/createactivity');
+    } else {
+        res.redirect('/auth');
+    }
+});
+
+app.get('/createactivity', authMiddleware, (req, res) => {
+    res.render('createactivity');
+});
+
+app.get('/', (req, res) => {
+    res.render('index');
+});
+
+app.listen(3000, () => {
+    console.log('Server is running on port 3000');
+});
+
+================================================================================
+========================= auth template auth.ejs ===============================
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication</title>
+</head>
+<body>
+    <h1>Enter Access Code</h1>
+    <form action="/auth" method="POST">
+        <input type="text" name="code" required>
+        <button type="submit">Submit</button>
+    </form>
+</body>
+</html>
+===================================================================================

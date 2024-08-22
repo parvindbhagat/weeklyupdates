@@ -18,8 +18,8 @@ const activitySchema = new mongoose.Schema({
   resource: { type: String, required: true },
   remarks: { type: String },
   weekNumber: { type: Number },
-  Status: { type: Boolean, required: true, default: false },
-  CreatedOn: { type: Date, default: Date.now },
+  status: { type: Boolean, required: true, default: false },
+  createdOn: { type: Date, default: Date.now },
   updatedOn: { type: Date, default: Date.now }
 });
 

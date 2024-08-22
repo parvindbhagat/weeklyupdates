@@ -5,15 +5,18 @@ const activityModel = require('./activity');
 
 /* GET home page. */
 router.get('/', async function(req, res, next) {
-  const activities = await activityModel.find();
+  const activities = await activityModel.find().sort({ updatedOn: -1 });
   res.render('index', { activities });
 });
 
+router.get('/editdelete', async function(req, res, next) {
+  const activities = await activityModel.find().sort({ updatedOn: -1 });
+  res.render('editdelete', { activities });
+});
 
 router.get('/createactivity', function(req, res, next) {
   res.render('createactivity', { title: 'Add Activities' });
 });
-
 
 router.post('/createactivity', async (req, res) => {
   
@@ -29,7 +32,7 @@ router.post('/createactivity', async (req, res) => {
     let dateToUse;
     if (startDateValue !== "NA") {
       console.log(startDateValue);
-      const [month, day, year] = startDate.split('/');
+      const [day, month, year] = startDate.split('/');
       dateToUse = new Date(year, month - 1, day);
     } else {
       dateToUse = new Date();
@@ -53,7 +56,8 @@ router.post('/createactivity', async (req, res) => {
     const savedActivity = await newActivity.save();    //Holding save to check before writing into DB UNCOMMENT THIS LINE WHEN DATETOUSE IS FIXED.
     // res.status(201).json(savedActivity);
     // req.flash(success: "new activity saved successfully")
-    res.render('createactivity');
+    
+    res.render('createactivity', { alertMessage: 'Activity added Successfully!' });
   } catch (error) {
     res.status(500).json({message: "error saving activity", error});
   }
@@ -82,21 +86,20 @@ router.get('/activities', async (req, res) => {
   }
 });
 
-// function getWeekNumber(date) {
-//   // Create a copy of the date object
-//   const currentDate = new Date(date.getTime());
+router.post('/update/:id', async (req, res) => {
+  const { id } = req.params;
+  const updatedData = req.body;
+  updatedData.updatedOn = Date.now();
 
-//   // Set the date to the nearest Thursday (current date + 4 - current day number)
-//   currentDate.setDate(currentDate.getDate() + 4 - (currentDate.getDay() || 7));
+  await activityModel.findByIdAndUpdate(id, updatedData);
+  res.redirect('/');
+});
 
-//   // Calculate the first day of the year
-//   const yearStart = new Date(currentDate.getFullYear(), 0, 1);
-
-//   // Calculate the week number
-//   const weekNumber = Math.ceil((((currentDate - yearStart) / 86400000) + 1) / 7);
-
-//   return weekNumber;
-// }
+router.post('/delete/:id', async (req, res) => {
+  const { id } = req.params;
+  await activityModel.findByIdAndDelete(id);
+  res.redirect('/');
+});
 
 function getWeekNumber(date) {
   const target = new Date(date.valueOf());
@@ -115,5 +118,6 @@ function getDateRangeForWeek(weekNumber, year) {
   endDate.setDate(startDate.getDate() + 4); // Friday of the same week
   return { startDate, endDate };
 }
+
 
 module.exports = router;

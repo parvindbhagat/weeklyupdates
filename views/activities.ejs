@@ -45,31 +45,28 @@
     <table border="1">
       <thead>
         <tr>
-          <th>Type</th>
+          
           <th>Name</th>
           <th>Start Date</th>
           <th>End Date</th>
           <th>Resource</th>
           <th>Remarks</th>
-          <th>Week Number</th>
           <th>Status</th>
-          <th>Created On</th>
-          <th>Updated On</th>
+          
         </tr>
       </thead>
       <tbody>
         <% groupedActivities[activityType].forEach(activity => { %>
           <tr>
-            <td><%= activity.activityType %></td>
+            
             <td><%= activity.activityName %></td>
             <td><%= activity.startDate %></td>
             <td><%= activity.endDate %></td>
             <td><%= activity.resource %></td>
             <td><%= activity.remarks %></td>
-            <td><%= activity.weekNumber %></td>
-            <td><%= activity.Status ? 'Active' : 'Inactive' %></td>
-            <td><%= activity.CreatedOn.toLocaleDateString('en-GB') %></td>
-            <td><%= activity.updatedOn.toLocaleDateString('en-GB') %></td>
+            <td><%= activity.status ? 'Completed' : 'Ongoing' %></td>
+            
+            
           </tr>
         <% }); %>
       </tbody>
