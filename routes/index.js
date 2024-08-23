@@ -4,9 +4,33 @@ const activityModel = require('./activity');
 // const { request } = require('../app');
 
 /* GET home page. */
-router.get('/', async function(req, res, next) {
+router.get('/', async (req, res) => {
+  try {
+    const currentWeekNumber = getWeekNumber(new Date());
+
+    const { startDate, endDate } = getDateRangeForWeek(currentWeekNumber, new Date().getFullYear());
+    const activities = await activityModel.find({ weekNumber: currentWeekNumber });
+
+    // Group activities by activityType
+    const groupedActivities = activities.reduce((acc, activity) => {
+      if (!acc[activity.activityType]) {
+        acc[activity.activityType] = [];
+      }
+      acc[activity.activityType].push(activity);
+      return acc;
+    }, {});
+    // console.log('Grouped Activities:', groupedActivities)
+
+    res.render('index', { groupedActivities, currentWeekNumber, startDate, endDate });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching activities', error: error.message });
+  }
+});
+
+// ALL ACtivities page
+router.get('/allactivities', async function(req, res, next) {
   const activities = await activityModel.find().sort({ updatedOn: -1 });
-  res.render('index', { activities });
+  res.render('allactivities', { activities });
 });
 
 router.get('/editdelete', async function(req, res, next) {
@@ -33,7 +57,7 @@ router.post('/createactivity', async (req, res) => {
     if (startDateValue !== "NA") {
       console.log(startDateValue);
       const [day, month, year] = startDate.split('/');
-      dateToUse = new Date(year, month - 1, day);
+      dateToUse = new Date(Date.UTC(year, month - 1, day));
     } else {
       dateToUse = new Date();
     }
@@ -63,28 +87,7 @@ router.post('/createactivity', async (req, res) => {
   }
 });
 
-router.get('/activities', async (req, res) => {
-  try {
-    const currentWeekNumber = getWeekNumber(new Date());
 
-    const { startDate, endDate } = getDateRangeForWeek(currentWeekNumber, new Date().getFullYear());
-    const activities = await activityModel.find({ weekNumber: currentWeekNumber });
-
-    // Group activities by activityType
-    const groupedActivities = activities.reduce((acc, activity) => {
-      if (!acc[activity.activityType]) {
-        acc[activity.activityType] = [];
-      }
-      acc[activity.activityType].push(activity);
-      return acc;
-    }, {});
-    console.log('Grouped Activities:', groupedActivities)
-
-    res.render('activities', { groupedActivities, currentWeekNumber, startDate, endDate });
-  } catch (error) {
-    res.status(500).json({ message: 'Error fetching activities', error: error.message });
-  }
-});
 
 router.post('/update/:id', async (req, res) => {
   const { id } = req.params;
@@ -92,13 +95,13 @@ router.post('/update/:id', async (req, res) => {
   updatedData.updatedOn = Date.now();
 
   await activityModel.findByIdAndUpdate(id, updatedData);
-  res.redirect('/');
+  res.redirect('/editdelete');
 });
 
 router.post('/delete/:id', async (req, res) => {
   const { id } = req.params;
   await activityModel.findByIdAndDelete(id);
-  res.redirect('/');
+  res.redirect('/editdelete');
 });
 
 function getWeekNumber(date) {
