@@ -8,6 +8,119 @@
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
 <link rel="stylesheet" href="/stylesheets/style.css">
+<style>
+  .activitytable {
+width: 100vw;
+border-collapse: collapse;
+margin: 10px 0;
+font-size: 14px;
+text-align: center;
+}
+.btn{
+  background-color: #ee5b5b;
+  color: white;
+}
+.btn:hover{
+  background-color: #35beb3;
+  color: #000;
+}
+th, td {
+padding: 5px;
+border-bottom: 1px solid #ddd;
+}
+
+th {
+background-color: #f17575;
+color: #f3eeee;
+}
+
+tr:hover {
+background-color: #f8c2c2;
+}
+td:hover {
+            transform: scale(1.5);
+            z-index: 1;
+            position: relative;
+        }
+td:hover::after {
+            content: attr(data-fulltext);
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            padding: 5px;
+            white-space: nowrap;
+            z-index: 2;
+            transform: scale(1);
+        }
+.editing {
+border: 1px solid #000;
+}
+
+button {
+padding: 5px 10px;
+margin: 0 5px;
+border: none;
+background-color: #35beb3;
+color: white;
+cursor: pointer;
+border-radius: 5px;
+}
+
+button:hover {
+background-color: #ee5b5b;
+}
+
+button:disabled {
+background-color: #ccc;
+cursor: not-allowed;
+}
+
+button.cancel {
+background-color: #7a0712;
+}
+
+button.cancel:hover {
+background-color: #5a2227;
+}
+
+</style>
+<script>
+  function enableEdit(id) {
+      const row = document.getElementById(`row-${id}`);
+      const fields = row.querySelectorAll('.editable');
+      fields.forEach(field => {
+          field.removeAttribute('readonly');
+          field.classList.add('editing');
+      });
+
+      document.getElementById(`edit-${id}`).style.display = 'none';
+      document.getElementById(`delete-${id}`).style.display = 'none';
+      document.getElementById(`update-${id}`).style.display = 'inline';
+      document.getElementById(`cancel-${id}`).style.display = 'inline';
+  }
+
+  function cancelEdit(id) {
+      const row = document.getElementById(`row-${id}`);
+      const fields = row.querySelectorAll('.editable');
+      fields.forEach(field => {
+          field.setAttribute('readonly', true);
+          field.classList.remove('editing');
+      });
+
+      document.getElementById(`edit-${id}`).style.display = 'inline';
+      document.getElementById(`delete-${id}`).style.display = 'inline';
+      document.getElementById(`update-${id}`).style.display = 'none';
+      document.getElementById(`cancel-${id}`).style.display = 'none';
+  }
+
+  function confirmDelete(id) {
+      if (confirm('Do you want to delete this activity? Click Yes to delete and Cancel to abort.')) {
+          document.getElementById(`delete-form-${id}`).submit();
+      }
+  }
+</script>
 </head>
 <body>
     <nav class="navbar ">
@@ -22,11 +135,7 @@
       </nav>
 
       <div>
-        <a href="/editdelete">Modify existing Activities</a>
-      </div>
-      <div>
         <h1 class="text-center">Weekly update Activity Calendar</h1>
-        <p class="text-center">Enter the Activity details to add an activity.</p>
       </div>
    <div class=" datafield container border border-danger-subtle border-5">
 
@@ -55,13 +164,55 @@
         </div>
          <button
             type="submit"
-            class="btn btn-danger"
+            class="btn"
             >
             Add Activity
          </button>
          
        </Form>
     </div>
+    <h1 style="text-align: center;">Activity List</h1>
+    <table class="activitytable" >
+      <thead>
+          <tr>
+              <th>Activity Type</th>
+              <th>Activity Name</th>
+              <th>Start date</th>
+              <th>End Date</th>
+              <th>Resource</th>
+              <th>Remarks</th>
+              <th>Status</th>
+              <th>Created On</th>
+              <th>Updated On</th>
+              <th>Actions</th>
+          </tr>
+      </thead>
+      <tbody>
+          <% activities.forEach(activity => { %>
+              <tr id="row-<%= activity._id %>">
+                  <form action="/update/<%= activity._id %>" method="POST">
+                      <td><input type="text" name="activityType" value="<%= activity.activityType %>" class="editable" readonly></td>
+                      <td><input type="text" name="activityName" value="<%= activity.activityName %>" class="editable" readonly></td>
+                      <td><input type="text" name="startDate" value="<%= activity.startDate %>" class="editable" readonly></td>
+                      <td><input type="text" name="endDate" value="<%= activity.endDate %>" class="editable" readonly></td>
+                      <td><input type="text" name="resource" value="<%= activity.resource %>" class="editable" readonly></td>
+                      <td><input type="text" name="remarks" value="<%= activity.remarks %>" class="editable" readonly></td>
+                      <td><input type="text" name="status" value="<%= activity.status  ? 'Completed' : 'Ongoing' %>" class="editable" readonly></td>
+                      <td><input type="text" name="createdOn" value="<%= activity.createdOn %>"  readonly></td>
+                      <td><input type="text" name="updatedOn" value="<%= activity.updatedOn %>"  readonly></td>
+                      <td>
+                          <button type="button" id="edit-<%= activity._id %>" onclick="enableEdit('<%= activity._id %>')">Edit</button>
+                          <button type="submit" id="update-<%= activity._id %>" style="display:none;">Update</button>
+                          <button type="button" id="cancel-<%= activity._id %>" style="display:none;" onclick="cancelEdit('<%= activity._id %>')">Cancel</button>
+                          <button type="button" id="delete-<%= activity._id %>" onclick="confirmDelete('<%= activity._id %>')">Delete</button>
+                      </td>
+                  </form>
+                  <form id="delete-form-<%= activity._id %>" action="/delete/<%= activity._id %>" method="POST" style="display:none;"></form>
+              </tr>
+          <% }) %>
+      </tbody>
+  </table>
+
     <script src="https://code.jquery.com/jquery-3.6.1.min.js"
         integrity="sha256-o88AwQnZB+VDvE9tvIXrMQaPlFFSUTR+nldQm1LuPXQ=" crossorigin="anonymous">
     </script>

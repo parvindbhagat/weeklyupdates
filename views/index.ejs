@@ -16,7 +16,8 @@
       padding: 8px;
     }
     th {
-      background-color: #f2f2f2;
+      background-color: var(--primary-color);
+      color: white;
       text-align: left;
     }
     tr:nth-child(even) {
@@ -42,7 +43,7 @@
       <a href="/allactivities">All Activies</a>
       <a href="/createactivity">Add New Activity (for Project Managers ONLY)</a>      
     </div>
-    <h1 style="text-align: center;" >Activities for Week <%= currentWeekNumber %> (from <%= startDate.toDateString() %> to <%= endDate.toDateString() %>)</h1>
+    <h1 style="text-align: center;" >Planned Activities ( <%= startDate.toDateString() %> to <%= endDate.toDateString() %>)</h1>
   <% Object.keys(groupedActivities).forEach(activityType => { %>
     <h2><%= activityType %></h2>
     <table border="1">

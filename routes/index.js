@@ -38,8 +38,9 @@ router.get('/editdelete', async function(req, res, next) {
   res.render('editdelete', { activities });
 });
 
-router.get('/createactivity', function(req, res, next) {
-  res.render('createactivity', { title: 'Add Activities' });
+router.get('/createactivity', async function(req, res, next) {
+  const activities = await activityModel.find().sort({ updatedOn: -1 });
+  res.render('createactivity', { activities });
 });
 
 router.post('/createactivity', async (req, res) => {
@@ -77,11 +78,11 @@ router.post('/createactivity', async (req, res) => {
       weekNumber: weekNum
       });
     // console.log(newActivity);
-    const savedActivity = await newActivity.save();    //Holding save to check before writing into DB UNCOMMENT THIS LINE WHEN DATETOUSE IS FIXED.
+    await newActivity.save();    //Holding save to check console before writing into DB UNCOMMENT THIS LINE WHEN DATETOUSE IS FIXED.
     // res.status(201).json(savedActivity);
-    // req.flash(success: "new activity saved successfully")
+    // req.flash(success: "new activity saved successfully")  //Connect-flash not installed yet. Using js alert for now
     
-    res.render('createactivity', { alertMessage: 'Activity added Successfully!' });
+    res.redirect('/createactivity');
   } catch (error) {
     res.status(500).json({message: "error saving activity", error});
   }
@@ -95,13 +96,13 @@ router.post('/update/:id', async (req, res) => {
   updatedData.updatedOn = Date.now();
 
   await activityModel.findByIdAndUpdate(id, updatedData);
-  res.redirect('/editdelete');
+  res.redirect('/createactivity');
 });
 
 router.post('/delete/:id', async (req, res) => {
   const { id } = req.params;
   await activityModel.findByIdAndDelete(id);
-  res.redirect('/editdelete');
+  res.redirect('/createactivity');
 });
 
 function getWeekNumber(date) {

@@ -1,5 +1,10 @@
+:root {
+  --primary-color: #E95957; 
+  --secondary-color: #2ecc71; 
+}
+
 .navbar{
-  background-color: #E95957;
+  background-color:var(--primary-color);
  }
 
 .datafield{
