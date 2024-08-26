@@ -10,7 +10,7 @@ body{
 
 .navbar{
   background-color:var(--primary-color);
-  width: inherit;
+  width: 100%;
  }
 
 .datafield{
