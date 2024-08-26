@@ -1,7 +1,9 @@
 var express = require('express');
 var router = express.Router();
+const session = require('express-session');
 const activityModel = require('./activity');
-// const { request } = require('../app');
+require('dotenv').config();
+
 
 /* GET home page. */
 router.get('/', async (req, res) => {
@@ -38,7 +40,23 @@ router.get('/editdelete', async function(req, res, next) {
   res.render('editdelete', { activities });
 });
 
-router.get('/createactivity', async function(req, res, next) {
+router.get('/auth', (req, res) => {
+  res.render('auth');
+});
+
+router.post('/auth', (req, res) => {
+  const { code } = req.body;
+  const validCode = process.env.VC; 
+
+  if (code === validCode) {
+      req.session.isAuthenticated = true;
+      res.redirect('/createactivity');
+  } else {
+      res.redirect('/auth');
+  }
+});
+
+router.get('/createactivity', authMiddleware, async function(req, res, next) {
   const activities = await activityModel.find().sort({ updatedOn: -1 });
   res.render('createactivity', { activities });
 });
@@ -123,5 +141,12 @@ function getDateRangeForWeek(weekNumber, year) {
   return { startDate, endDate };
 }
 
+function authMiddleware(req, res, next) {
+  if (req.session && req.session.isAuthenticated) {
+      return next();
+  } else {
+      res.redirect('/auth');
+  }
+}
 
 module.exports = router;

@@ -1,14 +1,28 @@
 :root {
-  --primary-color: #E95957; 
-  --secondary-color: #2ecc71; 
+  --primary-color: #E95757; 
+  --secondary-color: #FCB22B; 
+}
+body{
+  width: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 .navbar{
   background-color:var(--primary-color);
+  width: inherit;
  }
 
 .datafield{
   padding: 5px;
   border-radius: 5px;
   max-width: 500px;
+}
+.btn{
+  background-color: #E95757;
+  color: white;
+}
+.btn:hover{
+  background-color: #FCB22B;
+  color: #000;
 }

@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="/stylesheets/style.css">
   <style>
     table {
-      width: 100%;
+      width: 99%;
       border-collapse: collapse;
     }
     th, td {
@@ -29,7 +29,7 @@
   </style>
 </head>
 <body>
-    <nav class="navbar ">
+    <nav class="navbar">
         <div class="">
           <a class="navbar-brand" href="/">
             <img src="/images/logo-ic.png" alt="Chrysalis" >
@@ -41,7 +41,7 @@
     </nav>
     <div>
       <a href="/allactivities">All Activies</a>
-      <a href="/createactivity">Add New Activity (for Project Managers ONLY)</a>      
+      <a href="/createactivity">Project Manager Login</a>      
     </div>
     <h1 style="text-align: center;" >Planned Activities ( <%= startDate.toDateString() %> to <%= endDate.toDateString() %>)</h1>
   <% Object.keys(groupedActivities).forEach(activityType => { %>
