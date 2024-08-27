@@ -24,10 +24,13 @@
       <div>
         <h1 class="text-center">Project Manager Log in</h1>
       </div>
-    <div class=" datafield container border border-danger-subtle border-5">
+    <div class=" datafield container  border-5">
+      <% if (errorMessage) { %>
+        <p style="color: red;"><%= errorMessage %></p>
+      <% } %>
         <form action="/auth" method="POST">
-            <input class="form-control" type="password" name="code" required>
-            <button class= "btn" type="submit">Submit</button>
+            <input class="form-control " type="password" name="code" required placeholder="Enter Valid Code">
+            <button class= "btn m-2" type="submit">Submit</button>
         </form>
     </div>
 </body>

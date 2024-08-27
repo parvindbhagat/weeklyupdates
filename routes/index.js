@@ -41,7 +41,8 @@ router.get('/editdelete', async function(req, res, next) {
 });
 
 router.get('/auth', (req, res) => {
-  res.render('auth');
+  const errorMessage = req.query.error === 'invalid_code' ? 'Invalid code! Please enter a valid code.' : '';
+  res.render('auth', { errorMessage });
 });
 
 router.post('/auth', (req, res) => {
@@ -52,7 +53,7 @@ router.post('/auth', (req, res) => {
       req.session.isAuthenticated = true;
       res.redirect('/createactivity');
   } else {
-      res.redirect('/auth');
+      res.redirect('/auth?error=invalid_code');
   }
 });
 
