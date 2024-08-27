@@ -7,7 +7,7 @@ const session = require('express-session');
 
 var indexRouter = require('./routes/index');
 var activityRouter = require('./routes/activity');
-const {getWeekNumber} = require('./routes/index');
+// const {getWeekNumber} = require('./routes/index');
 var app = express();
 
 
@@ -16,7 +16,7 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
 app.use(session({
-  secret: 'your_secret_key',
+  secret: 'a8f5f167f44f4964e6c998dff827110c',
   resave: false,
   saveUninitialized: true
 }));

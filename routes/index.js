@@ -55,17 +55,35 @@ router.post('/auth', (req, res) => {
 
 router.get('/createactivity', authMiddleware, async function(req, res, next) {
   const activities = await activityModel.find().sort({ updatedOn: -1 });
-  res.render('createactivity', { activities });
+  const msg = req.query.msg === 'successmsg' ? 'New Activity added successfully.' : '';
+  res.render('createactivity', { activities, msg });
 });
 
 router.post('/createactivity', async (req, res) => {
   
   try {
     let errors = []; 
+    let msg;
+    const activities = await activityModel.find().sort({ updatedOn: -1 });
     const {activityType, activityName, startDate, endDate, resource, remarks} = req.body;
     if (!activityType || !activityName || !resource ) {
-      errors.push({ msg: "Please fill in all required fields: Activity Type/Name and resource." });
+      errors.push({ msg: "Please fill in all required fields: Activity Type, Activity Name and Resource." });
     }
+    if (errors.length > 0) {
+      res.render("createactivity", {
+        errors,
+        activityType,
+        activityName,
+        startDate,
+        endDate,
+        resource,
+        remarks,
+        activities,
+        msg
+      });
+    } else{
+
+    
     const startDateValue = startDate && startDate.trim() !== "" ? startDate : "NA";
     const endDateValue = endDate && endDate.trim() !== "" ? endDate : "NA";
 
@@ -77,11 +95,11 @@ router.post('/createactivity', async (req, res) => {
     } else {
       dateToUse = new Date();
     }
-  //  console.log('datetouse is ', dateToUse);
+     console.log('datetouse is ', dateToUse);
     
     // const weekNumber = getWeekNumber(dateObject);
     let weekNum = getWeekNumber(dateToUse);
-    // console.log(`the week number is ${weekNum}`);
+    console.log(`the week number is ${weekNum}`);
 
     const newActivity = new activityModel({
       activityType,
@@ -92,12 +110,12 @@ router.post('/createactivity', async (req, res) => {
       remarks,
       weekNumber: weekNum
       });
-    // console.log(newActivity);
+    console.log(newActivity);
     await newActivity.save();    //Holding save to check console before writing into DB UNCOMMENT THIS LINE WHEN DATETOUSE IS FIXED.
     // res.status(201).json(savedActivity);
     // req.flash(success: "new activity saved successfully")  //Connect-flash not installed yet. Using js alert for now
-    
-    res.redirect('/createactivity');
+        res.redirect('/createactivity?msg=successmsg');
+  }
   } catch (error) {
     res.status(500).json({message: "error saving activity", error});
   }

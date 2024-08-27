@@ -136,12 +136,31 @@ background-color: #5a2227;
 
       <div>
         <h1 class="text-center">Weekly update Activity Calendar</h1>
+        <% if(typeof errors != 'undefined'){ %>
+            <% errors.forEach(function(error) { %>
+                <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                    <%= error.msg %>
+                    
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close">
+                        
+                </div>
+           <% }); %>
+        <% } %>
+        <% if (msg) { %>
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <%= msg %>
+                
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close">
+                    
+            </div>
+            
+          <% } %>
       </div>
    <div class=" datafield container border border-danger-subtle border-5">
 
        <Form action="/createactivity" method="post">
         <label for="ActivityType"  name="activityType" class="form-label">Activity Type <span style="color: red;" >*</span></label>
-        <input class="form-control" list="datalistOptions" id="ActivityType" name="activityType" placeholder="Type to search... (REQUIRED)">
+        <input class="form-control" list="datalistOptions" id="ActivityType" name="activityType" placeholder="Type to search... (REQUIRED)" value="<%= typeof activityType != 'undefined' ? activityType : '' %>">
         <datalist id="datalistOptions">
           <option value="Rollouts">
           <option value="TTT/Teach Back">
@@ -151,16 +170,16 @@ background-color: #5a2227;
             <option value="Diagnostics">
         </datalist> 
         <label for="ActivityName" class="form-label">Activity Name <span style="color: red;" >*</span></label>
-        <input class="form-control" id="ActivityName" name="activityName" placeholder="Activity (REQUIRED)">
+        <input class="form-control" id="ActivityName" name="activityName" placeholder="Activity (REQUIRED)" value="<%= typeof activityName != 'undefined' ? activityName : '' %>">
         <label for="startdate" class="form-label date"  >Start Date</label>
-        <input class="form-control input-group date" id="startdate" data-date-format="dd/mm/yyyy" name="startDate" placeholder="Start Date: Blank to enter NA">
+        <input class="form-control input-group date" id="startdate" data-date-format="dd/mm/yyyy" name="startDate" placeholder="Start Date: Blank to enter NA" value="<%= typeof startDate != 'undefined' ? startDate : '' %>">
         <label for="enddate" class="form-label">End Date</label>
-        <input class="form-control" id="enddate" data-date-format="dd/mm/yyyy" name="endDate" placeholder="End Date: Blank to enter NA">
+        <input class="form-control" id="enddate" data-date-format="dd/mm/yyyy" name="endDate" placeholder="End Date: Blank to enter NA" value="<%= typeof endDate != 'undefined' ? endDate : '' %>">
         <label for="Resource" class="form-label">Resource <span style="color: red;" >*</span></label>
-        <input class="form-control" id="Resource" name="resource" placeholder="Resource Name (REQUIRED)">
+        <input class="form-control" id="Resource" name="resource" placeholder="Resource Name (REQUIRED)" value="<%= typeof resource != 'undefined' ? resource : '' %>">
         <div class="mb-3">
             <label for="Remarks" class="form-label">Remarks</label>
-            <textarea class="form-control" name="remarks" id="Remarks" rows="3"></textarea>
+            <textarea class="form-control" name="remarks" id="Remarks" rows="3" value="<%= typeof remarks != 'undefined' ? remarks : '' %>"></textarea>
         </div>
          <button
             type="submit"
