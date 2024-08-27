@@ -140,8 +140,8 @@ background-color: #5a2227;
    <div class=" datafield container border border-danger-subtle border-5">
 
        <Form action="/createactivity" method="post">
-        <label for="ActivityType"  name="activityType" class="form-label">Activity Type</label>
-        <input class="form-control" list="datalistOptions" id="ActivityType" name="activityType" placeholder="Type to search...">
+        <label for="ActivityType"  name="activityType" class="form-label">Activity Type <span style="color: red;" >*</span></label>
+        <input class="form-control" list="datalistOptions" id="ActivityType" name="activityType" placeholder="Type to search... (REQUIRED)">
         <datalist id="datalistOptions">
           <option value="Rollouts">
           <option value="TTT/Teach Back">
@@ -150,14 +150,14 @@ background-color: #5a2227;
           <option value="eLearning Task">
             <option value="Diagnostics">
         </datalist> 
-        <label for="ActivityName" class="form-label">Activity Name</label>
-        <input class="form-control" id="ActivityName" name="activityName" placeholder="Activity">
+        <label for="ActivityName" class="form-label">Activity Name <span style="color: red;" >*</span></label>
+        <input class="form-control" id="ActivityName" name="activityName" placeholder="Activity (REQUIRED)">
         <label for="startdate" class="form-label date"  >Start Date</label>
         <input class="form-control input-group date" id="startdate" data-date-format="dd/mm/yyyy" name="startDate" placeholder="Start Date: Blank to enter NA">
         <label for="enddate" class="form-label">End Date</label>
         <input class="form-control" id="enddate" data-date-format="dd/mm/yyyy" name="endDate" placeholder="End Date: Blank to enter NA">
-        <label for="Resource" class="form-label">Resource</label>
-        <input class="form-control" id="Resource" name="resource" placeholder="Resource Name">
+        <label for="Resource" class="form-label">Resource <span style="color: red;" >*</span></label>
+        <input class="form-control" id="Resource" name="resource" placeholder="Resource Name (REQUIRED)">
         <div class="mb-3">
             <label for="Remarks" class="form-label">Remarks</label>
             <textarea class="form-control" name="remarks" id="Remarks" rows="3"></textarea>

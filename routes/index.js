@@ -35,10 +35,6 @@ router.get('/allactivities', async function(req, res, next) {
   res.render('allactivities', { activities });
 });
 
-router.get('/editdelete', async function(req, res, next) {
-  const activities = await activityModel.find().sort({ updatedOn: -1 });
-  res.render('editdelete', { activities });
-});
 
 router.get('/auth', (req, res) => {
   const errorMessage = req.query.error === 'invalid_code' ? 'Invalid code! Please enter a valid code.' : '';
@@ -67,8 +63,8 @@ router.post('/createactivity', async (req, res) => {
   try {
     let errors = []; 
     const {activityType, activityName, startDate, endDate, resource, remarks} = req.body;
-    if (!activityType || !activityName || !resource || !remarks) {
-      errors.push({ msg: "Please fill in all required fields: Activity Type/Name, resource and remarks." });
+    if (!activityType || !activityName || !resource ) {
+      errors.push({ msg: "Please fill in all required fields: Activity Type/Name and resource." });
     }
     const startDateValue = startDate && startDate.trim() !== "" ? startDate : "NA";
     const endDateValue = endDate && endDate.trim() !== "" ? endDate : "NA";
@@ -81,11 +77,11 @@ router.post('/createactivity', async (req, res) => {
     } else {
       dateToUse = new Date();
     }
-   console.log('datetouse is ', dateToUse);
+  //  console.log('datetouse is ', dateToUse);
     
     // const weekNumber = getWeekNumber(dateObject);
     let weekNum = getWeekNumber(dateToUse);
-    console.log(`the week number is ${weekNum}`);
+    // console.log(`the week number is ${weekNum}`);
 
     const newActivity = new activityModel({
       activityType,
@@ -106,8 +102,6 @@ router.post('/createactivity', async (req, res) => {
     res.status(500).json({message: "error saving activity", error});
   }
 });
-
-
 
 router.post('/update/:id', async (req, res) => {
   const { id } = req.params;
