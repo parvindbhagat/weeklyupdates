@@ -11,14 +11,15 @@ mongoose.connect(process.env.MONGO_URI, {}).then(() => {
 
 
 const activitySchema = new mongoose.Schema({
-  activityType: { type: String, required: true },
+  activityType: { type: String, required: true },        // Activity Category for users
   activityName: { type: String, required: true },
   startDate: { type: String,  default: 'NA'  },
   endDate: { type: String,  default: 'NA'  },
+  activityMode: { type: String, default: 'NA'},                        // Activiity Type for users
   resource: { type: String, required: true },
-  remarks: { type: String },
+  remarks: { type: String, default: 'NA' },
   weekNumber: { type: Number },
-  status: { type: Boolean, required: true, default: false },
+  status: { type: Boolean, default: false },
   createdOn: { type: Date, default: Date.now },
   updatedOn: { type: Date, default: Date.now }
 });

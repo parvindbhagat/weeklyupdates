@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Activities</title>
+  <title>Updates</title>
+  <link rel="icon" type="image/png" href="/favicon.png"> 
   <link
     href="https://cdn.jsdelivr.net/npm/remixicon@4.3.0/fonts/remixicon.css"
     rel="stylesheet"/>
@@ -11,8 +12,9 @@
   <link rel="stylesheet" href="/stylesheets/style.css">
   <style>
     table {
-      width: 99%;
+      width: 100%;
       border-collapse: collapse;
+      
     }
     th, td {
       border: 1px solid #ddd;
@@ -43,20 +45,21 @@
         </div>
     </nav>
     <div>
-      <a href="/allactivities"><i class="ri-timer-line"></i> All Activies</a>
-      <a href="/createactivity"><i class="ri-admin-line"></i> Project Manager Login</a>      
+      <a href="/allactivities"><i class="ri-timer-line"></i> Weekly Updates Archive</a>
+      <a href="/createactivity" style="float: right;"><i class="ri-admin-line"></i> Project Manager Login</a>      
     </div>
-    <h1 style="text-align: center;" >Planned Activities ( <%= startDate.toDateString() %> to <%= endDate.toDateString() %>)</h1>
+    <h1 style="text-align: center;" >Weekly Updates ( <%= startDate.toDateString() %> to <%= endDate.toDateString() %>)</h1>
   <% Object.keys(groupedActivities).forEach(activityType => { %>
-    <h2 style="margin-left: 25px;"><%= activityType %></h2>
+    <h2 style="margin-left: 25px; margin-top: 25px;"><%= activityType %></h2>
     <table border="1">
       <thead>
         <tr>
           
-          <th>Name</th>
+          <th>Activity</th>
           <th>Start Date</th>
           <th>End Date</th>
           <th>Resource</th>
+          <th>Activity Type</th>
           <th>Remarks</th>
           <th>Status</th>
           
@@ -70,14 +73,22 @@
             <td><%= activity.startDate %></td>
             <td><%= activity.endDate %></td>
             <td><%= activity.resource %></td>
+            <td><%= activity.activityMode %></td>
             <td><%= activity.remarks %></td>
             <td><%= activity.status ? 'Completed' : 'Ongoing' %></td>
             
             
           </tr>
         <% }); %>
+
+        
       </tbody>
     </table>
   <% }); %>
+  <div class="footer" >
+    <h5 class="footext">That was all!
+       Looking for older updates?  Check <a href="/allactivities"><i class="ri-timer-line"></i>Updates Archive</a>
+    </h5>
+  </div>
 </body>
 </html>

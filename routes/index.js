@@ -65,7 +65,7 @@ router.post('/createactivity', async (req, res) => {
     let errors = []; 
     let msg;
     const activities = await activityModel.find().sort({ updatedOn: -1 });
-    const {activityType, activityName, startDate, endDate, resource, remarks} = req.body;
+    const {activityType, activityName, activityMode, startDate, endDate, resource, remarks} = req.body;
     if (!activityType || !activityName || !resource ) {
       errors.push({ msg: "Please fill in all required fields: Activity Type, Activity Name and Resource." });
     }
@@ -74,6 +74,7 @@ router.post('/createactivity', async (req, res) => {
         errors,
         activityType,
         activityName,
+        activityMode,
         startDate,
         endDate,
         resource,
@@ -87,16 +88,8 @@ router.post('/createactivity', async (req, res) => {
     const startDateValue = startDate && startDate.trim() !== "" ? startDate : "NA";
     const endDateValue = endDate && endDate.trim() !== "" ? endDate : "NA";
 
-    let dateToUse;
-    if (startDateValue !== "NA") {
-      console.log(startDateValue);
-      const [day, month, year] = startDate.split('/');
-      dateToUse = new Date(Date.UTC(year, month - 1, day));
-    } else {
-      dateToUse = new Date();
-    }
-     console.log('datetouse is ', dateToUse);
-    
+    let dateToUse = new Date();
+      
     // const weekNumber = getWeekNumber(dateObject);
     let weekNum = getWeekNumber(dateToUse);
     console.log(`the week number is ${weekNum}`);
@@ -107,6 +100,7 @@ router.post('/createactivity', async (req, res) => {
       startDate: startDateValue,
       endDate: endDateValue,
       resource,
+      activityMode,
       remarks,
       weekNumber: weekNum
       });

@@ -4,6 +4,8 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 const session = require('express-session');
+const favicon = require('serve-favicon');
+
 
 var indexRouter = require('./routes/index');
 var activityRouter = require('./routes/activity');
@@ -20,6 +22,7 @@ app.use(session({
   resave: false,
   saveUninitialized: true
 }));
+app.use(favicon(path.join(__dirname, 'favicon.png')));
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
