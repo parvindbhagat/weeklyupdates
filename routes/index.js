@@ -88,8 +88,34 @@ router.post('/createactivity', async (req, res) => {
     const startDateValue = startDate && startDate.trim() !== "" ? startDate : "NA";
     const endDateValue = endDate && endDate.trim() !== "" ? endDate : "NA";
 
-    let dateToUse = new Date();
-      
+    const currentWeekNumber = getWeekNumber(new Date());
+    const weekRange = getDateRangeForWeek(currentWeekNumber, new Date().getFullYear());
+    const startOfWeek = weekRange.startDate;
+
+    
+     console.log(currentWeekNumber);   // .dev
+     console.log(startOfWeek);  /// .dev
+    let dateToUse;
+    // if (startDateValue !== "NA") {
+    //   console.log(startDateValue);
+    //   const [day, month, year] = startDate.split('/');
+    //   dateToUse = new Date(Date.UTC(year, month - 1, day));
+    // } else {
+    //   dateToUse = new Date();
+    // }
+    if (startDateValue == "NA"){
+      dateToUse = new Date();
+    } else {
+      const [day, month, year] = startDate.split('/');
+      const startDateObj = new Date(Date.UTC(year, month - 1, day));
+      console.log(startDateObj);        /// .dev
+      if (startDateObj < startOfWeek) {
+        dateToUse = new Date();
+      } else {
+        dateToUse = startDateObj;
+      }
+    }
+      console.log(dateToUse);
     // const weekNumber = getWeekNumber(dateObject);
     let weekNum = getWeekNumber(dateToUse);
     console.log(`the week number is ${weekNum}`);

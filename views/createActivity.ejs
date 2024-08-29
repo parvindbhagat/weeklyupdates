@@ -29,7 +29,7 @@ text-align: center;
 }
 th, td {
 padding: 5px;
-border-bottom: 1px solid #ddd;
+border-bottom: 1px solid #d1bfbf;
 }
 
 th {
@@ -223,7 +223,7 @@ background-color: #5a2227;
               <tr id="row-<%= activity._id %>">
                   <form action="/update/<%= activity._id %>" method="POST">
                       <td><input type="text" name="activityType" value="<%= activity.activityType %>" class="editable" readonly></td>
-                      <td><input type="text" name="activityName" value="<%= activity.activityName %>" class="editable" readonly></td>
+                      <td><input data-fulltext="<%= activity.activityName %>" type="text" name="activityName" value="<%= activity.activityName %>" class="editable" readonly></td>
                       <td><input type="text" name="startDate" value="<%= activity.startDate %>" class="editable" readonly></td>
                       <td><input type="text" name="endDate" value="<%= activity.endDate %>" class="editable" readonly></td>
                       <td><input type="text" name="resource" value="<%= activity.resource %>" class="editable" readonly></td>
