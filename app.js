@@ -9,7 +9,7 @@ const favicon = require('serve-favicon');
 
 var indexRouter = require('./routes/index');
 var activityRouter = require('./routes/activity');
-// const {getWeekNumber} = require('./routes/index');
+var escalationRouter = require('./routes/escalation')
 var app = express();
 
 
@@ -31,6 +31,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
 app.use('/activity', activityRouter);
+app.use('/escalation', escalationRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

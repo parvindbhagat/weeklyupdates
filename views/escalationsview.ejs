@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Weekly Updates</title>
+  <title>Escalations Update</title>
   <link
     href="https://cdn.jsdelivr.net/npm/remixicon@4.3.0/fonts/remixicon.css"
     rel="stylesheet"/>
@@ -23,45 +23,41 @@
     </div>
   </nav>
 <div>
-<a href="/"><i class="ri-timer-flash-line"></i> Current Week Activies</a>
-<a href="/createactivity"><i class="ri-admin-line"></i> Project Manager Login</a>
+<a href="/"><i class="ri-timer-flash-line"></i>Home</a>
+<a href="/escAdmin"><i class="ri-admin-line"></i> Escalations Admin</a>
 
 </div>
-<h1 style="text-align: center;">Updates Archive</h1>
+<h1 style="text-align: center;">Escalations</h1>
 
 
-  <div class="activitylist mb-50">
+  <div class="esclist mb-50 d-flex justify-content-center">
     <table class="table-striped table-auto m-2 bg-white border border-gray-300" >
       <thead class="bg-warning">
         <tr>
-          <th class="border border-gray-300 px-4 py-2">Category</th>
-          <th class="border border-gray-300 px-4 py-2">Activity</th>
-          <th class="border border-gray-300 px-4 py-2">Start Date</th>
-          <th class="border border-gray-300 px-4 py-2">End Date</th>
+          <th class="border border-gray-300 px-4 py-2">Client Name</th>
+          <th class="border border-gray-300 px-4 py-2">Task Name</th>
+          <th class="border border-gray-300 px-4 py-2">Level (Days)</th>
           <th class="border border-gray-300 px-4 py-2">Resource</th>
-          <th class="border border-gray-300 px-4 py-2">Activity Type</th>
           <th class="border border-gray-300 px-4 py-2">Remarks</th>
           <th class="border border-gray-300 px-4 py-2">Status</th>
         </tr>
       </thead>
       <tbody>
-        <% activities.forEach(activity => { %>
+        <% escalations.forEach(esc => { %>
           <tr>
-            <td class="border border-gray-300 px-4 py-2 text-center"><%= activity.activityType %></td>
-            <td class="border border-gray-300 px-4 py-2 text-center"><%= activity.activityName %></td>
-            <td class="border border-gray-300 px-4 py-2 text-center"><%= activity.startDate %></td>
-            <td class="border border-gray-300 px-4 py-2 text-center"><%= activity.endDate %></td>
-            <td class="border border-gray-300 px-4 py-2 text-center"><%= activity.resource %></td>
-            <td class="border border-gray-300 px-4 py-2 text-center"><%= activity.activityMode %></td>
-            <td class="border border-gray-300 px-4 py-2 text-center"><%= activity.remarks %></td>
-            <td class="border border-gray-300 px-4 py-2 text-center"><%= activity.status  ? 'Completed' : 'Ongoing' %></td>
+            <td class="border border-gray-300 px-4 py-2 text-center"><%= esc.clientName %></td>
+            <td class="border border-gray-300 px-4 py-2 text-center"><%= esc.taskName %></td>
+            <td class="border border-gray-300 px-4 py-2 text-center"><%= esc.level %></td>
+            <td class="border border-gray-300 px-4 py-2 text-center"><%= esc.resource %></td>
+            <td class="border border-gray-300 px-4 py-2 text-center"><%= esc.remarks %></td>
+            <td class="border border-gray-300 px-4 py-2 text-center"><%= esc.status %></td>
           </tr>
         <% }); %>
       </tbody>
     </table>
 </div>
 <div class="footer" >
-  <h4 class="footext">That was all!  </h4>
+  <h4 class="footext" style=" text-align: center;">That was all!  </h4>
   <p style=" text-align: center; margin-top: 10px;">Copyright © 2024  <a href="https://chrysalis.in">Chrysalis HRD</a></p>
 </div>
 

@@ -1,7 +1,8 @@
 var express = require('express');
 var router = express.Router();
 const session = require('express-session');
-const activityModel = require('./activity');
+const escalationModel = require('./escalation');
+const activityModel= require('./activity');
 require('dotenv').config();
 
 
@@ -29,6 +30,11 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET Escalations view page
+router.get('/escalationsview', async (req, res) => {
+  const escalations = await escalationModel.find();
+  res.render('escalationsview', {escalations});
+});
 // ALL ACtivities page
 router.get('/allactivities', async function(req, res, next) {
   const activities = await activityModel.find().sort({ updatedOn: -1 });
@@ -43,13 +49,79 @@ router.get('/auth', (req, res) => {
 
 router.post('/auth', (req, res) => {
   const { code } = req.body;
-  const validCode = process.env.VC; 
+  const validCodeA = process.env.VCA; 
+  const validCodeE = process.env.VCE
 
-  if (code === validCode) {
+  if (code === validCodeA) {
       req.session.isAuthenticated = true;
       res.redirect('/createactivity');
-  } else {
+  } if (code === validCodeE) {
+      req.session.isAuthenticated = true;
+      res.redirect('/escAdmin');
+  }   else {
       res.redirect('/auth?error=invalid_code');
+  }
+});
+
+router.get('/escAdmin', authMiddleware, async function(req, res, next) {
+  const escalations = await escalationModel.find().sort({ updatedOn: -1 });
+  const msg = req.query.msg === 'successmsg' ? 'New Escalation added successfully.' : '';
+  res.render('escAdmin', { escalations, msg });
+});
+
+
+router.post('/escAdmin', async (req, res) => {
+  
+  try {
+    let errors = []; 
+    let msg;
+    const escalations = await escalationModel.find().sort({ updatedOn: -1 });
+    const {clientName, taskName, level, status, resource, remarks} = req.body;
+    if (!clientName || !taskName || !resource ) {
+      errors.push({ msg: "Please fill in all required fields: Client Name, Task Name and Resource." });
+    }
+    if (errors.length > 0) {
+      res.render("escAdmin", {
+        errors,
+        clientName,
+        taskName,
+        level,        
+        resource,
+        remarks,
+        status,
+        escalations,
+        msg
+      });
+    } else{
+       
+    const currentWeekNumber = getWeekNumber(new Date());
+    const weekRange = getDateRangeForWeek(currentWeekNumber, new Date().getFullYear());
+    const startOfWeek = weekRange.startDate;
+
+    
+     console.log(currentWeekNumber);   // .dev
+     console.log(startOfWeek);  /// .dev
+    
+    let weekNum = currentWeekNumber;
+    console.log(`the week number is ${weekNum}`);
+
+    const newEscalation = new escalationModel({
+      clientName,
+      taskName,      
+      resource,
+      level,
+      remarks,
+      status,
+      weekNumber: weekNum
+      });
+    console.log(newEscalation);
+    await newEscalation.save();    //Holding save to check console before writing into DB UNCOMMENT THIS LINE WHEN DATETOUSE IS FIXED.
+    // res.status(201).json(savedActivity);
+    // req.flash(success: "new activity saved successfully")  //Connect-flash not installed yet. Using js alert for now
+        res.redirect('/escAdmin?msg=successmsg');
+  }
+  } catch (error) {
+    res.status(500).json({message: "error saving escalation", error});
   }
 });
 
