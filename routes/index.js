@@ -24,14 +24,38 @@ router.get('/', async (req, res) => {
     }, {});
     // console.log('Grouped Activities:', groupedActivities)
 
-    res.render('index', { groupedActivities, currentWeekNumber, startDate, endDate });
+    res.render('index', { groupedActivities, startDate, endDate });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching activities', error: error.message });
+  }
+});
+
+
+router.get('/activities', async (req, res) => {
+  try {
+    const currentWeekNumber = getWeekNumber(new Date());
+
+    const { startDate, endDate } = getDateRangeForWeek(currentWeekNumber, new Date().getFullYear());
+    const activities = await activityModel.find({ weekNumber: currentWeekNumber });
+
+    // Group activities by activityType
+    const groupedActivities = activities.reduce((acc, activity) => {
+      if (!acc[activity.activityType]) {
+        acc[activity.activityType] = [];
+      }
+      acc[activity.activityType].push(activity);
+      return acc;
+    }, {});
+    // console.log('Grouped Activities:', groupedActivities)
+
+    res.render('activities', { groupedActivities, startDate, endDate });
   } catch (error) {
     res.status(500).json({ message: 'Error fetching activities', error: error.message });
   }
 });
 
 // GET Escalations view page
-router.get('/escalationsview', async (req, res) => {
+router.get('/escalationsview', authMiddleware,  async (req, res) => {
   const escalations = await escalationModel.find();
   res.render('escalationsview', {escalations});
 });
@@ -55,13 +79,32 @@ router.post('/auth', (req, res) => {
   if (code === validCodeA) {
       req.session.isAuthenticated = true;
       res.redirect('/createactivity');
-  } if (code === validCodeE) {
+  } else if (code === validCodeE) {
       req.session.isAuthenticated = true;
-      res.redirect('/escAdmin');
+      res.redirect('/escalationsview');
   }   else {
       res.redirect('/auth?error=invalid_code');
   }
 });
+
+// updated router to distinguis different code and session for authentication to access  activity admin and escalation section. 
+// router.post('/auth', (req, res) => {
+//   const { code } = req.body;
+//   const validCodeA = process.env.VCA; 
+//   const validCodeE = process.env.VCE;
+
+//   if (code === validCodeA) {
+//     req.session.isAuthenticated = true;
+//     req.session.authType = 'activity';
+//     res.redirect('/createactivity');
+//   } else if (code === validCodeE) {
+//     req.session.isAuthenticated = true;
+//     req.session.authType = 'escalation';
+//     res.redirect('/escalationsview');
+//   } else {
+//     res.redirect('/auth?error=invalid_code');
+//   }
+// });
 
 router.get('/escAdmin', authMiddleware, async function(req, res, next) {
   const escalations = await escalationModel.find().sort({ updatedOn: -1 });
@@ -222,11 +265,55 @@ router.post('/update/:id', async (req, res) => {
   res.redirect('/createactivity');
 });
 
+//router.post('/update/:id', async (req, res) => {
+//   const { id } = req.params;
+//   const updatedData = req.body;
+//   updatedData.updatedOn = Date.now();
+
+//   let model;
+//   if (req.headers['referer'].includes('/createActivity')) {
+//     model = activityModel;
+//   } else if (req.headers['referer'].includes('/escAdmin')) {
+//     model = escalationModel;
+//   } else {
+//     return res.status(400).send('Invalid request source');
+//   }
+
+//   try {
+//     await model.findByIdAndUpdate(id, updatedData);
+//     res.redirect(req.headers['referer']);
+//   } catch (error) {
+//     console.error('Error updating data:', error);
+//     res.status(500).send('Internal Server Error');
+//   }
+// });
+
 router.post('/delete/:id', async (req, res) => {
   const { id } = req.params;
   await activityModel.findByIdAndDelete(id);
   res.redirect('/createactivity');
 });
+
+// router.post('/delete/:id', async (req, res) => {
+//   const { id } = req.params;
+
+//   let model;
+//   if (req.headers['referer'].includes('/createActivity')) {
+//     model = activityModel;
+//   } else if (req.headers['referer'].includes('/escAdmin')) {
+//     model = escalationModel;
+//   } else {
+//     return res.status(400).send('Invalid request source');
+//   }
+
+//   try {
+//     await model.findByIdAndDelete(id);
+//     res.redirect(req.headers['referer']);
+//   } catch (error) {
+//     console.error('Error deleting data:', error);
+//     res.status(500).send('Internal Server Error');
+//   }
+// });
 
 function getWeekNumber(date) {
   const target = new Date(date.valueOf());
@@ -253,5 +340,40 @@ function authMiddleware(req, res, next) {
       res.redirect('/auth');
   }
 }
+
+const ensureActivityAuth = (req, res, next) => {
+  if (req.session.isAuthenticated && req.session.authType === 'activity') {
+    return next();
+  } else {
+    res.redirect('/auth?error=unauthorized');
+  }
+};
+
+const ensureEscalationAuth = (req, res, next) => {
+  if (req.session.isAuthenticated && req.session.authType === 'escalation') {
+    return next();
+  } else {
+    res.redirect('/auth?error=unauthorized');
+  }
+};
+
+ // search records on multiple fields with partial match and case insensitive  character.
+const findRecordsByFields = async (searchTerm) => {
+  try {
+    const query = {
+      $or: [
+        { name: { $regex: searchTerm, $options: 'i' } },
+        { city: { $regex: searchTerm, $options: 'i' } },
+        { department: { $regex: searchTerm, $options: 'i' } },
+        { status: { $regex: searchTerm, $options: 'i' } }
+      ]
+    };
+
+    const records = await activityModel.find(query);
+    return records;
+  } catch (error) {
+    console.error('Error finding records:', error);
+  }
+};
 
 module.exports = router;

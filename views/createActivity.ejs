@@ -45,18 +45,7 @@ td:hover {
             z-index: 1;
             position: relative;
         }
-td:hover::after {
-            content: attr(data-fulltext);
-            position: absolute;
-            top: 100%;
-            left: 0;
-            background-color: #fff;
-            border: 1px solid #ddd;
-            padding: 5px;
-            white-space: nowrap;
-            z-index: 2;
-            transform: scale(1);
-        }
+
 .editing {
 border: 1px solid #000;
 }
@@ -169,7 +158,7 @@ background-color: #5a2227;
           <option value="TTT/Teach Back">
           <option value="Content Creation">
           <option value="Task pending from past week">
-          <option value="eLearning Task">
+          <option value="eLearning Project">
             <option value="Diagnostics">
         </datalist> 
         <label for="ActivityName" class="form-label">Activity Name <span style="color: red;" >*</span></label>
