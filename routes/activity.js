@@ -15,10 +15,15 @@ const activitySchema = new mongoose.Schema({
   activityName: { type: String, required: true },
   startDate: { type: String,  default: 'NA'  },
   endDate: { type: String,  default: 'NA'  },
+  startTime: { type: String,  default: '00:00'},
+  endTime: {type: String,  default: '00:00'},
+  startDateTime: {type: String},
+  endDateTime: {type: String},
   activityMode: { type: String, default: 'NA'},                        // Activiity Type for users
   resource: { type: String, required: true },
   remarks: { type: String, default: 'NA' },
   weekNumber: { type: Number },
+  year: { type: Number },
   status: { type: Boolean, default: false },
   createdOn: { type: Date, default: Date.now },
   updatedOn: { type: Date, default: Date.now }

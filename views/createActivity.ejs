@@ -163,10 +163,27 @@ background-color: #5a2227;
         </datalist> 
         <label for="ActivityName" class="form-label">Activity Name <span style="color: red;" >*</span></label>
         <input class="form-control" id="ActivityName" name="activityName" placeholder="Activity (REQUIRED)" value="<%= typeof activityName != 'undefined' ? activityName : '' %>">
-        <label for="startdate" class="form-label date"  >Start Date</label>
-        <input class="form-control input-group date" id="startdate" data-date-format="dd/mm/yyyy" name="startDate" placeholder="Start Date: Blank to enter NA" value="<%= typeof startDate != 'undefined' ? startDate : '' %>">
-        <label for="enddate" class="form-label">End Date</label>
-        <input class="form-control" id="enddate" data-date-format="dd/mm/yyyy" name="endDate" placeholder="End Date: Blank to enter NA" value="<%= typeof endDate != 'undefined' ? endDate : '' %>">
+       <div class="container">
+            <div class="row">
+                <div class="col">
+                    <label for="startdate" class="form-label date"  >Start Date</label>
+                    <input class="form-control input-group date" id="startdate" data-date-format="dd/mm/yyyy" name="startDate" placeholder="Start Date: Blank to enter NA" value="<%= typeof startDate != 'undefined' ? startDate : '' %>">
+                </div>
+                <div class="col">
+                    <label for="startTime" class="form-label date">Start Time</label>
+                    <input class="form-control input-group" id="startTime" type="time" name="startTime">        
+                </div>
+                <div class="col">
+                    <label for="enddate" class="form-label">End Date</label>
+                    <input class="form-control" id="enddate" data-date-format="dd/mm/yyyy" name="endDate" placeholder="End Date: Blank to enter NA" value="<%= typeof endDate != 'undefined' ? endDate : '' %>">        
+                </div>
+                <div class="col">
+                    <label for="endTime" class="form-label">End Time</label>
+                    <input class="form-control input-group" id="endTime" type="time" name="endTime" >
+                </div>                
+            </div>
+            
+        </div>  
         <label for="Resource" class="form-label">Resource <span style="color: red;" >*</span></label>
         <input class="form-control" id="Resource" name="resource" placeholder="Resource Name (REQUIRED)" value="<%= typeof resource != 'undefined' ? resource : '' %>">
         <label for="activityMode"  name="activityMode" class="form-label">Activity Type </label>
@@ -191,6 +208,8 @@ background-color: #5a2227;
        </Form>
     </div>
     <h1 style="text-align: center;">Activity List</h1>
+    <p>Note: To change the status of the activity, enter "true" in all lowercase to mark it Completed.</p>
+    <p> Start Time and End Time are not being recordered yet, its in development phase.</p>
     <table class="activitytable" >
       <thead>
           <tr>

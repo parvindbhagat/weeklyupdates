@@ -9,10 +9,8 @@ require('dotenv').config();
 /* GET home page. */
 router.get('/', async (req, res) => {
   try {
-    const currentWeekNumber = getWeekNumber(new Date());
-
-    const { startDate, endDate } = getDateRangeForWeek(currentWeekNumber, new Date().getFullYear());
-    const activities = await activityModel.find({ weekNumber: currentWeekNumber });
+    const { startDate, endDate } = getDateRangeForWeek(getWeekNumber(new Date()), new Date().getFullYear());
+    const activities = await activityModel.find({ weekNumber: getWeekNumber(new Date()) }).sort({startDate: 1});
 
     // Group activities by activityType
     const groupedActivities = activities.reduce((acc, activity) => {
@@ -33,10 +31,8 @@ router.get('/', async (req, res) => {
 
 router.get('/activities', async (req, res) => {
   try {
-    const currentWeekNumber = getWeekNumber(new Date());
-
-    const { startDate, endDate } = getDateRangeForWeek(currentWeekNumber, new Date().getFullYear());
-    const activities = await activityModel.find({ weekNumber: currentWeekNumber });
+    const { startDate, endDate } = getDateRangeForWeek(getWeekNumber(new Date()), new Date().getFullYear());
+    const activities = await activityModel.find({ weekNumber: getWeekNumber(new Date()) }).sort({startDate: 1});
 
     // Group activities by activityType
     const groupedActivities = activities.reduce((acc, activity) => {
@@ -54,10 +50,19 @@ router.get('/activities', async (req, res) => {
   }
 });
 
+
+router.get('/countdown', async (req, res) => {
+  const currentWeekNumber = getWeekNumber(new Date());  
+  const currentYear = new Date().getFullYear();  // to be used for filter as later the we will have same week number for current year and next year
+  const sessions = await activityModel.find({activityType: 'Rollouts', weekNumber: currentWeekNumber, year: currentYear}).sort({ startDate: 1 });      
+  
+  res.render('countdown', {sessions});
+});
+
 // GET Escalations view page
-router.get('/escalationsview', authMiddleware,  async (req, res) => {
+router.get('/escview', authMiddleware,  async (req, res) => {
   const escalations = await escalationModel.find();
-  res.render('escalationsview', {escalations});
+  res.render('escview', {escalations});
 });
 // ALL ACtivities page
 router.get('/allactivities', async function(req, res, next) {
@@ -81,7 +86,7 @@ router.post('/auth', (req, res) => {
       res.redirect('/createactivity');
   } else if (code === validCodeE) {
       req.session.isAuthenticated = true;
-      res.redirect('/escalationsview');
+      res.redirect('/escview');
   }   else {
       res.redirect('/auth?error=invalid_code');
   }
@@ -100,7 +105,7 @@ router.post('/auth', (req, res) => {
 //   } else if (code === validCodeE) {
 //     req.session.isAuthenticated = true;
 //     req.session.authType = 'escalation';
-//     res.redirect('/escalationsview');
+//     res.redirect('/escview');
 //   } else {
 //     res.redirect('/auth?error=invalid_code');
 //   }
@@ -180,7 +185,7 @@ router.post('/createactivity', async (req, res) => {
     let errors = []; 
     let msg;
     const activities = await activityModel.find().sort({ updatedOn: -1 });
-    const {activityType, activityName, activityMode, startDate, endDate, resource, remarks} = req.body;
+    const {activityType, activityName, activityMode, startDate, startTime, endDate, endTime, year, resource, remarks} = req.body;
     if (!activityType || !activityName || !resource ) {
       errors.push({ msg: "Please fill in all required fields: Activity Type, Activity Name and Resource." });
     }
@@ -221,8 +226,7 @@ router.post('/createactivity', async (req, res) => {
     if (startDateValue == "NA"){
       dateToUse = new Date();
     } else {
-      const [day, month, year] = startDate.split('/');
-      const startDateObj = new Date(Date.UTC(year, month - 1, day));
+      const startDateObj = new Date(startDate.split("/").reverse().join("-"));
       console.log(startDateObj);        /// .dev
       if (startDateObj < startOfWeek) {
         dateToUse = new Date();
@@ -234,12 +238,25 @@ router.post('/createactivity', async (req, res) => {
     // const weekNumber = getWeekNumber(dateObject);
     let weekNum = getWeekNumber(dateToUse);
     console.log(`the week number is ${weekNum}`);
-
+    const year = new Date().getFullYear();
+    let startDateTime = null;
+    if (startDate && startTime) {
+        startDateTime = convertToDateTime(startDate, startTime);
+    }
+    let endDateTime = null;
+    if (endDate && endTime) {
+        endDateTime = convertToDateTime(endDate, endTime);
+    }
     const newActivity = new activityModel({
       activityType,
       activityName,
       startDate: startDateValue,
+      startTime,
+      startDateTime,
       endDate: endDateValue,
+      endTime,
+      endDateTime,
+      year,
       resource,
       activityMode,
       remarks,
@@ -356,6 +373,12 @@ const ensureEscalationAuth = (req, res, next) => {
     res.redirect('/auth?error=unauthorized');
   }
 };
+
+// combie date and Time  to return DateTime object for mathematical operations
+function convertToDateTime(dateValue, timeValue) {
+  const dateTimeString = dateValue.split("/").reverse().join("-") + "T" + timeValue + ":00";  
+  return new Date(dateTimeString);
+}
 
  // search records on multiple fields with partial match and case insensitive  character.
 const findRecordsByFields = async (searchTerm) => {
