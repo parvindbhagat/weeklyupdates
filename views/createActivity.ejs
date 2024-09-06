@@ -76,7 +76,18 @@ background-color: #7a0712;
 button.cancel:hover {
 background-color: #5a2227;
 }
-
+#topButton {
+            position: fixed;
+            bottom: 20px;
+            right: 30px;
+            display: none;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
 </style>
 <script>
   function enableEdit(id) {
@@ -124,9 +135,9 @@ background-color: #5a2227;
             <img src="/images/logo-tx.png" alt="Chrysalis" >
           </a>
         </div>
-      </nav>
+    </nav>
 
-      <div>
+    <div>
         <h1 class="text-center">Weekly update Activity Calendar</h1>
         <% if(typeof errors != 'undefined'){ %>
             <% errors.forEach(function(error) { %>
@@ -150,9 +161,9 @@ background-color: #5a2227;
       </div>
    <div class=" datafield container border border-danger-subtle border-5">
 
-       <Form action="/createactivity" method="post">
-        <label for="ActivityType"  name="activityType" class="form-label">Activity Category <span style="color: red;" >*</span></label>
-        <input class="form-control" list="datalistOptions" id="ActivityType" name="activityType" placeholder="Type to search... (REQUIRED)" value="<%= typeof activityType != 'undefined' ? activityType : '' %>">
+    <Form action="/createactivity" method="post">
+      <label for="ActivityType"  name="activityType" class="form-label">Activity Category <span style="color: red;" >*</span></label>
+      <input class="form-control" list="datalistOptions" id="ActivityType" name="activityType" placeholder="Type to search... (REQUIRED)" value="<%= typeof activityType != 'undefined' ? activityType : '' %>">
         <datalist id="datalistOptions">
           <option value="Rollouts">
           <option value="TTT/Teach Back">
@@ -161,9 +172,9 @@ background-color: #5a2227;
           <option value="eLearning Project">
             <option value="Diagnostics">
         </datalist> 
-        <label for="ActivityName" class="form-label">Activity Name <span style="color: red;" >*</span></label>
-        <input class="form-control" id="ActivityName" name="activityName" placeholder="Activity (REQUIRED)" value="<%= typeof activityName != 'undefined' ? activityName : '' %>">
-       <div class="container">
+      <label for="ActivityName" class="form-label">Activity Name <span style="color: red;" >*</span></label>
+      <input class="form-control" id="ActivityName" name="activityName" placeholder="Activity (REQUIRED)" value="<%= typeof activityName != 'undefined' ? activityName : '' %>">
+      <div class="container">
             <div class="row">
                 <div class="col">
                     <label for="startdate" class="form-label date"  >Start Date</label>
@@ -198,25 +209,30 @@ background-color: #5a2227;
             <label for="Remarks" class="form-label">Remarks</label>
             <textarea class="form-control" name="remarks" id="Remarks" rows="3" value="<%= typeof remarks != 'undefined' ? remarks : '' %>"></textarea>
         </div>
-         <button
+        <button
             type="submit"
             class="btn"
             >
             Add Activity
-         </button>
+        </button>
          
-       </Form>
+    </Form>
     </div>
-    <h1 style="text-align: center;">Activity List</h1>
-    <p>Note: To change the status of the activity, enter "true" in all lowercase to mark it Completed.</p>
-    <p> Start Time and End Time are not being recordered yet, its in development phase.</p>
-    <table class="activitytable" >
-      <thead>
+        <div style="margin-top: 25px;">
+            <p style="text-align: center;">Note: To change the status of the activity, enter "true" in all lowercase to mark it Completed.</p>
+            <p style="text-align: center;"> * For <strong>Rollouts</strong> start date/time and end date/time are <strong>Required</strong>.</p>
+            <h1 style="text-align: center;">Activity List</h1>
+        </div>
+    
+     <table class="activitytable" >
+       <thead>
           <tr>
               <th>Category</th>
               <th>Activity</th>
               <th>Start Date</th>
+              <th>Start Time</th>
               <th>End Date</th>
+              <th>End Time</th>
               <th>Resource</th>
               <th>Activity Type</th>
               <th>Remarks</th>
@@ -225,15 +241,17 @@ background-color: #5a2227;
               <th>Updated On</th>
               <th>Actions</th>
           </tr>
-      </thead>
-      <tbody>
+       </thead>
+        <tbody>
           <% activities.forEach(activity => { %>
               <tr id="row-<%= activity._id %>">
                   <form action="/update/<%= activity._id %>" method="POST">
                       <td><input type="text" name="activityType" value="<%= activity.activityType %>" class="editable" readonly></td>
                       <td><input data-fulltext="<%= activity.activityName %>" type="text" name="activityName" value="<%= activity.activityName %>" class="editable" readonly></td>
                       <td><input type="text" name="startDate" value="<%= activity.startDate %>" class="editable" readonly></td>
+                      <td><input type="text" name="startTime" value="<%= activity.startTime %>" class="editable" readonly></td>
                       <td><input type="text" name="endDate" value="<%= activity.endDate %>" class="editable" readonly></td>
+                      <td><input type="text" name="endTime" value="<%= activity.endTime %>" class="editable" readonly></td>
                       <td><input type="text" name="resource" value="<%= activity.resource %>" class="editable" readonly></td>
                       <td><input type="text" name="activityMode" value="<%= activity.activityMode %>" class="editable" readonly></td>
                       <td><input type="text" name="remarks" value="<%= activity.remarks %>" class="editable" readonly></td>
@@ -250,13 +268,33 @@ background-color: #5a2227;
                   <form id="delete-form-<%= activity._id %>" action="/delete/<%= activity._id %>" method="POST" style="display:none;"></form>
               </tr>
           <% }) %>
-      </tbody>
-  </table>
-  <div class="footer" >
-    <h3 class="footext">That was all!       You have reached inception.
-    </h3>
-    <p style=" text-align: center; margin-top: 10px;">Copyright © 2024  <a href="https://chrysalis.in">Chrysalis HRD</a></p>
-  </div>
+        </tbody>
+    </table>
+    <div class="footer" >
+        <h3 class="footext">That was all!       You have reached inception.
+        </h3>
+        <p style=" text-align: center; margin-top: 10px;">Copyright © 2024  <a href="https://chrysalis.in">Chrysalis HRD</a></p>
+    </div>
+    <button id="topButton" onclick="scrollToTop()">TOP</button>
+
+    <script>
+        // Show the button when the user scrolls down 20px from the top of the document
+        window.onscroll = function() {scrollFunction()};
+
+        function scrollFunction() {
+            if (document.body.scrollTop > 50 || document.documentElement.scrollTop > 50) {
+                document.getElementById("topButton").style.display = "block";
+            } else {
+                document.getElementById("topButton").style.display = "none";
+            }
+        }
+
+        // Scroll to the top of the document
+        function scrollToTop() {
+            document.body.scrollTop = 0;
+            document.documentElement.scrollTop = 0;
+        }
+    </script>
     <script src="https://code.jquery.com/jquery-3.6.1.min.js"
         integrity="sha256-o88AwQnZB+VDvE9tvIXrMQaPlFFSUTR+nldQm1LuPXQ=" crossorigin="anonymous">
     </script>

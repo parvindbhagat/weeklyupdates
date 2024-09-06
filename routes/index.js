@@ -28,6 +28,10 @@ router.get('/', async (req, res) => {
   }
 });
 
+//GET HOME
+router.get('/home', (req, res) => {
+  res.render('home');
+});
 
 router.get('/activities', async (req, res) => {
   try {
@@ -277,7 +281,17 @@ router.post('/update/:id', async (req, res) => {
   const { id } = req.params;
   const updatedData = req.body;
   updatedData.updatedOn = Date.now();
-
+  const { startDate, startTime, endDate, endTime } = updatedData;
+  let startDateTime = null;
+    if (startDate && startTime) {
+        startDateTime = convertToDateTime(startDate, startTime);
+    }
+    let endDateTime = null;
+    if (endDate && endTime) {
+        endDateTime = convertToDateTime(endDate, endTime);
+    }
+  updatedData.startDateTime = startDateTime;
+  updatedData.endDateTime = endDateTime;
   await activityModel.findByIdAndUpdate(id, updatedData);
   res.redirect('/createactivity');
 });

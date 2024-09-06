@@ -54,10 +54,7 @@
           </a>
         </div>
     </nav>
-    <div>
-      <a href="/allactivities"><i class="ri-timer-line"></i> Weekly Updates Archive</a>
-      <a href="/createactivity" style="float: right;"><i class="ri-admin-line"></i> Project Manager Login</a>      
-    </div>
+    
     <h1 style="text-align: center; margin-bottom: 2rem;" >Weekly Project Management Updates ( <%= startDate.toDateString() %> to <%= endDate.toDateString() %>)</h1>
   
     
@@ -93,11 +90,13 @@
         </tbody>
       </table>
   
-  <div class="footer" >
-    <h5 class="footext">That was all!
-       Looking for older updates?  Check <a href="/allactivities"><i class="ri-timer-line"></i>Updates Archive</a>
-    </h5>
-    <p style=" text-align: center; margin-top: 10px;">Copyright © 2024  <a href="https://chrysalis.in">Chrysalis HRD</a></p>
-  </div>
+      <div class="footer" >
+        <h5 class="footext">That was all!
+           Looking for older updates?  Check <a style="text-decoration: none;" href="/allactivities"><i class="ri-timer-line"></i>Updates Archive</a>
+        </h5>
+        <a href="/countdown" style="margin-left:10px ; padding-right: 10px ; text-decoration: none;"><i class="ri-timer-flash-line"></i>Next Session starts in</a>&nbsp;&nbsp;
+          <a href="/createactivity" style="text-decoration: none;"><i class="ri-admin-line"></i>Project Manager Login</a> 
+        <p style=" text-align: center; text-decoration: none;">Copyright © 2024  <a href="https://chrysalis.in" style="text-decoration: none;">Chrysalis HRD</a></p>
+      </div>
 </body>
 </html>

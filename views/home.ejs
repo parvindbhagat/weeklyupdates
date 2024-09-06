@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Updates Home</title>
+    <link rel="stylesheet" href="/stylesheets/style.css">
+    <style>
+       body{
+        background-image: url('/images/bg.png'); /* image path */
+            background-size: cover; /* Ensures the image covers the entire background */
+            background-position: center; /* Centers the image */
+            background-repeat: no-repeat; /* Prevents the image from repeating */
+            background-attachment: fixed; /* Keeps the background fixed during scroll */
+       }
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            width: 100%;
+            height: auto;
+        }
+        .box {
+            width: 45%;
+            border: 2px solid #fff;
+            border-end-end-radius: 15px;
+            border-top-left-radius: 15px;
+            padding: 20px;
+            margin: 10px;
+            color: #fff;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .box:hover{
+            background-color: rgb(236, 227, 176);
+            color: #000;
+        }
+        .box div{
+            color: #fff;
+        }
+        button {
+            padding: 10px 20px;
+            margin-top: 20px;
+            cursor: pointer;
+            background-color: #fcb22b;
+            color: #000;
+            border: none;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #0dadbf;
+            color: #fff;
+        }
+
+        .updates-container {
+            width: 100%;
+            height: 30%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .updates-text {
+            font-size: 15vw; /* Large size as the width of the screen */
+            font-family: 'Arial', sans-serif;
+            color: #bb5757;
+            text-shadow: 2px 2px 5px rgba(205, 228, 123, 0.3); /* 3D effect */
+            background: linear-gradient(40deg, #f1cc87, #fff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: gradientAnimation 3s infinite;
+        }
+
+        @keyframes gradientAnimation {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .copyrightbar{
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            text-align: center;
+            padding: 10px;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="">
+          <a class="navbar-brand" href="/">
+            <img src="/images/logo-ic.png" alt="Chrysalis" >
+          </a>
+          <a class="navbar-brand" href="/">
+            <img src="/images/logo-tx.png" alt="Chrysalis" >
+          </a>
+        </div>
+    </nav>
+
+    <div class="updates-container" id="updatesContainer">
+        <div class="updates-text">UPDATES</div>
+    </div>
+
+    <div class="container">
+        <a href="/escview" style="text-decoration: none; color: inherit;" id="escalations" class="box">
+            <div  >
+            <h4>Escalations</h4>
+            <p>This section is for managing escalations. <strong>Restricted Access! </strong>Authorized person only.</p>
+            <button onclick="redirectToEscalations()">View Escalations</button>
+            </div> 
+        </a>
+
+        <a href="/activities" style="text-decoration: none; color: inherit;" id="activities" class="box">
+            <div  >
+                <h4>Activities</h4>
+                <p>This section is for Weekly Updates for planned activities.</p>
+                <button>View Activities</button>
+            </div>
+        </a>
+    </div>
+
+    
+    <div class="copyrightbar">
+        <p style=" text-align: center; margin-top: 10px;">  <a href="/countdown" style="color: inherit; text-decoration: none;">Next Session</a></p>
+        <p style=" text-align: center; margin-top: 10px;">Copyright © 2024  <a href="https://chrysalis.in" style="color: inherit; text-decoration: none;">Chrysalis HRD</a></p>
+    </div>
+</body>
+</html>

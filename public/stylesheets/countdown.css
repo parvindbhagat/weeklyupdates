@@ -47,18 +47,12 @@ body {
 
 h1 {
     text-align: center;
-    font-size: 2rem;
-    line-height: 0.7rem;
+    font-size: 3em;
+    line-height: 1.5em;
     
     margin: 12px 0 60px;
 }
 
-h1 span {
-    display: block;
-    font-weight: 300;
-    letter-spacing: 6px;
-    font-size: 0.2em;
-}
 
 .timer {
     display: flex;
@@ -82,7 +76,15 @@ h1 span {
 
 @media(max-width: 500px) {
     h1{
-        font-size: 45px;
+        font-size: 24px;
+        line-height: 1.5em;
+    }
+    .container {
+        position: absolute;
+        top: 20px;
+        left: 25px;
+        right: 20px;
+        bottom: 25px;
     }
 
     .time{

@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateTimer() {
         const nextSession = getNextSession(sessions);
         if (!nextSession) {
-            timerElement.textContent = 'No upcoming activities';
+            timerElement.textContent = 'No upcoming session!';
             activityDetailsElement.textContent = '';
             return;
         }
@@ -36,8 +36,11 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('hours').textContent = hours;
         document.getElementById('minutes').textContent = minutes;
         document.getElementById('seconds').textContent = seconds;
+
+        const activityDetails = `Next Session: ${nextSession.activityName} by <strong>${nextSession.resource}</strong> starts in`;
+        activityDetailsElement.innerHTML = activityDetails;
   
-        activityDetailsElement.textContent = `Next: ${nextSession.activityName} by (${nextSession.resource})`;
+        // activityDetailsElement.textContent = `Next Session: ${nextSession.activityName} by <strong>${nextSession.resource}</strong>`;
     }
   
     setInterval(updateTimer, 1000);
