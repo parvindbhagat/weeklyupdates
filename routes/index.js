@@ -36,7 +36,7 @@ router.get('/home', (req, res) => {
 router.get('/activities', async (req, res) => {
   try {
     const { startDate, endDate } = getDateRangeForWeek(getWeekNumber(new Date()), new Date().getFullYear());
-    const activities = await activityModel.find({ weekNumber: getWeekNumber(new Date()) }).sort({startDate: 1});
+    const activities = await activityModel.find({ weekNumber: getWeekNumber(new Date()), year: new Date().getFullYear() }).sort({startDate: 1});
 
     // Group activities by activityType
     const groupedActivities = activities.reduce((acc, activity) => {
@@ -65,6 +65,7 @@ router.get('/countdown', async (req, res) => {
 
 // GET Escalations view page
 router.get('/escview', authMiddleware,  async (req, res) => {
+  const currentWeekNumber = getWeekNumber(new Date());
   const escalations = await escalationModel.find();
   res.render('escview', {escalations});
 });

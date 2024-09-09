@@ -23,8 +23,8 @@
         .box {
             width: 45%;
             border: 2px solid #fff;
-            border-end-end-radius: 15px;
-            border-top-left-radius: 15px;
+            border-end-end-radius: 25px;
+            border-top-left-radius: 25px;
             padding: 20px;
             margin: 10px;
             color: #fff;
@@ -37,6 +37,9 @@
         }
         .box div{
             color: #fff;
+        }
+        .box div :hover{
+            color: #000;
         }
         button {
             padding: 10px 20px;
@@ -62,13 +65,15 @@
 
         .updates-text {
             font-size: 15vw; /* Large size as the width of the screen */
-            font-family: 'Arial', sans-serif;
+            font-family: 'popins', sans-serif;
             color: #bb5757;
             text-shadow: 2px 2px 5px rgba(205, 228, 123, 0.3); /* 3D effect */
-            background: linear-gradient(40deg, #f1cc87, #fff);
+            background-image: url(/images/brand2.1.png);
+            background-size: cover;
+            background-clip: text;
             -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            animation: gradientAnimation 3s infinite;
+            color: transparent;
+            
         }
 
         @keyframes gradientAnimation {
