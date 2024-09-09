@@ -41,6 +41,9 @@
         .box div :hover{
             color: #000;
         }
+        .contentSection:hover h4, .contentSection:hover p {
+            color: black;
+        }
         button {
             padding: 10px 20px;
             margin-top: 20px;
@@ -72,7 +75,7 @@
             background-size: cover;
             background-clip: text;
             -webkit-background-clip: text;
-            color: transparent;
+            color: #FCB22B;
             
         }
 
@@ -109,7 +112,7 @@
 
     <div class="container">
         <a href="/escview" style="text-decoration: none; color: inherit;" id="escalations" class="box">
-            <div  >
+            <div class="contentSection" >
             <h4>Escalations</h4>
             <p>This section is for managing escalations. <strong>Restricted Access! </strong>Authorized person only.</p>
             <button onclick="redirectToEscalations()">View Escalations</button>
@@ -117,7 +120,7 @@
         </a>
 
         <a href="/activities" style="text-decoration: none; color: inherit;" id="activities" class="box">
-            <div  >
+            <div class="contentSection" >
                 <h4>Activities</h4>
                 <p>This section is for Weekly Updates for planned activities.</p>
                 <button>View Activities</button>

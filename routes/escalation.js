@@ -10,6 +10,7 @@ const escalationSchema = new mongoose.Schema({
     remarks: {    type: String,},
     resource: {    type: String,    required: true,  },
     weekNumber: { type: Number },
+    year: { type: Number },
     status: {    type: String,    required: true,    enum: ["In Progress", "Resolved"],  },
     createdOn: { type: Date, default: Date.now },
     updatedOn: { type: Date, default: Date.now } 

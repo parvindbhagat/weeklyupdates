@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('minutes').textContent = minutes;
         document.getElementById('seconds').textContent = seconds;
 
-        const activityDetails = `<span>Next Session: </span> <br> ${nextSession.activityName} <br> <span>By </span>  ${nextSession.resource}<br> <span>Starts In </span>`;
+        const activityDetails = `<span>Next Session: </span> <br> ${nextSession.activityName} <br> <span>By </span>  ${nextSession.resource}`;
         activityDetailsElement.innerHTML = activityDetails;
   
         // activityDetailsElement.textContent = `Next Session: ${nextSession.activityName} by <strong>${nextSession.resource}</strong>`;

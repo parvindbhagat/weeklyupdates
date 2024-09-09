@@ -64,7 +64,7 @@ router.get('/countdown', async (req, res) => {
 });
 
 // GET Escalations view page
-router.get('/escview', authMiddleware,  async (req, res) => {
+router.get('/escview', ensureEscalationAuth,  async (req, res) => {
   const currentWeekNumber = getWeekNumber(new Date());
   const escalations = await escalationModel.find();
   res.render('escview', {escalations});
@@ -81,42 +81,42 @@ router.get('/auth', (req, res) => {
   res.render('auth', { errorMessage });
 });
 
-router.post('/auth', (req, res) => {
-  const { code } = req.body;
-  const validCodeA = process.env.VCA; 
-  const validCodeE = process.env.VCE
-
-  if (code === validCodeA) {
-      req.session.isAuthenticated = true;
-      res.redirect('/createactivity');
-  } else if (code === validCodeE) {
-      req.session.isAuthenticated = true;
-      res.redirect('/escview');
-  }   else {
-      res.redirect('/auth?error=invalid_code');
-  }
-});
-
-// updated router to distinguis different code and session for authentication to access  activity admin and escalation section. 
 // router.post('/auth', (req, res) => {
 //   const { code } = req.body;
 //   const validCodeA = process.env.VCA; 
-//   const validCodeE = process.env.VCE;
+//   const validCodeE = process.env.VCE
 
 //   if (code === validCodeA) {
-//     req.session.isAuthenticated = true;
-//     req.session.authType = 'activity';
-//     res.redirect('/createactivity');
+//       req.session.isAuthenticated = true;
+//       res.redirect('/createactivity');
 //   } else if (code === validCodeE) {
-//     req.session.isAuthenticated = true;
-//     req.session.authType = 'escalation';
-//     res.redirect('/escview');
-//   } else {
-//     res.redirect('/auth?error=invalid_code');
+//       req.session.isAuthenticated = true;
+//       res.redirect('/escview');
+//   }   else {
+//       res.redirect('/auth?error=invalid_code');
 //   }
 // });
 
-router.get('/escAdmin', authMiddleware, async function(req, res, next) {
+//updated router to distinguis different code and session for authentication to access  activity admin and escalation section. 
+router.post('/auth', (req, res) => {
+  const { code } = req.body;
+  const validCodeA = process.env.VCA; 
+  const validCodeE = process.env.VCE;
+
+  if (code === validCodeA) {
+    req.session.isAuthenticated = true;
+    req.session.authType = 'activity';
+    res.redirect('/createactivity');
+  } else if (code === validCodeE) {
+    req.session.isAuthenticated = true;
+    req.session.authType = 'escalation';
+    res.redirect('/escview');
+  } else {
+    res.redirect('/auth?error=invalid_code');
+  }
+});
+
+router.get('/escAdmin', ensureEscalationAuth, async function(req, res, next) {
   const escalations = await escalationModel.find().sort({ updatedOn: -1 });
   const msg = req.query.msg === 'successmsg' ? 'New Escalation added successfully.' : '';
   res.render('escAdmin', { escalations, msg });
@@ -128,7 +128,7 @@ router.post('/escAdmin', async (req, res) => {
   try {
     let errors = []; 
     let msg;
-    const escalations = await escalationModel.find().sort({ updatedOn: -1 });
+    const escalations = await escalationModel.find();
     const {clientName, taskName, level, status, resource, remarks} = req.body;
     if (!clientName || !taskName || !resource ) {
       errors.push({ msg: "Please fill in all required fields: Client Name, Task Name and Resource." });
@@ -150,7 +150,7 @@ router.post('/escAdmin', async (req, res) => {
     const currentWeekNumber = getWeekNumber(new Date());
     const weekRange = getDateRangeForWeek(currentWeekNumber, new Date().getFullYear());
     const startOfWeek = weekRange.startDate;
-
+    const currentYear = new Date().getFullYear();
     
      console.log(currentWeekNumber);   // .dev
      console.log(startOfWeek);  /// .dev
@@ -165,6 +165,7 @@ router.post('/escAdmin', async (req, res) => {
       level,
       remarks,
       status,
+      year: currentYear,
       weekNumber: weekNum
       });
     console.log(newEscalation);
@@ -178,7 +179,7 @@ router.post('/escAdmin', async (req, res) => {
   }
 });
 
-router.get('/createactivity', authMiddleware, async function(req, res, next) {
+router.get('/createactivity', ensureActivityAuth, async function(req, res, next) {
   const activities = await activityModel.find().sort({ updatedOn: -1 });
   const msg = req.query.msg === 'successmsg' ? 'New Activity added successfully.' : '';
   res.render('createactivity', { activities, msg });
@@ -291,6 +292,11 @@ router.post('/update/:id', async (req, res) => {
     if (endDate && endTime) {
         endDateTime = convertToDateTime(endDate, endTime);
     }
+    let year;
+    if (startDate){
+      year = new Date(startDate).getFullYear();
+    } 
+    updatedData.year = year
   updatedData.startDateTime = startDateTime;
   updatedData.endDateTime = endDateTime;
   await activityModel.findByIdAndUpdate(id, updatedData);
@@ -305,6 +311,7 @@ router.post('/update/:id', async (req, res) => {
 //   let model;
 //   if (req.headers['referer'].includes('/createActivity')) {
 //     model = activityModel;
+//      //Update LOGIC and Calculations here//
 //   } else if (req.headers['referer'].includes('/escAdmin')) {
 //     model = escalationModel;
 //   } else {
@@ -322,30 +329,24 @@ router.post('/update/:id', async (req, res) => {
 
 router.post('/delete/:id', async (req, res) => {
   const { id } = req.params;
-  await activityModel.findByIdAndDelete(id);
-  res.redirect('/createactivity');
+
+  let model;
+  if (req.headers['referer'].includes('/createActivity')) {
+    model = activityModel;
+  } else if (req.headers['referer'].includes('/escAdmin')) {
+    model = escalationModel;
+  } else {
+    return res.status(400).send('Invalid request source');
+  }
+
+  try {
+    await model.findByIdAndDelete(id);
+    res.redirect(req.headers['referer']);
+  } catch (error) {
+    console.error('Error deleting data:', error);
+    res.status(500).send('Internal Server Error');
+  }
 });
-
-// router.post('/delete/:id', async (req, res) => {
-//   const { id } = req.params;
-
-//   let model;
-//   if (req.headers['referer'].includes('/createActivity')) {
-//     model = activityModel;
-//   } else if (req.headers['referer'].includes('/escAdmin')) {
-//     model = escalationModel;
-//   } else {
-//     return res.status(400).send('Invalid request source');
-//   }
-
-//   try {
-//     await model.findByIdAndDelete(id);
-//     res.redirect(req.headers['referer']);
-//   } catch (error) {
-//     console.error('Error deleting data:', error);
-//     res.status(500).send('Internal Server Error');
-//   }
-// });
 
 function getWeekNumber(date) {
   const target = new Date(date.valueOf());
@@ -365,15 +366,7 @@ function getDateRangeForWeek(weekNumber, year) {
   return { startDate, endDate };
 }
 
-function authMiddleware(req, res, next) {
-  if (req.session && req.session.isAuthenticated) {
-      return next();
-  } else {
-      res.redirect('/auth');
-  }
-}
-
-const ensureActivityAuth = (req, res, next) => {
+function ensureActivityAuth(req, res, next) {
   if (req.session.isAuthenticated && req.session.authType === 'activity') {
     return next();
   } else {
@@ -381,7 +374,7 @@ const ensureActivityAuth = (req, res, next) => {
   }
 };
 
-const ensureEscalationAuth = (req, res, next) => {
+function ensureEscalationAuth(req, res, next) {
   if (req.session.isAuthenticated && req.session.authType === 'escalation') {
     return next();
   } else {
@@ -396,13 +389,13 @@ function convertToDateTime(dateValue, timeValue) {
 }
 
  // search records on multiple fields with partial match and case insensitive  character.
-const findRecordsByFields = async (searchTerm) => {
+async function findRecordsByFields(searchTerm) {
   try {
     const query = {
       $or: [
-        { name: { $regex: searchTerm, $options: 'i' } },
-        { city: { $regex: searchTerm, $options: 'i' } },
-        { department: { $regex: searchTerm, $options: 'i' } },
+        { activityName: { $regex: searchTerm, $options: 'i' } },
+        { activityMode: { $regex: searchTerm, $options: 'i' } },
+        { resource: { $regex: searchTerm, $options: 'i' } },
         { status: { $regex: searchTerm, $options: 'i' } }
       ]
     };
