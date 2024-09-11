@@ -116,14 +116,14 @@ router.post('/auth', (req, res) => {
   }
 });
 
-router.get('/escAdmin', ensureEscalationAuth, async function(req, res, next) {
+router.get('/escadmin', ensureEscalationAuth, async function(req, res, next) {
   const escalations = await escalationModel.find().sort({ updatedOn: -1 });
   const msg = req.query.msg === 'successmsg' ? 'New Escalation added successfully.' : '';
-  res.render('escAdmin', { escalations, msg });
+  res.render('escadmin', { escalations, msg });
 });
 
 
-router.post('/escAdmin', async (req, res) => {
+router.post('/escadmin', async (req, res) => {
   
   try {
     let errors = []; 
@@ -134,7 +134,7 @@ router.post('/escAdmin', async (req, res) => {
       errors.push({ msg: "Please fill in all required fields: Client Name, Task Name and Resource." });
     }
     if (errors.length > 0) {
-      res.render("escAdmin", {
+      res.render("escadmin", {
         errors,
         clientName,
         taskName,
@@ -172,7 +172,7 @@ router.post('/escAdmin', async (req, res) => {
     await newEscalation.save();    //Holding save to check console before writing into DB UNCOMMENT THIS LINE WHEN DATETOUSE IS FIXED.
     // res.status(201).json(savedActivity);
     // req.flash(success: "new activity saved successfully")  //Connect-flash not installed yet. Using js alert for now
-        res.redirect('/escAdmin?msg=successmsg');
+        res.redirect('/escadmin?msg=successmsg');
   }
   } catch (error) {
     res.status(500).json({message: "error saving escalation", error});
@@ -309,10 +309,10 @@ router.post('/update/:id', async (req, res) => {
 //   updatedData.updatedOn = Date.now();
 
 //   let model;
-//   if (req.headers['referer'].includes('/createActivity')) {
+//   if (req.headers['referer'].includes('/createactivity')) {
 //     model = activityModel;
 //      //Update LOGIC and Calculations here//
-//   } else if (req.headers['referer'].includes('/escAdmin')) {
+//   } else if (req.headers['referer'].includes('/escadmin')) {
 //     model = escalationModel;
 //   } else {
 //     return res.status(400).send('Invalid request source');
@@ -331,18 +331,23 @@ router.post('/delete/:id', async (req, res) => {
   const { id } = req.params;
 
   let model;
-  if (req.headers['referer'].includes('/createActivity')) {
+  console.log('Referer:', req.headers['referer']);
+
+  if (req.headers['referer'].includes('/createactivity')) {
     model = activityModel;
-  } else if (req.headers['referer'].includes('/escAdmin')) {
+  } else if (req.headers['referer'].includes('/escadmin')) {
     model = escalationModel;
   } else {
     return res.status(400).send('Invalid request source');
   }
 
   try {
+    console.log(id, model);
     await model.findByIdAndDelete(id);
     res.redirect(req.headers['referer']);
   } catch (error) {
+    console.log(id);
+    console.log(model);
     console.error('Error deleting data:', error);
     res.status(500).send('Internal Server Error');
   }
