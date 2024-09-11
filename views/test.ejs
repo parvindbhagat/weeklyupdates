@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>test esc task</title>
+</head>
+<body>
+    <script>
+        window.tasks = <%- JSON.stringify(tasks) %>;
+        console.log(tasks.length);
+        console.log(tasks);
+        tasks.forEach(task => {
+let endDateObj = new Date(task.endDate.split("/").reverse().join("-"));
+let today = new Date();
+if (today < endDateObj){
+    console.log(`task: ${task.activityName} is delayed!`);
+} else{
+        console.log(`task: ${task.activityName} is within deadline.`)
+}});
+    </script>
+    <nav class="navbar "></nav>
+        <div class="">
+          <a class="navbar-brand" href="/">
+            <img src="/images/logo.png" alt="Chrysalis" >
+          </a>
+        </div>
+      </nav>
+    <div class="title">
+        Test tasks object incoming
+    </div>
+    
+</body>
+</html>

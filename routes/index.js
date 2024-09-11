@@ -54,7 +54,13 @@ router.get('/activities', async (req, res) => {
   }
 });
 
-
+// test move to esc middleware
+router.get('/test', async (req, res) => {
+  //  let today = Date.now;
+   const tasks = await activityModel.find({status: 'false'});
+   
+   res.render('test', {tasks});
+});
 router.get('/countdown', async (req, res) => {
   const currentWeekNumber = getWeekNumber(new Date());  
   const currentYear = new Date().getFullYear();  // to be used for filter as later the we will have same week number for current year and next year
@@ -279,53 +285,75 @@ router.post('/createactivity', async (req, res) => {
   }
 });
 
+// router.post('/update/:id', async (req, res) => {
+//   const { id } = req.params;
+//   const updatedData = req.body;
+//   updatedData.updatedOn = Date.now();
+//   const { startDate, startTime, endDate, endTime } = updatedData;
+//   let startDateTime = null;
+//     if (startDate && startTime) {
+//         startDateTime = convertToDateTime(startDate, startTime);
+//     }
+//     let endDateTime = null;
+//     if (endDate && endTime) {
+//         endDateTime = convertToDateTime(endDate, endTime);
+//     }
+//     let year;
+//     if (startDate){
+//       year = new Date(startDate).getFullYear();
+//     } 
+//     updatedData.year = year
+//   updatedData.startDateTime = startDateTime;
+//   updatedData.endDateTime = endDateTime;
+//   await activityModel.findByIdAndUpdate(id, updatedData);
+//   res.redirect('/createactivity');
+// });
+
 router.post('/update/:id', async (req, res) => {
   const { id } = req.params;
   const updatedData = req.body;
   updatedData.updatedOn = Date.now();
-  const { startDate, startTime, endDate, endTime } = updatedData;
-  let startDateTime = null;
-    if (startDate && startTime) {
-        startDateTime = convertToDateTime(startDate, startTime);
+  console.log(updatedData);
+  let model;
+  let year;
+  let weekNum;
+  if (req.headers['referer'].includes('/createactivity')) {
+    model = activityModel;
+    const {startDate, endDate, startTime, endTime} = req.body;
+    if( startDate) {
+     year = new Date(startDate).getFullYear();
+     weekNum = getWeekNumber(new Date(startDate.split("/").reverse().join("-")));
     }
-    let endDateTime = null;
-    if (endDate && endTime) {
-        endDateTime = convertToDateTime(endDate, endTime);
+    
+    if (startDate && startTime){
+      startDateTime = convertToDateTime(startDate, startTime);
     }
-    let year;
-    if (startDate){
-      year = new Date(startDate).getFullYear();
-    } 
-    updatedData.year = year
-  updatedData.startDateTime = startDateTime;
-  updatedData.endDateTime = endDateTime;
-  await activityModel.findByIdAndUpdate(id, updatedData);
-  res.redirect('/createactivity');
+    if (endDate && endTime){
+      endDateTime = convertToDateTime(endDate, endTime);
+    }
+    updatedData.year = year;
+    updatedData.weekNumber = weekNum;
+    updatedData.startDateTime = new Date(startDateTime);
+    updatedData.endDateTime = new Date(endDateTime);
+    console.log(updatedData);
+     //Update LOGIC and Calculations here//
+  } else if (req.headers['referer'].includes('/escadmin')) {
+    model = escalationModel;
+    weekNum = getWeekNumber(new Date());
+    updatedData.weekNumber = weekNum;
+    console.log(updatedData);
+  } else {
+    return res.status(400).send('Invalid request source');
+  }
+
+  try {
+    await model.findByIdAndUpdate(id, updatedData);
+    res.redirect(req.headers['referer']);
+  } catch (error) {
+    console.error('Error updating data:', error);
+    res.status(500).send('Internal Server Error');
+  }
 });
-
-//router.post('/update/:id', async (req, res) => {
-//   const { id } = req.params;
-//   const updatedData = req.body;
-//   updatedData.updatedOn = Date.now();
-
-//   let model;
-//   if (req.headers['referer'].includes('/createactivity')) {
-//     model = activityModel;
-//      //Update LOGIC and Calculations here//
-//   } else if (req.headers['referer'].includes('/escadmin')) {
-//     model = escalationModel;
-//   } else {
-//     return res.status(400).send('Invalid request source');
-//   }
-
-//   try {
-//     await model.findByIdAndUpdate(id, updatedData);
-//     res.redirect(req.headers['referer']);
-//   } catch (error) {
-//     console.error('Error updating data:', error);
-//     res.status(500).send('Internal Server Error');
-//   }
-// });
 
 router.post('/delete/:id', async (req, res) => {
   const { id } = req.params;

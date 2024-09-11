@@ -185,13 +185,16 @@ background-color: #5a2227;
         <input class="form-control" list="datalistOptions2" id="status" name="status" placeholder="choose status value..." value="<%= typeof status != 'undefined' ? status : '' %>">
         <datalist id="datalistOptions2">
             <option value="In Progress">
-                <option value="Resolved">                   
-                </datalist> 
+            <option value="On Hold"></option>
+            <option value="Not Started"></option>
+            <option value="Cancelled"></option>
+            <option value="Resolved"></option>                   
+        </datalist> 
                 
-                <div class="mb-3">
-                    <label for="Remarks" class="form-label">Remarks</label>
-                    <textarea class="form-control" name="remarks" id="Remarks" rows="3" value="<%= typeof remarks != 'undefined' ? remarks : '' %>"></textarea>
-                </div>
+        <div class="mb-3">
+            <label for="Remarks" class="form-label">Remarks</label>
+            <textarea class="form-control" name="remarks" id="Remarks" rows="3" value="<%= typeof remarks != 'undefined' ? remarks : '' %>"></textarea>
+        </div>
         
          <button
             type="submit"

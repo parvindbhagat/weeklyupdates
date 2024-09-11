@@ -11,7 +11,7 @@ const escalationSchema = new mongoose.Schema({
     resource: {    type: String,    required: true,  },
     weekNumber: { type: Number },
     year: { type: Number },
-    status: {    type: String,    required: true,    enum: ["In Progress", "Resolved"],  },
+    status: {    type: String,    required: true,    enum: ["In Progress", "Resolved", "On Going", "Not Started", "Cancelled", "On Hold"],  },
     createdOn: { type: Date, default: Date.now },
     updatedOn: { type: Date, default: Date.now } 
   });
