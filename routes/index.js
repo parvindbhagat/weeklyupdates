@@ -56,8 +56,8 @@ router.get('/activities', async (req, res) => {
 
 // test move to esc middleware
 router.get('/test', async (req, res) => {
-  //  let today = Date.now;
-   const tasks = await activityModel.find({status: 'false'});
+   let today = Date.now;
+   const tasks = await activityModel.find({status: 'false', endDate: { $lt: today }});
    
    res.render('test', {tasks});
 });
@@ -321,8 +321,11 @@ router.post('/update/:id', async (req, res) => {
     model = activityModel;
     const {startDate, endDate, startTime, endTime} = req.body;
     if( startDate) {
-     year = new Date(startDate).getFullYear();
+     year = new Date(startDate.split("/").reverse().join("-")).getFullYear();
      weekNum = getWeekNumber(new Date(startDate.split("/").reverse().join("-")));
+    } else {
+      year = new Date().getFullYear();
+      weekNum = getWeekNumber(new Date());
     }
     
     if (startDate && startTime){
@@ -333,8 +336,15 @@ router.post('/update/:id', async (req, res) => {
     }
     updatedData.year = year;
     updatedData.weekNumber = weekNum;
-    updatedData.startDateTime = new Date(startDateTime);
-    updatedData.endDateTime = new Date(endDateTime);
+    // if (startDateTime) {
+    //   updatedData.startDateTime = new Date(startDateTime);
+    // }
+
+    // if (endDateTime) {
+    //   updatedData.endDateTime = new Date(endDateTime);
+    // }
+    
+    
     console.log(updatedData);
      //Update LOGIC and Calculations here//
   } else if (req.headers['referer'].includes('/escadmin')) {
