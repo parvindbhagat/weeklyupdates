@@ -3,33 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>test esc task</title>
+    <title>Escalations</title>
     <link rel="stylesheet" href="/stylesheets/style.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-
+    <style>
+        .delay-low {
+            color: lawngreen;
+        }
+        .delay-medium {
+            color: orange ;
+        }
+        .delay-high {
+            color: red;
+        }
+    </style>
 </head>
 <body>
     <script>
-        window.tasks = <%- JSON.stringify(tasks) %>             
-        tasks.forEach(task => {
-        let endDateObj = new Date(task.endDate.split("/").reverse().join("-"));
-        let today = new Date();
-        let level; 
-        if (today < endDateObj){
-          let diff  = endDateObj - today;
-          let delayInDays = Math.floor(diff / (1000 * 60 * 60 * 24));
-          if(delayInDays>0 && delayInDays<4){
-            level = '0-3';
-          } else if(delayInDays>=4 && delayInDays<10){
-            level = '4-10';
-          } else{
-            level = '>10';
-          }
-          task.level = level;
-        } else{
-          console.log(`task: ${task.activityName} is within deadline.`)
-        }});
-        console.log(tasks);
+        window.plainTasks = <%- JSON.stringify(plainTasks) %>
+        
     </script>
     <nav class="navbar">
         <div class="">
@@ -39,22 +31,31 @@
         </div>
       </nav>
     <div class="title">
-        <H1>Test tasks object incoming</H1>
+        <H1 style="text-align: center; margin: 1rem;">Chrysalis Projects Escalations</H1>
+    </div>
+    <div class="legends" style=" border: 2px solid black; padding: 10px; border-radius: 5px;">
+      <ul>
+        <li><strong>Escalation Level 1</strong> [Task Owner Level (0-3 days)]: If a Project work item/task is not completed within the Service Level Agreement (SLA) of 3 business days, the issue is escalated to the owner of the task.</li>
+        <li><strong>Escalation Level 2</strong> [Project Owner Level (3-10 days)]: If a Project work item/task remains pending for a period between 3 to 10 days, the issue is escalated to the Project Owner</li>
+        <li><strong>Escalation Level 3</strong> [Managing Director Level (>10 days)]: If a work item/task is pending for more than 10 days, the issue shall be escalated to the Managing Director (MD).</li>
+      </ul>
     </div>
     <div class="esclist mb-50 d-flex justify-content-center">
-      <table class="table-striped table-auto m-2 bg-white border border-gray-300" >
+      <table id="taskTable" class="table-striped table-auto m-2 bg-white border border-gray-300" >
         <thead class="bg-warning">
           <tr>
             <th class="border border-gray-300 px-4 py-2">Client Name</th>
             <th class="border border-gray-300 px-4 py-2">Task Name</th>
             <th class="border border-gray-300 px-4 py-2">Level (Days)</th>
+            <th class="border border-gray-300 px-4 py-2">Delay (in Days)</th>
             <th class="border border-gray-300 px-4 py-2">Resource</th>
             <th class="border border-gray-300 px-4 py-2">Remarks</th>
             <th class="border border-gray-300 px-4 py-2">Status</th>
           </tr>
         </thead>
         <tbody>
-          <% tasks.forEach(esc => { %>
+          <% plainTasks.forEach(esc => { %>
+            <% console.log(plainTasks.endDate) %>
             <% let clientTask= esc.activityName %>
             <% let splitIndex = clientTask.indexOf('_'); %>
             <% let clientName = clientTask.substring(0, splitIndex) %>
@@ -64,15 +65,27 @@
               <td class="border border-gray-300 px-4 py-2 text-center"><%= clientName %></td>
               <td class="border border-gray-300 px-4 py-2 text-center"><%= taskName %></td>
               <td class="border border-gray-300 px-4 py-2 text-center"><%= esc.level %></td>
+              <td class="delay border border-gray-300 px-4 py-2 text-center"><%= esc.delay %></td>
               <td class="border border-gray-300 px-4 py-2 text-center"><%= esc.resource %></td>
               <td class="border border-gray-300 px-4 py-2 text-center"><%= esc.remarks %></td>
-              <td class="border border-gray-300 px-4 py-2 text-center"><%= esc.status %></td>
+              <td class="border border-gray-300 px-4 py-2 text-center"><%= esc.status ? 'Resolved' : 'In Progress' %></td>
             </tr>
           <% }); %>
         </tbody>
       </table>
       
   </div>
-    
+  <script>
+    document.querySelectorAll('#taskTable .delay').forEach(cell => {
+        const value = parseInt(cell.textContent.trim(), 10);
+        if (value < 4) {
+            cell.classList.add('delay-low');
+        } else if (value >= 4 && value <= 10) {
+            cell.classList.add('delay-medium');
+        } else if (value > 10) {
+            cell.classList.add('delay-high');
+        }
+    });
+</script>
 </body>
 </html>

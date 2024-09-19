@@ -54,13 +54,67 @@ router.get('/activities', async (req, res) => {
   }
 });
 
-// test move to esc middleware
-router.get('/test', async (req, res) => {
-   let today = Date.now;
-   const tasks = await activityModel.find({status: 'false', endDate: { $lt: today }});
-   
-   res.render('test', {tasks});
+// test automatic Escalations  route with server side logic to assign level of esc
+
+router.get('/test', ensureEscalationAuth, async (req, res) => {
+  let today = new Date();
+
+  // Function to validate date string in 'dd/mm/yyyy' format
+  function isUkDate(dateString) {
+      const regex = /^\d{2}\/\d{2}\/\d{4}$/;
+      return regex.test(dateString);
+  }
+
+  // Find tasks with valid endDate and status 'false'
+  const tasks = await activityModel.find({
+      status: 'false',
+      $expr: {
+          $lt: [
+              {
+                  $dateFromString: {
+                      dateString: {
+                          $concat: [
+                              { $substr: ["$endDate", 6, 4] }, "-",
+                              { $substr: ["$endDate", 3, 2] }, "-",
+                              { $substr: ["$endDate", 0, 2] }
+                          ]
+                      },
+                      onError: null // Handle invalid date strings
+                  }
+              },
+              today
+          ]
+      }
+  }).sort({endDate: 1});
+
+  // Convert Mongoose documents to plain JavaScript objects
+  const plainTasks = tasks.map(task => task.toObject());
+  plainTasks.forEach((task, index) => {
+      // console.log(`Processing task ${index + 1}:`, task);
+      let endDateObj = new Date(task.endDate.split("/").reverse().join("-"));
+      // console.log(`End date object for task ${index + 1}:`, endDateObj);
+
+      if (today > endDateObj) {
+          let diff = today - endDateObj;
+          let delayInDays = Math.ceil(diff / (1000 * 60 * 60 * 24));
+            task.delay = delayInDays;
+          if (delayInDays > 0 && delayInDays < 4) {
+              task.level = '0-3';
+          } else if (delayInDays >= 4 && delayInDays < 10) {
+              task.level = '4-10';
+          } else {
+              task.level = '>10';
+          }
+      } else {
+          // console.log(`Task ${index + 1} is within deadline.`);
+      }
+  });
+  plainTasks.sort((a, b) => a.delay - b.delay);
+  res.render('test', { plainTasks });
 });
+
+
+// GET Timer page
 router.get('/countdown', async (req, res) => {
   const currentWeekNumber = getWeekNumber(new Date());  
   const currentYear = new Date().getFullYear();  // to be used for filter as later the we will have same week number for current year and next year
@@ -116,7 +170,7 @@ router.post('/auth', (req, res) => {
   } else if (code === validCodeE) {
     req.session.isAuthenticated = true;
     req.session.authType = 'escalation';
-    res.redirect('/escview');
+    res.redirect('/test');
   } else {
     res.redirect('/auth?error=invalid_code');
   }
@@ -158,11 +212,11 @@ router.post('/escadmin', async (req, res) => {
     const startOfWeek = weekRange.startDate;
     const currentYear = new Date().getFullYear();
     
-     console.log(currentWeekNumber);   // .dev
-     console.log(startOfWeek);  /// .dev
+    //  console.log(currentWeekNumber);   // .dev
+    //  console.log(startOfWeek);  /// .dev
     
     let weekNum = currentWeekNumber;
-    console.log(`the week number is ${weekNum}`);
+    // console.log(`the week number is ${weekNum}`);
 
     const newEscalation = new escalationModel({
       clientName,
@@ -174,7 +228,7 @@ router.post('/escadmin', async (req, res) => {
       year: currentYear,
       weekNumber: weekNum
       });
-    console.log(newEscalation);
+    // console.log(newEscalation);
     await newEscalation.save();    //Holding save to check console before writing into DB UNCOMMENT THIS LINE WHEN DATETOUSE IS FIXED.
     // res.status(201).json(savedActivity);
     // req.flash(success: "new activity saved successfully")  //Connect-flash not installed yet. Using js alert for now
@@ -225,8 +279,8 @@ router.post('/createactivity', async (req, res) => {
     const startOfWeek = weekRange.startDate;
 
     
-     console.log(currentWeekNumber);   // .dev
-     console.log(startOfWeek);  /// .dev
+    //  console.log(currentWeekNumber);   // .dev
+    //  console.log(startOfWeek);  /// .dev
     let dateToUse;
     // if (startDateValue !== "NA") {
     //   console.log(startDateValue);
@@ -239,17 +293,17 @@ router.post('/createactivity', async (req, res) => {
       dateToUse = new Date();
     } else {
       const startDateObj = new Date(startDate.split("/").reverse().join("-"));
-      console.log(startDateObj);        /// .dev
+      // console.log(startDateObj);        /// .dev
       if (startDateObj < startOfWeek) {
         dateToUse = new Date();
       } else {
         dateToUse = startDateObj;
       }
     }
-      console.log(dateToUse);
+      // console.log(dateToUse);
     // const weekNumber = getWeekNumber(dateObject);
     let weekNum = getWeekNumber(dateToUse);
-    console.log(`the week number is ${weekNum}`);
+    // console.log(`the week number is ${weekNum}`);
     const year = new Date().getFullYear();
     let startDateTime = null;
     if (startDate && startTime) {
@@ -274,7 +328,7 @@ router.post('/createactivity', async (req, res) => {
       remarks,
       weekNumber: weekNum
       });
-    console.log(newActivity);
+    // console.log(newActivity);
     await newActivity.save();    //Holding save to check console before writing into DB UNCOMMENT THIS LINE WHEN DATETOUSE IS FIXED.
     // res.status(201).json(savedActivity);
     // req.flash(success: "new activity saved successfully")  //Connect-flash not installed yet. Using js alert for now
@@ -313,7 +367,7 @@ router.post('/update/:id', async (req, res) => {
   const { id } = req.params;
   const updatedData = req.body;
   updatedData.updatedOn = Date.now();
-  console.log(updatedData);
+  // console.log(updatedData);
   let model;
   let year;
   let weekNum;
@@ -345,13 +399,13 @@ router.post('/update/:id', async (req, res) => {
     // }
     
     
-    console.log(updatedData);
+    // console.log(updatedData);
      //Update LOGIC and Calculations here//
   } else if (req.headers['referer'].includes('/escadmin')) {
     model = escalationModel;
     weekNum = getWeekNumber(new Date());
     updatedData.weekNumber = weekNum;
-    console.log(updatedData);
+    // console.log(updatedData);
   } else {
     return res.status(400).send('Invalid request source');
   }
@@ -369,7 +423,7 @@ router.post('/delete/:id', async (req, res) => {
   const { id } = req.params;
 
   let model;
-  console.log('Referer:', req.headers['referer']);
+  // console.log('Referer:', req.headers['referer']);
 
   if (req.headers['referer'].includes('/createactivity')) {
     model = activityModel;
@@ -380,12 +434,12 @@ router.post('/delete/:id', async (req, res) => {
   }
 
   try {
-    console.log(id, model);
+    // console.log(id, model);
     await model.findByIdAndDelete(id);
     res.redirect(req.headers['referer']);
   } catch (error) {
-    console.log(id);
-    console.log(model);
+    // console.log(id);
+    // console.log(model);
     console.error('Error deleting data:', error);
     res.status(500).send('Internal Server Error');
   }
