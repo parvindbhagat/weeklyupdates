@@ -29,8 +29,11 @@ router.get('/', async (req, res) => {
 });
 
 //GET HOME
-router.get('/home', (req, res) => {
-  res.render('home');
+router.get('/home', async(req, res) => {
+  const currentWeekNumber = getWeekNumber(new Date());  
+  const currentYear = new Date().getFullYear();  // to be used for filter as later the we will have same week number for current year and next year
+  const sessions = await activityModel.find({activityType: 'Rollouts', weekNumber: currentWeekNumber, year: currentYear}).sort({ startDate: 1 });
+  res.render('home', {sessions});
 });
 
 router.get('/activities', async (req, res) => {
@@ -124,7 +127,7 @@ router.get('/countdown', async (req, res) => {
 });
 
 // GET Escalations view page
-router.get('/escview', ensureEscalationAuth,  async (req, res) => {
+router.get('/escview', async (req, res) => {
   const currentWeekNumber = getWeekNumber(new Date());
   const escalations = await escalationModel.find();
   res.render('escview', {escalations});
@@ -176,7 +179,7 @@ router.post('/auth', (req, res) => {
   }
 });
 
-router.get('/escadmin', ensureEscalationAuth, async function(req, res, next) {
+router.get('/escadmin', async function(req, res, next) {
   const escalations = await escalationModel.find().sort({ updatedOn: -1 });
   const msg = req.query.msg === 'successmsg' ? 'New Escalation added successfully.' : '';
   res.render('escadmin', { escalations, msg });
