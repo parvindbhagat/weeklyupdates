@@ -4,6 +4,7 @@
     <meta charset="UTF-8"> 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Create Update</title>
+    <link rel="stylesheet" href="https://use.typekit.net/oov2wcw.css" />
     <link
     href="https://cdn.jsdelivr.net/npm/remixicon@4.3.0/fonts/remixicon.css"
     rel="stylesheet"/>
@@ -13,7 +14,7 @@
 <link rel="stylesheet" href="/stylesheets/style.css">
 <style>
   .activitytable {
-width: 100%;
+/* width: 100%; */
 border-collapse: collapse;
 margin: 0px 0;
 font-size: 12px;
@@ -127,18 +128,13 @@ background-color: #5a2227;
 </head>
 <body>
     <nav class="navbar ">
-        <div >
           <a class="navbar-brand" href="/">
-            <img src="/images/logo-ic.png" alt="Chrysalis" >
+            <img src="/images/logo.png" alt="Chrysalis" >
           </a>
-          <a class="navbar-brand" href="/">
-            <img src="/images/logo-tx.png" alt="Chrysalis" >
-          </a>
-        </div>
     </nav>
 
     <div>
-        <h1 class="text-center">Weekly update Activity Calendar</h1>
+        <h1 class="text-center" style="margin: 2rem;">Weekly update Activity Calendar</h1>
         <% if(typeof errors != 'undefined'){ %>
             <% errors.forEach(function(error) { %>
                 <div class="alert alert-warning alert-dismissible fade show" role="alert">
@@ -219,10 +215,10 @@ background-color: #5a2227;
     </Form>
     </div>
         <div style="margin-top: 25px;">
-            <p style="text-align: center;">Note: To change the status of the activity, enter "true" in all lowercase to mark it Completed.</p>
-            <p style="text-align: center;"> * For <strong>Rollouts</strong> start date/time and end date/time are <strong>Required</strong>.</p>
-            <p style="text-align: center;">Please follow the naming convention for activities as <strong>Client Name <span style="color: red; font-weight: 900;">-</span> Task Name</strong>.</p>
-            <h1 style="text-align: center;">Activity List</h1>
+            <p style="margin-left: 3rem;">Note: To change the status of the activity, enter "true" in all lowercase to mark it Completed.</p>
+            <p style="margin-left: 3rem;"> * For <strong>Rollouts</strong> start date/time and end date/time are <strong>Required</strong>.</p>
+            <p style="margin-left: 3rem;">Please follow the naming convention for activities as <strong>Client Name <span style="color: red; font-weight: 900;">-</span> Task Name</strong>.</p>
+            <h1 style="text-align: center; margin: 1rem;">Activity List</h1>
         </div>
     
      <table class="activitytable" >

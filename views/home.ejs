@@ -1,238 +1,266 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Updates Home</title>
-    <link rel="stylesheet" href="/stylesheets/style.css">
+    <link rel="stylesheet" href="https://use.typekit.net/oov2wcw.css" />
+    <link rel="stylesheet" href="/stylesheets/style.css" />
     <style>
-        html{
-            width: 100vw;
-        }
-       body{
-        background-image: url('/images/BG_Home.jpg'); /* image path */
-            background-size: cover; /* Ensures the image covers the entire background */
-            background-position: center; /* Centers the image */
-            background-repeat: no-repeat; /* Prevents the image from repeating */
-            background-attachment: fixed; /* Keeps the background fixed during scroll */
-            padding: 0;
-            margin: 0;
-            box-sizing: border-box;
-       }
-        .options{
-            /* border: 2px solid white; */
-            display: flex;
-            flex-direction: column;
-            justify-content: space-around;
-            /* width: 30%; */
-            padding: 0 10px;
-        }
-        
-        .main{
-            
-            display: flex;
-            justify-content: space-around;
-            flex-wrap: wrap;
-            box-sizing: border-box;
-        }
-        @media(max-width: 700px){
-            .main{
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-            }
-            .options{
-                width: 90%;
-                padding: 0.25rem;
-            }
-            .countd{
-                width: 100%;
-                padding: 0.25rem;
-            }
-            .time{
-                margin: 0;
-            }
-            .timer{
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                width: inherit;
-                transform: scale(1);
-                color: #fff;
-                margin: 0;
-            }
-            .time h2{
-                font-weight: bold;
-                font-size: 1.5rem;
-                line-height: 1;
-                margin: 0 0 5px;
+      html {
+        width: 100vw;
+      }
+      body {
+        background-image: url("/images/BG_Home.jpg"); /* image path */
+        background-size: cover; /* Ensures the image covers the entire background */
+        background-position: center; /* Centers the image */
+        background-repeat: no-repeat; /* Prevents the image from repeating */
+        background-attachment: fixed; /* Keeps the background fixed during scroll */
+        padding: 0;
+        margin: 0;
+        box-sizing: border-box;
+      }
+      .options {
+        /* border: 2px solid white; */
+        display: flex;
+        flex-direction: column;
+        justify-content: space-around;
+        width: 30%;
+        padding: 0 10px;
+      }
 
-            }
-            .copyrightbar{
-                position: static;
-                margin-top: 20px;
-            }
+      .main {
+        display: flex;
+        justify-content: space-around;
+        flex-wrap: wrap;
+        box-sizing: border-box;
+      }
+
+      @media (max-width: 700px) {
+        .main {
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
         }
-        .box {
-            width: 100%;
-            height: auto;
-            border: 2px solid #fff;
-            border-end-end-radius: 25px;
-            border-top-left-radius: 25px;
-            padding: 5px;
-            margin: 10px 0px;
-            color: #fff;
-            text-align: center;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            box-sizing: border-box;
-            overflow: hidden;
+        .options {
+          width: 90%;
+          padding: 0.25rem;
         }
-        .box:hover{
-            background-color: var(--secondary-color);
-            color: #000;
+        .countd {
+          width: 100%;
+          padding: 0.25rem;
         }
-        .box div{
-            color: #fff;
-        }
-        .box div :hover{
-            color: #000;
-        }
-        .contentSection{
-            max-width: 80%;
-        }
-        
-        h4{
+        h1{
             font-size: 2rem;
+            line-height: 2.5rem;
         }
-       
-        .updates-container {
-            width: 100%;            
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .title-text {
-            font-size: 10vw; /* Large size as the width of the screen */
-            font-family: 'popins', sans-serif;
-            margin-left: 0.5rem;
-            color: #bb5757;
-            text-shadow: 2px 2px 5px rgba(205, 228, 123, 0.3); 
-            color: var(--secondary-color);
-            justify-content: center;
-        }
-        .countd{
-            /* border: 2px solid white; */
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            box-sizing: border-box;
-        }
-        h1 {
-            text-align: center;
-            font-size: 3rem;
-            line-height: 1.5em;
-            margin: 12px 0 30px;
-            color: #fff;
+        .time {
+          margin: 0;
         }
         .timer {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: inherit;
-            transform: scale(2);
-            color: #fff;
-            box-sizing: border-box;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: inherit;
+          transform: scale(1);
+          color: #fff;
+          margin-top: 1.5rem;
         }
+        .time h2 {
+          font-weight: bold;
+          font-size: 1.5rem;
+          line-height: 1;
+          margin: 0 0 5px;
+        }
+        .copyrightbar {
+          position: static;
+          margin-top: 20px;
+        }
+      }
+      .box {
+        width: 100%;
+        height: auto;
+        border: 2px solid #fff;
+        border-end-end-radius: 25px;
+        border-top-left-radius: 25px;
+        padding: 5px;
+        margin: 10px 0px;
+        color: #fff;
+        /* text-align: center; */
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        box-sizing: border-box;
+        overflow: hidden;
+      }
+      .box:hover {
+        background-color: var(--secondary-color);
+        color: #000;
+      }
+      .box div {
+        color: #fff;
+      }
+      .box div :hover {
+        color: #000;
+      }
+      .contentSection {
+        max-width: 80%;
+      }
 
-.time {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    margin: 1rem;
-}
+      h4 {
+        font-size: 2rem;
+      }
 
-.time h2 {
-    font-weight: bold;
-    font-size: 3rem;
-    line-height: 1;
-    margin: 0 0 5px;
-}
+      .updates-container {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .title-text {
+        font-size: 10vw; /* Large size as the width of the screen */
+        font-weight: bold;
+        margin-left: 0.5rem;
+        color: #bb5757;
+        text-shadow: 2px 2px 5px rgba(205, 228, 123, 0.3);
+        color: var(--secondary-color);
+        justify-content: center;
+      }
+      .countd {
+        /* border: 2px solid white; */
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        box-sizing: border-box;
+      }
+      h1 {
+        text-align: center;
         
-        .copyrightbar{
-            position: fixed;
-            bottom: 0;
-            width: 100%;
-            text-align: center;
-            padding: 10px;
-            color: #fff;
+        margin: 12px 0 30px;
+        color: #fff;
+      }
+      h1 span{
+        font-size: 4rem;
+      }
+      .timer {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: inherit;
+        margin-top: 2rem;
+        /* transform: scale(2); */
+        color: #fff;
+        box-sizing: border-box;
+      }
+      @media (min-width: 700px){
+        .timer{
+            transform: scale(2);
         }
+        h1{
+            font-size: 3rem;
+        line-height: 1.5em;
+        }
+      }
+
+      .time {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        margin: 1rem;
+      }
+
+      .time h2 {
+        font-weight: bold;
+        font-size: 3rem;
+        line-height: 1;
+        margin: 0 0 5px;
+      }
+
+      .copyrightbar {
+        position: fixed;
+        bottom: 0;
+        width: 100%;
+        text-align: center;
+        padding: 10px;
+        color: #fff;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <script>
-        window.sessions = <%- JSON.stringify(sessions) %>;
+      window.sessions = <%- JSON.stringify(sessions) %>;
     </script>
-    <script src="/javascripts/countdown.js"></script>   
+    <script src="/javascripts/countdown.js"></script>
 
     <nav class="navbar">
-        <div class="">
-          <a class="navbar-brand" href="/">
-            <img src="/images/logo.png" alt="Chrysalis" >
-          </a>          
-        </div>
+      <div class="">
+        <a class="navbar-brand" href="/">
+          <img src="/images/logo.png" alt="Chrysalis" />
+        </a>
+      </div>
     </nav>
 
-    
-<div class="main">
-    <div class="options">
+    <div class="main">
+      <div class="options">
         <div class="title-text contentSection">LEAP</div>
-        <a href="/activities" style="text-decoration: none; color: inherit;" id="activities" class="box">
-            <div class="contentSection" >
-                <h4>Chrysalis Weekly Plan</h4>
-                <p style="font-size: 1.2rem;">Weekly Updates of project activities.</p>                
-            </div>            
+        <a
+          href="/activities"
+          style="text-decoration: none; color: inherit"
+          id="activities"
+          class="box"
+        >
+          <div class="contentSection">
+            <h4>Chrysalis Weekly Plan</h4>
+            <p style="font-size: 1.2rem">
+              Weekly Updates of project activities.
+            </p>
+          </div>
         </a>
-        <a href="/test" style="text-decoration: none; color: inherit;" id="escalations" class="box">
-            <div class="contentSection" >
+        <a
+          href="/test"
+          style="text-decoration: none; color: inherit"
+          id="escalations"
+          class="box"
+        >
+          <div class="contentSection">
             <h4>Chrysalis Projects Escalations</h4>
-            <p style="font-size: 1.2rem;"> <strong>Restricted Access! </strong></p>           
-            </div> 
-        </a>        
-    </div>
-    <div class="countd">
-       
+            <p style="font-size: 1.2rem">
+              <strong>Restricted Access! </strong>
+            </p>
+          </div>
+        </a>
+      </div>
+      <div class="countd">
         <h1 id="activity-details"></h1>
 
         <div id="timer" class="timer">
-            <div class="time">
-                <h2 id="days">00</h2>
-                <small>Days</small>
-            </div>
-    
-            <div class="time">
-                <h2 id="hours">00</h2>
-                <small>Hours</small>
-            </div>
-    
-            <div class="time">
-                <h2 id="minutes">00</h2>
-                <small>Minutes</small>
-            </div>
-    
-            <div class="time">
-                <h2 id="seconds">00</h2>
-                <small>Seconds</small>
-            </div>   
+          <div class="time">
+            <h2 id="days">00</h2>
+            <small>Days</small>
+          </div>
+
+          <div class="time">
+            <h2 id="hours">00</h2>
+            <small>Hours</small>
+          </div>
+
+          <div class="time">
+            <h2 id="minutes">00</h2>
+            <small>Minutes</small>
+          </div>
+
+          <div class="time">
+            <h2 id="seconds">00</h2>
+            <small>Seconds</small>
+          </div>
+        </div>
+      </div>
     </div>
-</div>
-</div>
-    
+
     <div class="copyrightbar">
-        <p style=" text-align: center; margin-top: 10px;">  <a href="/countdown" style="color: inherit; text-decoration: none;">Next Session</a></p>
-        <p style=" text-align: center; margin-top: 10px;">Copyright © 2024  <a href="https://chrysalis.in" style="color: inherit; text-decoration: none;">Chrysalis HRD</a></p>
+      <!-- <p style=" text-align: center; margin-top: 10px;">  <a href="/countdown" style="color: inherit; text-decoration: none;">Next Session</a></p> -->
+      <!-- <p style=" text-align: center; margin-top: 10px;">Copyright © 2024  <a href="https://chrysalis.in" style="color: inherit; text-decoration: none;">Chrysalis HRD</a></p> -->
     </div>
-</body>
+  </body>
 </html>

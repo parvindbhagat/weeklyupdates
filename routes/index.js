@@ -4,32 +4,34 @@ const session = require('express-session');
 const escalationModel = require('./escalation');
 const activityModel= require('./activity');
 require('dotenv').config();
+const mongoose = require("mongoose");
 
 
 /* GET home page. */
-router.get('/', async (req, res) => {
-  try {
-    const { startDate, endDate } = getDateRangeForWeek(getWeekNumber(new Date()), new Date().getFullYear());
-    const activities = await activityModel.find({ weekNumber: getWeekNumber(new Date()) }).sort({startDate: 1});
+// router.get('/', async (req, res) => {
+//   try {
+    
+//     const { startDate, endDate } = getDateRangeForWeek(getWeekNumber(new Date()), new Date().getFullYear());
+//     const activities = await activityModel.find({ weekNumber: getWeekNumber(new Date()) }).sort({startDate: 1});
 
-    // Group activities by activityType
-    const groupedActivities = activities.reduce((acc, activity) => {
-      if (!acc[activity.activityType]) {
-        acc[activity.activityType] = [];
-      }
-      acc[activity.activityType].push(activity);
-      return acc;
-    }, {});
-    // console.log('Grouped Activities:', groupedActivities)
+//     // Group activities by activityType
+//     const groupedActivities = activities.reduce((acc, activity) => {
+//       if (!acc[activity.activityType]) {
+//         acc[activity.activityType] = [];
+//       }
+//       acc[activity.activityType].push(activity);
+//       return acc;
+//     }, {});
+//     // console.log('Grouped Activities:', groupedActivities)
 
-    res.render('index', { groupedActivities, startDate, endDate });
-  } catch (error) {
-    res.status(500).json({ message: 'Error fetching activities', error: error.message });
-  }
-});
+//     res.render('index', { groupedActivities, startDate, endDate });
+//   } catch (error) {
+//     res.status(500).json({ message: 'Error fetching activities', error: error.message });
+//   }
+// });
 
 //GET HOME
-router.get('/home', async(req, res) => {
+router.get('/', async(req, res) => {
   const currentWeekNumber = getWeekNumber(new Date());  
   const currentYear = new Date().getFullYear();  // to be used for filter as later the we will have same week number for current year and next year
   const sessions = await activityModel.find({activityType: 'Rollouts', weekNumber: currentWeekNumber, year: currentYear}).sort({ startDate: 1 });
@@ -61,14 +63,7 @@ router.get('/activities', async (req, res) => {
 
 router.get('/test', ensureEscalationAuth, async (req, res) => {
   let today = new Date();
-
-  // Function to validate date string in 'dd/mm/yyyy' format
-  function isUkDate(dateString) {
-      const regex = /^\d{2}\/\d{2}\/\d{4}$/;
-      return regex.test(dateString);
-  }
-
-  // Find tasks with valid endDate and status 'false'
+  today.setHours(0,0,0,0);
   const tasks = await activityModel.find({
       status: 'false',
       $expr: {
@@ -89,7 +84,7 @@ router.get('/test', ensureEscalationAuth, async (req, res) => {
           ]
       }
   }).sort({endDate: 1});
-
+  // console.log(tasks);
   // Convert Mongoose documents to plain JavaScript objects
   const plainTasks = tasks.map(task => task.toObject());
   plainTasks.forEach((task, index) => {
@@ -109,9 +104,11 @@ router.get('/test', ensureEscalationAuth, async (req, res) => {
               task.level = '>10';
           }
       } else {
-          // console.log(`Task ${index + 1} is within deadline.`);
+          console.log(`Task ${index + 1} is within deadline.`);
       }
   });
+  // console.log("plaintasks array is:" )
+  // console.log(plainTasks)
   plainTasks.sort((a, b) => a.delay - b.delay);
   res.render('test', { plainTasks });
 });
@@ -130,6 +127,7 @@ router.get('/countdown', async (req, res) => {
 router.get('/escview', async (req, res) => {
   const currentWeekNumber = getWeekNumber(new Date());
   const escalations = await escalationModel.find();
+  updateStatusField();
   res.render('escview', {escalations});
 });
 // ALL ACtivities page
@@ -506,5 +504,34 @@ async function findRecordsByFields(searchTerm) {
     console.error('Error finding records:', error);
   }
 };
+
+async function updateStatusField() {
+  try {
+    // Find all documents where status is of type Boolean
+    const documents = await escalationModel.find({ status: { $type: 'bool' } });
+
+    if(documents.length === 0) {
+      console.log("No status of type Bool found.");} else{
+        console.log(documents);
+      // Iterate through each document and update the status field
+    for (let doc of documents) {
+      console.log(`Before update: ${doc.status} and type of status is ${typeof doc.status}`); // Debugging statement
+      //doc.status = doc.status ? 'Completed' : 'On Going'; // Convert Boolean to specific String values
+      if(doc.status === 'true') {
+        doc.status = "Completed";
+      } else{
+        doc.status = "In Progress";
+      }
+      console.log(`After update: ${doc.status} and type of status is ${typeof doc.status}`); // Debugging statement
+      await doc.save();
+    }
+
+    console.log('Status field updated successfully for all documents.'); 
+      
+    }
+  } catch (error) {
+    console.error('Error updating status field:', error);
+  }
+}
 
 module.exports = router;

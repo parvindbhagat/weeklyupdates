@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Weekly Updates</title>
+  <link rel="stylesheet" href="https://use.typekit.net/oov2wcw.css" />
   <link
     href="https://cdn.jsdelivr.net/npm/remixicon@4.3.0/fonts/remixicon.css"
     rel="stylesheet"/>
@@ -13,14 +14,9 @@
 </head>
 <body>
   <nav class="navbar ">
-    <div class="">
       <a class="navbar-brand" href="/">
-        <img src="/images/logo-ic.png" alt="Chrysalis" >
+        <img src="/images/logo.png" alt="Chrysalis" >
       </a>
-      <a class="navbar-brand" href="/">
-        <img src="/images/logo-tx.png" alt="Chrysalis" >
-      </a>
-    </div>
   </nav>
 <div>
   &nbsp;&nbsp;<a href="/" style="text-decoration: none;"><i class="ri-timer-flash-line"></i> Current Week Activies</a>&nbsp;&nbsp;
@@ -47,14 +43,14 @@
       <tbody>
         <% activities.forEach(activity => { %>
           <tr class="tableData">
-            <td class="border border-gray-300 px-4 py-2 text-center"><%= activity.activityType %></td>
-            <td class="border border-gray-300 px-4 py-2 text-center"><%= activity.activityName %></td>
+            <td class="border border-gray-300 px-4 py-2 "><%= activity.activityType %></td>
+            <td class="border border-gray-300 px-4 py-2 "><%= activity.activityName %></td>
             <td class="border border-gray-300 px-4 py-2 text-center"><%= activity.startDate %></td>
             <td class="border border-gray-300 px-4 py-2 text-center"><%= activity.endDate %></td>
-            <td class="border border-gray-300 px-4 py-2 text-center"><%= activity.resource %></td>
-            <td class="border border-gray-300 px-4 py-2 text-center"><%= activity.activityMode %></td>
-            <td class="border border-gray-300 px-4 py-2 text-center"><%= activity.remarks %></td>
-            <td class="border border-gray-300 px-4 py-2 text-center"><%= activity.status  ? 'Completed' : 'Ongoing' %></td>
+            <td class="border border-gray-300 px-4 py-2 "><%= activity.resource %></td>
+            <td class="border border-gray-300 px-4 py-2 "><%= activity.activityMode %></td>
+            <td class="border border-gray-300 px-4 py-2 "><%= activity.remarks %></td>
+            <td class="border border-gray-300 px-4 py-2 "><%= activity.status  ? 'Completed' : 'Ongoing' %></td>
           </tr>
         <% }); %>
       </tbody>
@@ -62,7 +58,7 @@
 </div>
 <div class="footer" >
   <h4 class="footext">That was all!  </h4>
-  <p style=" text-align: center; margin-top: 10px;">Copyright © 2024  <a href="https://chrysalis.in" style="text-decoration: none;">Chrysalis HRD</a></p>
+  <p style=" text-align: center; position: relative; bottom: 1px;">Copyright © 2024  <a href="https://chrysalis.in" style="text-decoration: none;">Chrysalis HRD</a></p>
 </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js" integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r" crossorigin="anonymous"></script>
