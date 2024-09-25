@@ -16,7 +16,7 @@
   .activitytable {
 /* width: 100%; */
 border-collapse: collapse;
-margin: 0px 0;
+margin: 0px auto;
 font-size: 12px;
 text-align: center;
 }
@@ -215,9 +215,16 @@ background-color: #5a2227;
     </Form>
     </div>
         <div style="margin-top: 25px;">
-            <p style="margin-left: 3rem;">Note: To change the status of the activity, enter "true" in all lowercase to mark it Completed.</p>
-            <p style="margin-left: 3rem;"> * For <strong>Rollouts</strong> start date/time and end date/time are <strong>Required</strong>.</p>
-            <p style="margin-left: 3rem;">Please follow the naming convention for activities as <strong>Client Name <span style="color: red; font-weight: 900;">-</span> Task Name</strong>.</p>
+            <p style="margin-left: 3rem;">Note: To change the status of the activity, enter a suitable option.</p>
+            <ul style="margin-left: 3rem;">
+                <li>On Going</li>
+                <li>Not Started</li>
+                <li>On Hold</li>
+                <li>Completed</li>
+                <li>Cancelled</li>
+            </ul>
+            <!-- <p style="margin-left: 3rem;"> * For <strong>Rollouts</strong> start date/time and end date/time are <strong>Required</strong>.</p> -->
+            <p style="margin-left: 3rem;">Please follow the naming convention for activities as <strong>Client Name <span style="color: red; font-weight: 900;">_</span> Task Name</strong>.</p>
             <h1 style="text-align: center; margin: 1rem;">Activity List</h1>
         </div>
     
@@ -233,7 +240,7 @@ background-color: #5a2227;
               <th>Resource</th>
               <th>Activity Type</th>
               <th>Remarks</th>
-              <th>Completed?</th>
+              <th>Status</th>
               <th>Created On</th>
               <th>Updated On</th>
               <th>Actions</th>

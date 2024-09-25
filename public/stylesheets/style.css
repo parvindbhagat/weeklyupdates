@@ -41,6 +41,10 @@ html, body{
   background-color: rgb(203, 230, 230);
 } */
 .footer{
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+  align-items: center;
   width: 100%;
   box-sizing: border-box;
   position: relative;
@@ -48,10 +52,7 @@ html, body{
   margin-top: 25px;
   background-color: rgb(203, 230, 230);
   padding: 10px;
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
+  
 }
 button{
   background-color: var(--primary-color);

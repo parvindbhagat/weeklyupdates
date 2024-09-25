@@ -24,8 +24,8 @@ const activitySchema = new mongoose.Schema({
   remarks: { type: String, default: 'NA' },
   weekNumber: { type: Number },
   year: { type: Number },
-  status: { type: Boolean, default: false },
-  //status: { type: String,  default: "On Going", enum: ["Completed", "On Going", "Not Started", "Cancelled", "On Hold"],  },
+  // status: { type: Boolean, default: false },
+  status: { type: String,  default: "On Going", enum: ["Completed", "On Going", "Not Started", "Cancelled", "On Hold"],  },
   createdOn: { type: Date, default: Date.now },
   updatedOn: { type: Date, default: Date.now }
 });

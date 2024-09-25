@@ -64,8 +64,9 @@ router.get('/activities', async (req, res) => {
 router.get('/test', ensureEscalationAuth, async (req, res) => {
   let today = new Date();
   today.setHours(0,0,0,0);
-  const tasks = await activityModel.find({
-      status: 'false',
+  const tasks = await activityModel.find({ status: {$in:["On Going", "On Hold", "Not Started"]},
+  // const tasks = await activityModel.find({
+  //     status: 'false',
       $expr: {
           $lt: [
               {
@@ -508,7 +509,7 @@ async function findRecordsByFields(searchTerm) {
 async function updateStatusField() {
   try {
     // Find all documents where status is of type Boolean
-    const documents = await escalationModel.find({ status: { $type: 'bool' } });
+    const documents = await activityModel.find({ status: { $type: 'bool' } });
 
     if(documents.length === 0) {
       console.log("No status of type Bool found.");} else{
@@ -520,7 +521,7 @@ async function updateStatusField() {
       if(doc.status === 'true') {
         doc.status = "Completed";
       } else{
-        doc.status = "In Progress";
+        doc.status = "On Going";
       }
       console.log(`After update: ${doc.status} and type of status is ${typeof doc.status}`); // Debugging statement
       await doc.save();
