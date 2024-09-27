@@ -85,13 +85,13 @@ router.get('/test', ensureEscalationAuth, async (req, res) => {
           ]
       }
   }).sort({endDate: 1});
-  // console.log(tasks);
+  console.log(tasks);
   // Convert Mongoose documents to plain JavaScript objects
   const plainTasks = tasks.map(task => task.toObject());
   plainTasks.forEach((task, index) => {
-      // console.log(`Processing task ${index + 1}:`, task);
+      console.log(`Processing task ${index + 1}:`, task);
       let endDateObj = new Date(task.endDate.split("/").reverse().join("-"));
-      // console.log(`End date object for task ${index + 1}:`, endDateObj);
+      console.log(`End date object for task ${index + 1}:`, endDateObj);
 
       if (today > endDateObj) {
           let diff = today - endDateObj;
@@ -108,8 +108,8 @@ router.get('/test', ensureEscalationAuth, async (req, res) => {
           console.log(`Task ${index + 1} is within deadline.`);
       }
   });
-  // console.log("plaintasks array is:" )
-  // console.log(plainTasks)
+  console.log("plaintasks array is:" )
+  console.log(plainTasks)
   plainTasks.sort((a, b) => a.delay - b.delay);
   res.render('test', { plainTasks });
 });
@@ -133,7 +133,35 @@ router.get('/escview', async (req, res) => {
 });
 // ALL ACtivities page
 router.get('/allactivities', async function(req, res, next) {
-  const activities = await activityModel.find().sort({ updatedOn: -1 });
+  // const activities = await activityModel.find().sort({ startDate: -1 });
+  const activities = await activityModel.aggregate([
+    {
+      $addFields: {
+        startDateObj: {
+          $cond: {
+            if: { $or: [{ $eq: ["$startDate", "NA"] }, { $eq: ["$startDate", ""] }] },
+            then: null,
+            else: {
+              $dateFromString: {
+                dateString: "$startDate",
+                format: "%d/%m/%Y"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      $sort: {
+        startDateObj: -1
+      }
+    },
+    {
+      $project: {
+        startDateObj: 0
+      }
+    }
+  ]);
   res.render('allactivities', { activities });
 });
 
@@ -241,10 +269,33 @@ router.post('/escadmin', async (req, res) => {
   }
 });
 
+// router.get('/createactivity', ensureActivityAuth, async function(req, res, next) {
+//   const activities = await activityModel.find().sort({ updatedOn: -1 });
+//   const msg = req.query.msg === 'successmsg' ? 'New Activity added successfully.' : '';
+//   res.render('createactivity', { activities, msg });
+// });
+
 router.get('/createactivity', ensureActivityAuth, async function(req, res, next) {
-  const activities = await activityModel.find().sort({ updatedOn: -1 });
+  const search = req.query.search || '';
+  console.log(search);
+  let activities;
+
+  if (search) {
+    console.log("search term is availale, calling findrecords... function.")
+    try {
+      
+      activities = await findRecordsByFields(search);
+      
+    } catch (error) {
+      console.error('Error fetching activities:', error);
+    }
+    console.log(activities.length);
+  } else {
+    activities = await activityModel.find().sort({ updatedOn: -1 });
+  }
+
   const msg = req.query.msg === 'successmsg' ? 'New Activity added successfully.' : '';
-  res.render('createactivity', { activities, msg });
+  res.render('createactivity', { activities, msg, search });
 });
 
 router.post('/createactivity', async (req, res) => {
@@ -495,7 +546,10 @@ async function findRecordsByFields(searchTerm) {
         { activityName: { $regex: searchTerm, $options: 'i' } },
         { activityMode: { $regex: searchTerm, $options: 'i' } },
         { resource: { $regex: searchTerm, $options: 'i' } },
-        { status: { $regex: searchTerm, $options: 'i' } }
+        { status: { $regex: searchTerm, $options: 'i' } },
+        { startDate: { $regex: searchTerm, $options: 'i' } },
+        { endDate: { $regex: searchTerm, $options: 'i' } },
+        { remarks: { $regex: searchTerm, $options: 'i' } }
       ]
     };
 

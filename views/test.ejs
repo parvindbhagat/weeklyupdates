@@ -19,6 +19,22 @@
       .nothing{
         flex: 1;
       }
+
+      .title {
+        display: flex;
+        justify-content: space-between; /* Distributes space equally between items */
+        align-items: center; /* Centers items vertically */
+    }
+
+.item {
+  flex: 1; 
+  text-align: center; /* Centers text within each item */
+}
+.title-text {
+        font-size: 3vw; /* Large size as the width of the screen */
+        font-weight: bold;
+        color: var(--secondary-color);
+      }
         .delay-low {
             color: darkgoldenrod;
         }
@@ -57,8 +73,18 @@
           </a>
         </div>
       </nav>
-    <div class="title">
-        <H1 style="text-align: center; margin: 1rem;">Chrysalis Projects Escalations</H1>
+      <div class="title">
+        <div class="item title-text contentSection">LEAP</div>
+        <div class="item">
+            <h1 class="text-center" style="margin: 2rem;">Chrysalis Projects Escalations</h1>
+        </div>
+        <div class="item">
+            <a style="text-decoration: none;" href="http://chrysalishrd.sharepoint.com/pwa/Timesheet.aspx" target="_blank" class="box"> 
+                <div class="timmylink">
+                  <h4>Timmy the TimeSheet</h4>
+                </div>
+            </a>
+        </div>
     </div>
     <div class="legends" style=" border: 2px solid black; padding: 10px; border-radius: 5px; margin: 2rem;">
       <ul>

@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Updates Home</title>
+    <title>LEAP</title>
     <link rel="stylesheet" href="https://use.typekit.net/oov2wcw.css" />
     <link rel="stylesheet" href="/stylesheets/style.css">
     <style>
@@ -19,6 +19,9 @@
         padding: 0;
         margin: 0;
         box-sizing: border-box;
+      }
+      .hidden{
+        display: none;
       }
       .options {
         /* border: 2px solid white; */
@@ -83,7 +86,7 @@
         border: 2px solid #fff;
         border-end-end-radius: 25px;
         border-top-left-radius: 25px;
-        padding: 5px;
+        padding: 0.25rem;
         margin: 10px 0px;
         color: #fff;
         /* text-align: center; */
@@ -120,8 +123,6 @@
         font-size: 10vw; /* Large size as the width of the screen */
         font-weight: bold;
         margin-left: 0.5rem;
-        color: #bb5757;
-        text-shadow: 2px 2px 5px rgba(205, 228, 123, 0.3);
         color: var(--secondary-color);
         justify-content: center;
       }
@@ -185,6 +186,20 @@
         padding: 10px;
         color: #fff;
       }
+      .marquee {
+            width: 100%;
+            box-sizing: border-box;
+            color: #fff;
+            overflow: hidden;
+            white-space: nowrap;
+            box-sizing: border-box;
+            animation: marquee 30s linear infinite;
+        }
+
+        @keyframes marquee {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
     </style>
   </head>
   <body>
@@ -200,7 +215,9 @@
         </a>
       </div>
     </nav>
-
+    <div class="marquee">
+      Timmy says, Fill your TimeSheet!
+  </div>
     <div class="main">
       <div class="options">
         <div class="title-text contentSection">LEAP</div>
@@ -230,28 +247,36 @@
             </p>
           </div>
         </a>
+        <a style="text-decoration: none;" href="http://chrysalishrd.sharepoint.com/pwa/Timesheet.aspx" target="_blank" class="box"> 
+          <div class="contentSection">
+            <h4>Timmy the TimeSheet</h4>
+            <p style="font-size: 1.2rem;">
+              <strong>Don't forget me! </strong>
+            </p>
+          </div>
+        </a>
       </div>
-      <div class="countd">
+      <div class="countd" id="countd">
         <h1 id="activity-details"></h1>
 
         <div id="timer" class="timer">
           <div class="time">
-            <h2 id="days">00</h2>
+            <h2 id="days"></h2>
             <small>Days</small>
           </div>
 
           <div class="time">
-            <h2 id="hours">00</h2>
+            <h2 id="hours"></h2>
             <small>Hours</small>
           </div>
 
           <div class="time">
-            <h2 id="minutes">00</h2>
+            <h2 id="minutes"></h2>
             <small>Minutes</small>
           </div>
 
           <div class="time">
-            <h2 id="seconds">00</h2>
+            <h2 id="seconds"></h2>
             <small>Seconds</small>
           </div>
         </div>

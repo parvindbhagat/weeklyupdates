@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8"> 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create Update</title>
+    <title>PM Admin</title>
     <link rel="stylesheet" href="https://use.typekit.net/oov2wcw.css" />
     <link
     href="https://cdn.jsdelivr.net/npm/remixicon@4.3.0/fonts/remixicon.css"
@@ -13,6 +13,25 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
 <link rel="stylesheet" href="/stylesheets/style.css">
 <style>
+    .hidden{
+        display: none;
+    }
+
+    .title {
+        display: flex;
+        justify-content: space-between; /* Distributes space equally between items */
+        align-items: center; /* Centers items vertically */
+    }
+
+.item {
+  flex: 1; 
+  text-align: center; /* Centers text within each item */
+}
+.title-text {
+        font-size: 3vw; /* Large size as the width of the screen */
+        font-weight: bold;
+        color: var(--secondary-color);
+      }
   .activitytable {
 /* width: 100%; */
 border-collapse: collapse;
@@ -127,14 +146,40 @@ background-color: #5a2227;
 </script>
 </head>
 <body>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            window.activities = <%- JSON.stringify(activities) %>;
+            let tabledata = document.querySelector('.tabledata');
+            console.log(activities.length);
+            if (activities.length === 0) {
+                tabledata.classList.add('hidden');
+            } else {
+                tabledata.classList.remove('hidden');
+                // Populate the table with activities
+            }
+        });
+    </script>
     <nav class="navbar ">
           <a class="navbar-brand" href="/">
             <img src="/images/logo.png" alt="Chrysalis" >
           </a>
     </nav>
+    <div class="title">
+        <div class="item title-text contentSection">LEAP</div>
+        <div class="item">
+            <h1 class="text-center" style="margin: 2rem;">Weekly Activity Calendar</h1>
+        </div>
+        <div class="item">
+            <a style="text-decoration: none;" href="http://chrysalishrd.sharepoint.com/pwa/Timesheet.aspx" target="_blank" class="box"> 
+                <div class="timmylink">
+                  <h4>Timmy the TimeSheet</h4>
+                </div>
+            </a>
+        </div>
+    </div>
 
     <div>
-        <h1 class="text-center" style="margin: 2rem;">Weekly update Activity Calendar</h1>
+        
         <% if(typeof errors != 'undefined'){ %>
             <% errors.forEach(function(error) { %>
                 <div class="alert alert-warning alert-dismissible fade show" role="alert">
@@ -154,7 +199,7 @@ background-color: #5a2227;
             </div>
             
           <% } %>
-      </div>
+    </div>
    <div class=" datafield container border border-danger-subtle border-5">
 
     <Form action="/createactivity" method="post">
@@ -225,12 +270,17 @@ background-color: #5a2227;
             </ul>
             <!-- <p style="margin-left: 3rem;"> * For <strong>Rollouts</strong> start date/time and end date/time are <strong>Required</strong>.</p> -->
             <p style="margin-left: 3rem;">Please follow the naming convention for activities as <strong>Client Name <span style="color: red; font-weight: 900;">_</span> Task Name</strong>.</p>
-            <h1 style="text-align: center; margin: 1rem;">Activity List</h1>
+            <form style=" margin-left: 3rem;" action="/createactivity" method="get">
+                <input style="width: 30rem;" type="text" name="search" placeholder="Search activities, resource, date, status or remarks.."
+                    value="<%= typeof search !== 'undefined' ? search : '' %>">
+                <button type="submit">Search</button>
+            </form>
         </div>
-    
-     <table class="activitytable" >
-       <thead>
-          <tr>
+        <div class="tabledata">
+            <h1 style="text-align: center; margin: 1rem;">Activity List</h1>
+            <table class="activitytable" >
+                <thead>
+                    <tr>
               <th>Category</th>
               <th>Activity</th>
               <th>Start Date</th>
@@ -244,11 +294,11 @@ background-color: #5a2227;
               <th>Created On</th>
               <th>Updated On</th>
               <th>Actions</th>
-          </tr>
-       </thead>
-        <tbody>
-          <% activities.forEach(activity => { %>
-              <tr id="row-<%= activity._id %>">
+                </tr>
+                </thead>
+                <tbody>
+                <% activities.forEach(activity => { %>
+                <tr id="row-<%= activity._id %>">
                   <form action="/update/<%= activity._id %>" method="POST">
                       <td><input type="text" name="activityType" value="<%= activity.activityType %>" class="editable" readonly></td>
                       <td><input data-fulltext="<%= activity.activityName %>" type="text" name="activityName" value="<%= activity.activityName %>" class="editable" readonly></td>
@@ -259,7 +309,14 @@ background-color: #5a2227;
                       <td><input type="text" name="resource" value="<%= activity.resource %>" class="editable" readonly></td>
                       <td><input type="text" name="activityMode" value="<%= activity.activityMode %>" class="editable" readonly></td>
                       <td><input type="text" name="remarks" value="<%= activity.remarks %>" class="editable" readonly></td>
-                      <td><input type="text" name="status" value="<%= activity.status %>" class="editable" readonly></td>
+                      <td><input type="text" list="datalistOptions3" name="status" value="<%= activity.status %>" class="editable" readonly></td>
+                      <datalist id="datalistOptions3">
+                        <option value="On Going"></option>
+                        <option value="On Hold"></option>
+                        <option value="Not Started"></option>
+                        <option value="Cancelled"></option>
+                        <option value="Completed"></option>                   
+                    </datalist>
                       <td><input type="text" name="createdOn" value="<%= activity.createdOn %>"  readonly></td>
                       <td><input type="text" name="updatedOn" value="<%= activity.updatedOn %>"  readonly></td>
                       <td>
@@ -271,9 +328,10 @@ background-color: #5a2227;
                   </form>
                   <form id="delete-form-<%= activity._id %>" action="/delete/<%= activity._id %>" method="POST" style="display:none;"></form>
               </tr>
-          <% }) %>
-        </tbody>
-    </table>
+                <% }) %>
+                </tbody>
+            </table>
+        </div>
     <div class="footer" >
         <h3 class="footext">That was all!       You have reached inception.
         </h3>

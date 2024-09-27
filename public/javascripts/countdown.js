@@ -3,8 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const timerElement = document.getElementById('timer');
     const activityDetailsElement = document.getElementById('activity-details');
     const upcomingSessionsElement = document.getElementById('upcomingSessions');
-    console.log(sessions);
-  
+    const countdElement = document.getElementById('countd');
     function getNextSession(sessions) {
         const now = new Date();
         return sessions.filter(session => new Date(session.startDateTime) > now).sort((a, b) => new Date(a.startDateTime) - new Date(b.startDateTime))[0];
@@ -19,8 +18,9 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateTimer() {
         const nextSession = getNextSession(sessions);
         if (!nextSession) {
-            timerElement.textContent = 'No upcoming session in the list!';
+            timerElement.textContent = '';
             activityDetailsElement.textContent = '';
+            countdElement.classList.add('hidden');    //Hide countdown div when no next session in the list
             return;
         }
 
