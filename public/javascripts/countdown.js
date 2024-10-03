@@ -3,7 +3,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const timerElement = document.getElementById('timer');
     const activityDetailsElement = document.getElementById('activity-details');
     const upcomingSessionsElement = document.getElementById('upcomingSessions');
-    const countdElement = document.getElementById('countd');
+    // console.log(sessions);
+  
     function getNextSession(sessions) {
         const now = new Date();
         return sessions.filter(session => new Date(session.startDateTime) > now).sort((a, b) => new Date(a.startDateTime) - new Date(b.startDateTime))[0];
@@ -20,7 +21,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!nextSession) {
             timerElement.textContent = '';
             activityDetailsElement.textContent = '';
-            countdElement.classList.add('hidden');    //Hide countdown div when no next session in the list
             return;
         }
 

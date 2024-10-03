@@ -419,6 +419,10 @@ router.post('/createactivity', async (req, res) => {
 router.post('/update/:id', async (req, res) => {
   const { id } = req.params;
   const updatedData = req.body;
+  let startDateTime;
+  let endDateTime;
+  console.log(`The updateddata from req.body before any update:`);
+  console.log(updatedData)
   updatedData.updatedOn = Date.now();
   // console.log(updatedData);
   let model;
@@ -436,6 +440,7 @@ router.post('/update/:id', async (req, res) => {
     }
     
     if (startDate && startTime){
+      console.log("startDate and startTime exist");
       startDateTime = convertToDateTime(startDate, startTime);
     }
     if (endDate && endTime){
@@ -443,6 +448,8 @@ router.post('/update/:id', async (req, res) => {
     }
     updatedData.year = year;
     updatedData.weekNumber = weekNum;
+    updatedData.startDateTime = startDateTime;
+    updatedData.endDateTime = endDateTime;
     // if (startDateTime) {
     //   updatedData.startDateTime = new Date(startDateTime);
     // }

@@ -13,10 +13,10 @@ mongoose.connect(process.env.MONGO_URI, {}).then(() => {
 const activitySchema = new mongoose.Schema({
   activityType: { type: String, required: true },        // Activity Category for users
   activityName: { type: String, required: true },
-  startDate: { type: String,  default: 'NA'  },
-  endDate: { type: String,  default: 'NA'  },
-  startTime: { type: String,  default: '00:00'},
-  endTime: {type: String,  default: '00:00'},
+  startDate: { type: String },
+  endDate: { type: String },
+  startTime: { type: String,  default: '09:00'},
+  endTime: {type: String,  default: '17:00'},
   startDateTime: {type: String},
   endDateTime: {type: String},
   activityMode: { type: String, default: 'NA'},                        // Activiity Type for users
