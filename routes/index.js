@@ -34,14 +34,16 @@ const mongoose = require("mongoose");
 router.get('/', async(req, res) => {
   const currentWeekNumber = getWeekNumber(new Date());  
   const currentYear = new Date().getFullYear();  // to be used for filter as later the we will have same week number for current year and next year
-  const sessions = await activityModel.find({activityType: 'Rollouts', weekNumber: currentWeekNumber, year: currentYear}).sort({ startDate: 1 });
+  const sessions = await activityModel.find({status: 'On Going', activityType: 'Rollouts', weekNumber: currentWeekNumber, year: currentYear}).sort({ startDate: 1 });
   res.render('home', {sessions});
 });
 
 router.get('/activities', async (req, res) => {
   try {
     const { startDate, endDate } = getDateRangeForWeek(getWeekNumber(new Date()), new Date().getFullYear());
-    const activities = await activityModel.find({ weekNumber: getWeekNumber(new Date()), year: new Date().getFullYear() }).sort({startDate: 1});
+    const activities = await activityModel.find({$or: [{ weekNumber: getWeekNumber(new Date()), year: new Date().getFullYear() },
+                                                     { status: { $in: ['OnGoing', 'On Hold', 'Not Started'] }}
+                                                     ]}).sort({startDate: 1});
 
     // Group activities by activityType
     const groupedActivities = activities.reduce((acc, activity) => {
@@ -85,31 +87,31 @@ router.get('/test', ensureEscalationAuth, async (req, res) => {
           ]
       }
   }).sort({endDate: 1});
-  console.log(tasks);
+  // console.log(tasks);
   // Convert Mongoose documents to plain JavaScript objects
   const plainTasks = tasks.map(task => task.toObject());
   plainTasks.forEach((task, index) => {
-      console.log(`Processing task ${index + 1}:`, task);
+      // console.log(`Processing task ${index + 1}:`, task);
       let endDateObj = new Date(task.endDate.split("/").reverse().join("-"));
-      console.log(`End date object for task ${index + 1}:`, endDateObj);
+      // console.log(`End date object for task ${index + 1}:`, endDateObj);
 
       if (today > endDateObj) {
           let diff = today - endDateObj;
           let delayInDays = Math.ceil(diff / (1000 * 60 * 60 * 24));
             task.delay = delayInDays;
           if (delayInDays > 0 && delayInDays < 4) {
-              task.level = '0-3';
+              task.level = 'Escalation Level 1';
           } else if (delayInDays >= 4 && delayInDays < 10) {
-              task.level = '4-10';
+              task.level = 'Escalation Level 2';
           } else {
-              task.level = '>10';
+              task.level = 'Escalation Level 3';
           }
       } else {
           console.log(`Task ${index + 1} is within deadline.`);
       }
   });
-  console.log("plaintasks array is:" )
-  console.log(plainTasks)
+  // console.log("plaintasks array is:" )
+  // console.log(plainTasks)
   plainTasks.sort((a, b) => a.delay - b.delay);
   res.render('test', { plainTasks });
 });
@@ -323,7 +325,12 @@ router.post('/createactivity', async (req, res) => {
       });
     } else{
 
-    
+    // Set default values if fields are empty strings
+    const startTime = req.body.startTime === '' ? '09:00' : req.body.startTime;
+    const endTime = req.body.endTime === '' ? '17:00' : req.body.endTime;
+    const activityMode = req.body.activityMode === '' ? 'NA' : req.body.activityMode;
+    const remarks = req.body.remarks === '' ? 'NA' : req.body.remarks;
+
     const startDateValue = startDate && startDate.trim() !== "" ? startDate : "NA";
     const endDateValue = endDate && endDate.trim() !== "" ? endDate : "NA";
 
@@ -421,8 +428,8 @@ router.post('/update/:id', async (req, res) => {
   const updatedData = req.body;
   let startDateTime;
   let endDateTime;
-  console.log(`The updateddata from req.body before any update:`);
-  console.log(updatedData)
+  // console.log(`The updateddata from req.body before any update:`);
+  // console.log(updatedData)
   updatedData.updatedOn = Date.now();
   // console.log(updatedData);
   let model;
@@ -440,7 +447,7 @@ router.post('/update/:id', async (req, res) => {
     }
     
     if (startDate && startTime){
-      console.log("startDate and startTime exist");
+      // console.log("startDate and startTime exist");
       startDateTime = convertToDateTime(startDate, startTime);
     }
     if (endDate && endTime){

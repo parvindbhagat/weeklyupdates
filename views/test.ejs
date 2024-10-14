@@ -53,7 +53,7 @@
     <script>
       document.addEventListener('DOMContentLoaded', function() {
           window.plainTasks = <%- JSON.stringify(plainTasks) %>;
-          console.log(window.plainTasks.length);
+          // console.log(window.plainTasks.length);
           
           const taskTable = document.getElementById('taskTable');
           const noEsc = document.getElementById('noEsc');
@@ -88,9 +88,9 @@
     </div>
     <div class="legends" style=" border: 2px solid black; padding: 10px; border-radius: 5px; margin: 2rem;">
       <ul>
-        <li><strong>Escalation Level 1</strong> [Task Owner Level (0-3 days)]: If a Project work item/task is not completed within the Service Level Agreement (SLA) of 3 business days, the issue is escalated to the owner of the task.</li>
-        <li><strong>Escalation Level 2</strong> [Project Owner Level (3-10 days)]: If a Project work item/task remains pending for a period between 3 to 10 days, the issue is escalated to the Project Owner</li>
-        <li><strong>Escalation Level 3</strong> [Managing Director Level (>10 days)]: If a work item/task is pending for more than 10 days, the issue shall be escalated to the Managing Director (MD).</li>
+        <li><strong>Escalation Level 1</strong> [Task Owner Level <strong>(0-3 days)</strong>]: If a Project work item/task is not completed within the Service Level Agreement (SLA) of 3 business days, the issue is escalated to the owner of the task.</li>
+        <li><strong>Escalation Level 2</strong> [Project Owner Level <strong>(3-10 days)</strong>]: If a Project work item/task remains pending for a period between 3 to 10 days, the issue is escalated to the Project Owner</li>
+        <li><strong>Escalation Level 3</strong> [Managing Director Level <strong>(>10 days)</strong>]: If a work item/task is pending for more than 10 days, the issue shall be escalated to the Managing Director (MD).</li>
       </ul>
     </div>
 

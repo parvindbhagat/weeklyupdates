@@ -209,7 +209,6 @@ background-color: #5a2227;
           <option value="Rollouts">
           <option value="TTT/Teach Back">
           <option value="Content Creation">
-          <option value="Task pending from past week">
           <option value="eLearning Project">
             <option value="Diagnostics">
         </datalist> 
@@ -243,6 +242,7 @@ background-color: #5a2227;
         <datalist id="datalistOptions2">
           <option value="Classroom">
           <option value="E-Classroom">
+          <option value="eLearning">
           <option value="Coaching">
           <option value="Group Coaching">
         </datalist> 
@@ -268,6 +268,13 @@ background-color: #5a2227;
                 <li>Completed</li>
                 <li>Cancelled</li>
             </ul>
+            <p style="margin-left: 3rem;"> Fields with Default Values, if nothing is entered: </p>
+            <ol style="margin-left: 3rem;">
+                <li>Start Date or End Date : Today's Date</li>
+                <li>Start Time : 09:00 AM</li>
+                <li>End Time : 05:00 PM</li>
+                <li>ActivityType or Remarks : NA</li>
+            </ol>
             <!-- <p style="margin-left: 3rem;"> * For <strong>Rollouts</strong> start date/time and end date/time are <strong>Required</strong>.</p> -->
             <p style="margin-left: 3rem;">Please follow the naming convention for activities as <strong>Client Name <span style="color: red; font-weight: 900;">_</span> Task Name</strong>.</p>
             <form style=" margin-left: 3rem;" action="/createactivity" method="get">
