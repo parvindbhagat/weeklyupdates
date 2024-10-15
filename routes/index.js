@@ -5,6 +5,9 @@ const escalationModel = require('./escalation');
 const activityModel= require('./activity');
 require('dotenv').config();
 const mongoose = require("mongoose");
+const axios =  require('axios');
+const msal = require('../authconfig');
+const qs = require('qs');
 
 
 /* GET home page. */
@@ -428,14 +431,12 @@ router.post('/update/:id', async (req, res) => {
   const updatedData = req.body;
   let startDateTime;
   let endDateTime;
-  // console.log(`The updateddata from req.body before any update:`);
-  // console.log(updatedData)
+  
   updatedData.updatedOn = Date.now();
   // console.log(updatedData);
   let model;
   let year;
   let weekNum;
-  if (req.headers['referer'].includes('/createactivity')) {
     model = activityModel;
     const {startDate, endDate, startTime, endTime} = req.body;
     if( startDate) {
@@ -457,25 +458,8 @@ router.post('/update/:id', async (req, res) => {
     updatedData.weekNumber = weekNum;
     updatedData.startDateTime = startDateTime;
     updatedData.endDateTime = endDateTime;
-    // if (startDateTime) {
-    //   updatedData.startDateTime = new Date(startDateTime);
-    // }
-
-    // if (endDateTime) {
-    //   updatedData.endDateTime = new Date(endDateTime);
-    // }
     
-    
-    // console.log(updatedData);
-     //Update LOGIC and Calculations here//
-  } else if (req.headers['referer'].includes('/escadmin')) {
-    model = escalationModel;
-    weekNum = getWeekNumber(new Date());
-    updatedData.weekNumber = weekNum;
-    // console.log(updatedData);
-  } else {
-    return res.status(400).send('Invalid request source');
-  }
+  
 
   try {
     await model.findByIdAndUpdate(id, updatedData);
@@ -491,14 +475,7 @@ router.post('/delete/:id', async (req, res) => {
 
   let model;
   // console.log('Referer:', req.headers['referer']);
-
-  if (req.headers['referer'].includes('/createactivity')) {
     model = activityModel;
-  } else if (req.headers['referer'].includes('/escadmin')) {
-    model = escalationModel;
-  } else {
-    return res.status(400).send('Invalid request source');
-  }
 
   try {
     // console.log(id, model);
@@ -546,7 +523,7 @@ function ensureEscalationAuth(req, res, next) {
   }
 };
 
-// combie date and Time  to return DateTime object for mathematical operations
+// combine date and Time  to return DateTime object for mathematical operations
 function convertToDateTime(dateValue, timeValue) {
   const dateTimeString = dateValue.split("/").reverse().join("-") + "T" + timeValue + ":00";  
   return new Date(dateTimeString);
@@ -602,5 +579,107 @@ async function updateStatusField() {
     console.error('Error updating status field:', error);
   }
 }
+///////////////////////////////////////////////////MSAL and PWA routes here ////////////////////////////////////////////////////////
 
+//start MSAL auth process to get auth code with pwa scope
+router.get('/login', async (req, res) => {
+  try {
+    const scopes = [process.env.S_SCOPE];
+    console.log(scopes);
+      const authUrl = await msal.getAuthCodeUrl({
+      scopes: scopes,
+      redirectUri: process.env.REDIRECT_URI
+    });
+    console.log(authUrl);
+    
+    res.redirect(authUrl);
+  } catch (error) {
+    console.log(error);
+    res.status(500).send('Error generating auth URL');
+  }
+});
+
+//use auth code to get access Token
+router.get('/oauth/redirect', async (req, res) => {
+  const tokenRequest = {
+    code: req.query.code,
+    scopes:[process.env.S_SCOPE],
+    redirectUri: process.env.REDIRECT_URI
+  };
+
+  try {
+    const response = await msal.acquireTokenByCode(tokenRequest);
+    // console.log('API response JSON is: ', JSON.stringify(response, null, 2));
+    req.session.user = response.account;
+    req.session.token = response.accessToken;
+    res.redirect('/profile');
+  } catch (error) {
+    console.log(error);
+    res.status(500).send(error);
+  }
+});
+
+//profile page to land after access token authenticated
+router.get('/profile', async (req, res) => {
+  if(!req.session.user) {
+    return res.redirect('/')
+  }
+  function encodeResourceName(name) {
+    return qs.stringify({ name }).split('=')[1];
+  }
+  const user = req.session.user;
+  const accessToken = req.session.token;
+  const resourceName = user.name;
+  const encodedName = encodeResourceName(resourceName);
+  try {
+    // console.log('user account json is: ', user);
+    // console.log('the access token is: ', accessToken);
+    const projectapiresponse = await axios.get('https://chrysalishrd.sharepoint.com/pwa/_api/ProjectData/Projects', {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Accept': 'application/json',
+        'User-Agent': 'MyNodeApp',
+      },
+    });
+    const projects = projectapiresponse.data.value;
+    const ongoingProjects = projects.filter(project => project.ProjectPercentCompleted < 100);
+  
+    // Fetch assignments for each project
+    const assignmentsPromises = ongoingProjects.map(async project => {
+      const projectId = project.ProjectId;
+      const assignmentsResponse = await axios.get(`https://chrysalishrd.sharepoint.com/pwa/_api/ProjectData/Projects(guid'${projectId}')/Assignments?$filter=ResourceName %20eq%20'${encodedName}'`, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Accept': 'application/json',
+          'User-Agent': 'MyNodeApp',
+        },
+      });
+        
+      return {
+        assignments: assignmentsResponse.data.value     
+      };
+    });
+    const assignments = await Promise.all(assignmentsPromises);
+  
+    const nonEmptyAssignments = assignments.flatMap(assignment => 
+      assignment.assignments.filter(nestedAssignment => 
+          Object.keys(nestedAssignment).length > 0
+      )
+  );
+  res.render('profile', {user, nonEmptyAssignments });
+  } catch (error) {
+    
+  }
+ 
+});
+
+// LOGOUT route
+router.post('/logout', (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      return res.status(500).send('Failed to logout');
+    }
+    res.redirect('/');
+  });
+});
 module.exports = router;

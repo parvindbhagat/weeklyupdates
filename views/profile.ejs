@@ -1,0 +1,58 @@
+<h1 style=" margin-right: 3rem; text-align: center;">Welcome, <%= user.name %> </h1>
+<form style="display: inline-block; margin-right: 3rem;" action="/logout" method="POST">
+  <button type="submit">Logout</button>
+</form>
+<h3>userPrincipalName: <%= user.username %></h3>
+
+<!-- <button><a href="/profileDetails">My info</a></button> -->
+<!-- <button><a href="/mytasks">My Tasks from PWA</a></button> -->
+<script>
+    let activities = <%- nonEmptyAssignments.JSON %> 
+</script>
+<div class="activitylist mb-50">
+    <table class="table-striped table-auto m-2 bg-white border border-gray-300" >
+      <thead class="bg-warning">
+        <tr>
+            <th>Project Name</th>
+            <th scope="col">Task Name</th>
+            <th scope="col">Scheduled Start</th>
+            <th scope="col">Scheduled Finish</th>
+            <th>Actual Start</th>
+            <th>Actual Finish</th>
+            <th>Scheduled Work</th>
+            <th>Actual Work</th>
+            <th>Created On</th>
+            <th scope="col">Resource</th>
+            <th>Comment</th>
+            <th>Manager</th>
+            <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% nonEmptyAssignments.forEach(activity => { %>
+          <tr class="tableData">
+            <td class="border border-gray-300 px-4 py-2 "><%= activity.ProjectName %></td>
+            <td class="border border-gray-300 px-4 py-2 "><%= activity.TaskName %></td>
+            <td class="border border-gray-300 px-4 py-2 text-center"><%= activity.AssignmentStartDate %></td>
+            <td class="border border-gray-300 px-4 py-2 text-center"><%= activity.AssignmentFinishDate %></td>
+            <td class="border border-gray-300 px-4 py-2 "><%= activity.AssignmentActualStartDate %></td>
+            <td class="border border-gray-300 px-4 py-2 "><%= activity.AssignmentActualFinishDate %></td>
+            <td class="border border-gray-300 px-4 py-2 "><%= activity.AssignmentWork %></td>
+            <td class="border border-gray-300 px-4 py-2 "><%= activity.AssignmentActualWork %></td>
+            <td class="border border-gray-300 px-4 py-2 "><%= activity.AssignmentCreatedDate %></td>
+            <td class="border border-gray-300 px-4 py-2 "><%= activity.ResourceName %></td>
+            <td class="border border-gray-300 px-4 py-2 "><%= activity.ResourceName %></td>
+            <td class="border border-gray-300 px-4 py-2 "><%= activity.ResourceName %></td>
+            <td class="border border-gray-300 px-4 py-2 "><%= activity.ResourceName %></td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+</div>
+<div class="footer" >
+  <h4 class="footext">That was all!  </h4>
+  <p style=" text-align: center; position: relative; bottom: 1px;">Copyright © 2024  <a href="https://chrysalis.in" style="text-decoration: none;">Chrysalis HRD</a></p>
+</div>
+
+
+  <!-- <pre><%= JSON.stringify(nonEmptyAssignments, null, 2) %></pre> -->
