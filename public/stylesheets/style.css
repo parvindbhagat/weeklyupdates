@@ -1,3 +1,5 @@
+@import url('https://use.typekit.net/oov2wcw.css');
+
 :root {
   --primary-color: #E95757; 
   --secondary-color: #FCB22B; 
@@ -7,7 +9,7 @@ html, body{
   height: 100%;
   margin: 0;
   padding: 0;
-  font-family: century-gothic;
+  font-family: 'century-gothic' !important;
   /* font-size: 12px; */
 }
 
