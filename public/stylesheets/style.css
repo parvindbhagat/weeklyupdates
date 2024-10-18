@@ -71,3 +71,10 @@ button{
 .tableData:nth-child(even) {
   background-color: #f9f9f9;
 }
+
+thead{
+  width: 100%;
+  position: sticky; 
+  top: 0;
+  z-index: 1;
+}

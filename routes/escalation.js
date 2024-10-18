@@ -15,6 +15,3 @@ const escalationSchema = new mongoose.Schema({
   });
   const escalation = mongoose.model("escalation", escalationSchema);
   module.exports = escalation;
-
-
-  //, enum: ["In Progress", "Completed", "On Going", "Not Started", "Cancelled", "On Hold"],
