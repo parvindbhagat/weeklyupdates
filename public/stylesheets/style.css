@@ -72,9 +72,19 @@ button{
   background-color: #f9f9f9;
 }
 
-thead{
-  width: 100%;
+th{
+  /* width: 100%; */
   position: sticky; 
   top: 0;
   z-index: 1;
+}
+@media (max-width: 600px) {
+  .navbar, .footer {
+      width: 100%;
+  }
+  table {
+      width: 100%;
+      display: block;
+      overflow-x: auto;
+  }
 }
