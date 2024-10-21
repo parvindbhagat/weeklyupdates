@@ -12,31 +12,40 @@
   <link rel="stylesheet" href="/stylesheets/style.css">
 </head>
 <body>
+  <script>
+    window.sessions = <%- JSON.stringify(incompleteAssignments) %>;
+    console.log(sessions);
+  </script>
+
 <h1 style=" margin-right: 3rem; text-align: center;">Welcome, <%= user.name %> </h1>
 <form style="display: inline-block; margin-left: 3rem; margin-top: 3rem;" action="/logout" method="POST">
   <button type="submit">Logout</button>
 </form>
-<h3 style="margin-left: 3rem; margin-top: 3rem;">EMail: <%= user.username %></h3>
-<h3>Group: <%= resourceDetails.resourceGroup %></h3>
+<div class="d-flex flex-wrap justify-content-around mb-4">
+  <h3 style=" margin-top: 3rem;"><strong>EMail</strong>: <%= user.username %></h3>
+  <h3 style=" margin-top: 3rem;"><strong>Group</strong>: <%= resourceDetails.resourceGroup %></h3>
+  <h3 style=" margin-top: 3rem;"><strong>Manager</strong>: <%= resourceDetails.resourceManagerName %></h3>
+  <h3 style=" margin-top: 3rem;"><strong>Role</strong>: <%=resourceDetails.resourceRole %></h3>
+</div>
 
 <!-- <button><a href="/profileDetails">My info</a></button> -->
 <!-- <button><a href="/mytasks">My Tasks from PWA</a></button> -->
-
-<div class="activitylist mb-50">
-    <table class="table-striped table-auto m-2 bg-white border border-gray-300" >
-      <thead  class="bg-warning">
+<!-- 
+<div class="activitylist mb-50 w-full">
+    <table class="table-striped w-full m-2 bg-white border border-gray-300" >
+      <thead >
         <tr>
-            <th>Project Name</th>
-            <th>Task Name</th>
-            <th>Scheduled Start</th>
-            <th>Scheduled Finish</th>
-            <th>Actual Start</th>
-            <th>Actual Finish</th>
-            <th>Scheduled Work</th>
-            <th>Actual Work</th>
-            <th>Created On</th>
-            <th>Complete %</th>            
-            <th>Status</th>
+            <th  class="bg-warning">Project Name</th>
+            <th  class="bg-warning">Task Name</th>
+            <th  class="bg-warning">Scheduled Start</th>
+            <th  class="bg-warning">Scheduled Finish</th>
+            <th  class="bg-warning">Actual Start</th>
+            <th  class="bg-warning">Actual Finish</th>
+            <th  class="bg-warning">Scheduled Work</th>
+            <th  class="bg-warning">Actual Work</th>
+            <th  class="bg-warning">Created On</th>
+            <th  class="bg-warning">Complete %</th>            
+            <th  class="bg-warning">Status</th>
         </tr>
       </thead>
       <tbody>
@@ -57,13 +66,91 @@
         <% }); %>
       </tbody>
     </table>
+</div> -->
+
+
+<div class="container">
+  <div class="row">
+    <% incompleteAssignments.forEach(activity => { %>
+      <div class="col-md-4 mb-4">
+        <div class="card">
+          <div class="card-body">
+            <div class="card-header text-center"><strong><%= activity.ProjectName %></strong></div>
+            <!-- <h5 class="card-title bg-warning"><%= activity.ProjectName %></h5> -->
+            <p class="card-text"><strong>Task Name:</strong> <%= activity.TaskName %></p>
+            <p class="card-text"><strong>Scheduled Start:</strong> <%= new Date(activity.AssignmentStartDate).toLocaleDateString() %></p>
+            <p class="card-text"><strong>Scheduled Finish:</strong> <%= new Date(activity.AssignmentFinishDate).toLocaleDateString() %></p>
+            <p class="card-text"><strong>Actual Start:</strong> <%= activity.AssignmentActualStartDate %></p>
+            <p class="card-text"><strong>Actual Finish:</strong> <%= activity.AssignmentActualFinishDate %></p>
+            <p class="card-text"><strong>Scheduled Work:</strong> <%= Math.floor(Number(activity.AssignmentWork)) %></p>
+            <p class="card-text"><strong>Actual Work:</strong> <%= activity.AssignmentActualWork %></p>
+            <p class="card-text"><strong>Created On:</strong> <%= new Date(activity.AssignmentCreatedDate).toLocaleDateString() %></p>
+            <p class="card-text"><strong>Complete %:</strong> <%= activity.AssignmentPercentWorkCompleted %></p>
+            <p class="card-text"><strong>Status:</strong> <%= activity.Status %></p>
+          </div>
+        </div>
+      </div>
+    <% }); %>
+  </div>
 </div>
 
+<!-- Button trigger modal -->
+<button type="button" class="btn btn-primary ms-5" data-bs-toggle="modal" data-bs-target="#staticBackdrop">
+  Submit another task
+</button>
+
+<!-- Modal -->
+<div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="staticBackdropLabel">Submit a new task.</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <Form>
+          <label for="" class="form-label">Project Name</label>
+          <input type="text" name="projectName" id="", value="Administrative"> <br>
+          <label for="" class="form-label">Task</label>
+          <select class="form-select" aria-label="Default select example">
+            <option selected>Pick a task from the list.</option>
+            <option value="1">Break</option>
+            <option value="2">Chrysalis: Administrative Work</option>
+            <option value="3">Chrysalis: Client Acquisition</option>
+            <option value="4">Chrysalis: Internal meetings/calls</option>
+            <option value="5">Chrysalis: Research</option>
+            <option value="6">Chrysalis: Internal Projects</option>
+            <option value="7">Chrysalis: Self Development</option>
+          </select>
+          <label for="" class="form-label">Start Date</label>
+          <input type="date" name="AssignmentActualStartDate"> <br>
+          <label for="" class="form-label">Finish Date</label>
+          <input type="date" name="AssignmentActualFinishDate"> <br>
+          <label for="" class="form-label">Work (in Hours)</label>
+          <input type="number" name="AssignmentActualWork">
+          <div class="mb-3">
+            <label for="" class="form-label">Comments</label>
+            <textarea class="form-control" name="Comments" id="" rows="3" placeholder="Your comments please."></textarea>
+          </div>
+          <p> Alert! Once submitted, you cannot make any changes.</p>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary">Submit</button>
+        </Form>
+      </div>
+      <!-- <div class="modal-footer">
+        <p> Alert! Once submitted, you cannot make any changes.</p>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary">Submit</button>
+      </div> -->
+    </div>
+  </div>
+</div>
 <div class="footer" >
   <h4 class="footext">That was all!  </h4>
   <!-- <p style=" text-align: center; position: relative; bottom: 1px;">Copyright © 2024  <a href="https://chrysalis.in" style="text-decoration: none;">Chrysalis HRD</a></p> -->
 </div>
 
 
-  <pre><%= JSON.stringify(incompleteAssignments, null, 2) %></pre>
+  <!-- <pre><%= JSON.stringify(incompleteAssignments, null, 2) %></pre> -->
+   <script src="/javascripts/bootstrap.bundle.min.js"></script>
 </body>
