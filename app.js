@@ -11,6 +11,7 @@ var indexRouter = require('./routes/index');
 var activityRouter = require('./routes/activity');
 var escalationRouter = require('./routes/escalation');
 var resourceRouter = require('./routes/resource');
+var taskRouter = require('./routes/task');
 var app = express();
 
 
@@ -34,6 +35,7 @@ app.use('/', indexRouter);
 app.use('/activity', activityRouter);
 app.use('/escalation', escalationRouter);
 app.use('/resource', resourceRouter);
+app.unsubscribe('/task', taskRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

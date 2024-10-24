@@ -19,7 +19,7 @@
 
 <h1 style=" margin-right: 3rem; text-align: center;">Welcome, <%= user.name %> </h1>
 <form style="display: inline-block; margin-left: 3rem; margin-top: 3rem;" action="/logout" method="POST">
-  <button type="submit">Logout</button>
+  <button type="submit" class="rounded">Logout</button>
 </form>
 <div class="d-flex flex-wrap justify-content-around mb-4">
   <h3 style=" margin-top: 3rem;"><strong>EMail</strong>: <%= user.username %></h3>
@@ -96,7 +96,7 @@
 
 <!-- Button trigger modal -->
 <button type="button" class="btn btn-primary ms-5" data-bs-toggle="modal" data-bs-target="#staticBackdrop">
-  Submit another task
+  Submit new task
 </button>
 
 <!-- Modal -->

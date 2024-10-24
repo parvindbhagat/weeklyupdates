@@ -1,7 +1,7 @@
 var express = require("express");
 var router = express.Router();
 const session = require("express-session");
-const escalationModel = require("./escalation");
+const taskModel = require("./task");
 const activityModel = require("./activity");
 const resourceModel = require("./resource");
 require("dotenv").config();
@@ -9,6 +9,21 @@ const mongoose = require("mongoose");
 const axios = require("axios");
 const msal = require("../authconfig");
 const qs = require("qs");
+
+
+// function to check user is logged in with MSAL Auth flow
+function isAuthenticated(req, res, next) {
+
+  if (req.session && req.session.user) {
+    console.log('User is logged in, calling next');
+      return next();
+  } else {
+      req.session.originalUrl = req.originalUrl; // Store the original URL
+      console.log('User Not logged in, stored url and redirecting to /login, stored usl is: ', req.session.originalUrl);
+      res.redirect('/login');
+  }
+}
+
 
 /* GET home page. */
 // router.get('/', async (req, res) => {
@@ -46,6 +61,11 @@ router.get("/", async (req, res) => {
     })
     .sort({ startDate: 1 });
   res.render("home", { sessions });
+});
+
+//admin page
+router.get('/admin', isAuthenticated, (req, res) => {
+  res.render('admin');
 });
 
 router.get("/activities", async (req, res) => {
@@ -336,9 +356,16 @@ router.get(
     } else {
       activities = await activityModel.find().sort({ updatedOn: -1 });
     }
-
-    const msg =
-      req.query.msg === "successmsg" ? "New Activity added successfully." : "";
+    let msg = "";
+    if (req.query.msg === "successmsg") {
+      msg = "New Activity added successfully.";
+    } else if (req.query.msg === "updatesuccess") {
+      msg = "Activity updated successfully.";
+    } else if (req.query.msg === "deletesuccess") {
+      msg = "Activity deleted successfully.";
+    }
+    // const msg =
+    //   req.query.msg === "successmsg" ? "New Activity added successfully." : "";
     res.render("createactivity", { activities, msg, search });
   }
 );
@@ -482,6 +509,48 @@ router.post("/createactivity", async (req, res) => {
 //   res.redirect('/createactivity');
 // });
 
+// router.post("/update/:id", async (req, res) => {
+//   const { id } = req.params;
+//   const updatedData = req.body;
+//   let startDateTime;
+//   let endDateTime;
+
+//   updatedData.updatedOn = Date.now();
+//   // console.log(updatedData);
+//   let model;
+//   let year;
+//   let weekNum;
+//   model = activityModel;
+//   const { startDate, endDate, startTime, endTime } = req.body;
+//   if (startDate) {
+//     year = new Date(startDate.split("/").reverse().join("-")).getFullYear();
+//     weekNum = getWeekNumber(new Date(startDate.split("/").reverse().join("-")));
+//   } else {
+//     year = new Date().getFullYear();
+//     weekNum = getWeekNumber(new Date());
+//   }
+
+//   if (startDate && startTime) {
+//     // console.log("startDate and startTime exist");
+//     startDateTime = convertToDateTime(startDate, startTime);
+//   }
+//   if (endDate && endTime) {
+//     endDateTime = convertToDateTime(endDate, endTime);
+//   }
+//   updatedData.year = year;
+//   updatedData.weekNumber = weekNum;
+//   updatedData.startDateTime = startDateTime;
+//   updatedData.endDateTime = endDateTime;
+
+//   try {
+//     await model.findByIdAndUpdate(id, updatedData);
+//     res.redirect(req.headers["referer"]);
+//   } catch (error) {
+//     console.error("Error updating data:", error);
+//     res.status(500).send("Internal Server Error");
+//   }
+// });
+
 router.post("/update/:id", async (req, res) => {
   const { id } = req.params;
   const updatedData = req.body;
@@ -489,55 +558,46 @@ router.post("/update/:id", async (req, res) => {
   let endDateTime;
 
   updatedData.updatedOn = Date.now();
-  // console.log(updatedData);
-  let model;
-  let year;
-  let weekNum;
-  model = activityModel;
+
   const { startDate, endDate, startTime, endTime } = req.body;
+
   if (startDate) {
-    year = new Date(startDate.split("/").reverse().join("-")).getFullYear();
-    weekNum = getWeekNumber(new Date(startDate.split("/").reverse().join("-")));
+    const parsedStartDate = new Date(startDate.split("/").reverse().join("-"));
+    updatedData.year = parsedStartDate.getFullYear();
+    updatedData.weekNumber = getWeekNumber(parsedStartDate);
   } else {
-    year = new Date().getFullYear();
-    weekNum = getWeekNumber(new Date());
+    const currentDate = new Date();
+    updatedData.year = currentDate.getFullYear();
+    updatedData.weekNumber = getWeekNumber(currentDate);
   }
 
   if (startDate && startTime) {
-    // console.log("startDate and startTime exist");
     startDateTime = convertToDateTime(startDate, startTime);
   }
   if (endDate && endTime) {
     endDateTime = convertToDateTime(endDate, endTime);
   }
-  updatedData.year = year;
-  updatedData.weekNumber = weekNum;
+
   updatedData.startDateTime = startDateTime;
   updatedData.endDateTime = endDateTime;
 
   try {
-    await model.findByIdAndUpdate(id, updatedData);
-    res.redirect(req.headers["referer"]);
+    await activityModel.findByIdAndUpdate(id, updatedData);
+    res.redirect('/createactivity?msg=updatesuccess');
   } catch (error) {
     console.error("Error updating data:", error);
     res.status(500).send("Internal Server Error");
   }
 });
 
+// Delete an item from the DB
 router.post("/delete/:id", async (req, res) => {
   const { id } = req.params;
 
-  let model;
-  // console.log('Referer:', req.headers['referer']);
-  model = activityModel;
-
   try {
-    // console.log(id, model);
-    await model.findByIdAndDelete(id);
-    res.redirect(req.headers["referer"]);
+    await activityModel.findByIdAndDelete(id);
+    res.redirect('/createactivity?msg=deletesuccess');
   } catch (error) {
-    // console.log(id);
-    // console.log(model);
     console.error("Error deleting data:", error);
     res.status(500).send("Internal Server Error");
   }
@@ -688,7 +748,11 @@ router.get("/oauth/redirect", async (req, res) => {
     // console.log('API response JSON is: ', JSON.stringify(response, null, 2));
     req.session.user = response.account;
     req.session.token = response.accessToken;
-    res.redirect("/profile");
+    // console.log('session data req.session is: ', req.session);
+    const redirectUrl = req.session.originalUrl || '/profile';
+    delete req.session.originalUrl; // Clear the stored URL
+    res.redirect(redirectUrl);
+    
   } catch (error) {
     console.log(error);
     res.status(500).send(error);
@@ -808,12 +872,14 @@ router.get("/profile", async (req, res) => {
 
   const user = req.session.user;
   const accessToken = req.session.token;
-  const resourceDetails = await resourceModel.findOne({resourceName: user.name});
-  console.log(`UserDetails are: ${resourceDetails}`);
   const resourceName = user.name;
   console.log("LOGGED IN USER", resourceName);
   const encodedName = encodeResourceName(resourceName);
   initializeResources();
+  const resourceDetails = await resourceModel.findOne({resourceName: user.name});
+  // console.log(`UserDetails are: ${resourceDetails}`);
+  
+  
   try {
     // console.log('user account json is: ', user);
     // console.log('the access token is: ', accessToken);
@@ -871,6 +937,10 @@ router.get("/profile", async (req, res) => {
   } catch (error) {}
 });
 
+
+//Save tasks from tasks api in the Master Tasklist
+//router.post('/addtasks', (req, res) =>{
+// });
 // LOGOUT route
 router.post("/logout", (req, res) => {
   req.session.destroy((err) => {
@@ -889,4 +959,32 @@ router.get('/resourcelist', async (req, res) => {
 
 // REFRESH Resource List To used by admin
 
+
+// all tasks for admin
+router.get('/alltasks', isAuthenticated, async (req, res) => {
+  
+  try {
+    const user = req.session.user;
+    // console.log('user details are: ', user);
+    const userName = user.name;
+    const resource = await resourceModel.findOne({ resourceName: userName });
+    
+    if (resource) {
+        if (resource.resourceRole === 'Admin') {
+            console.log('Admin logged in', userName);
+
+            res.render('alltasks');
+        } else {
+            console.log('Member logged in: ', userName);
+            res.redirect('/profile');
+        }
+    } else {
+        res.redirect('/profile');
+    }
+} catch (error) {
+    console.error('Error fetching resource:', error);
+    res.status(500).send('Internal Server Error');
+}
+
+});
 module.exports = router;
