@@ -8,36 +8,41 @@
     <link rel="stylesheet" href="/stylesheets/style.css">
   </head>
   <body>
-    Tasks list
+    
+    <h1 class="text-center">All tasks in Database!</h1>
     <div class="task_table">
-        <table class="table-striped table-auto w-100 m-2 bg-white border border-gray-300" >
+        <table class="table-striped table-auto w-100 bg-white border border-gray-300" >
             <thead >
               <tr>
-                  <th class="bg-warning px-4">Project</th>
-                  <th class="bg-warning px-4">Task</th>
-                  <th class="bg-warning px-4">Start</th>
-                  <th class="bg-warning px-4">Finish</th>
-                  <th class="bg-warning px-4">Actual Start</th>
-                  <th class="bg-warning px-4">Actual Finish</th>
-                  <th class="bg-warning px-4">Work (in Hours)</th>
-                  <th class="bg-warning px-4">Comments</th>
-                  <th class="bg-warning px-4">Status</th> 
-                  <th class="bg-warning px-4">Completed in PWA?</th>                
+                  <th class="bg-warning px-2">Project</th>
+                  <th class="bg-warning px-2">Parent Task Name + Task Name</th>
+                  <th class="bg-warning px-2">Type Of Activity</th>
+                  <th class="bg-warning px-2">Resource</th>
+                  <th class="bg-warning px-2">Start</th>
+                  <th class="bg-warning px-2">Finish</th>
+                  <th class="bg-warning px-2">Actual Start</th>
+                  <th class="bg-warning px-2">Actual Finish</th>
+                  <th class="bg-warning px-2">Work (in Hours)</th>
+                  <th class="bg-warning px-2">Comments</th>
+                  <th class="bg-warning px-2">Status</th> 
+                  <th class="bg-warning px-2">Completed in PWA?</th>                
               </tr>
             </thead>
             <tbody>
               <% tasks.forEach((ta) => { %>
                 <tr class="tableData">
-                  <td class="border border-gray-300 px-4 py-2 "><%= ta.projectName %></td>
-                  <td class="border border-gray-300 px-4 py-2 "><%= ta.parentTaskName + " - " + ta.taskName %></td>
-                  <td class="border border-gray-300 px-4 py-2 "><%= new Date(ta.start).toLocaleDateString() %></td>
-                  <td class="border border-gray-300 px-4 py-2 "><%= new Date(ta.Finish).toLocaleDateString() %></td>
-                  <td class="border border-gray-300 px-4 py-2 "><%= ta.actualStart %></td>
-                  <td class="border border-gray-300 px-4 py-2 "><%= ta.actualFinish %></td>
-                  <td class="border border-gray-300 px-4 py-2 "><%= ta.actualWork %></td>
-                  <td class="border border-gray-300 px-4 py-2 "><%= ta.userComments %></td>
-                  <td class="border border-gray-300 px-4 py-2 "><%= ta.status %></td>
-                  <td class="border border-gray-300 px-4 py-2 "><%= ta.taskCompletePercent === "100" ? "Yes" : "No" %></td>
+                  <td class="border border-gray-300 px-2 py-2 "><%= ta.projectName %></td>
+                  <td class="border border-gray-300 px-2 py-2 "><%= ta.parentTaskName + " - " + ta.taskName %></td>
+                  <td class="border border-gray-300 px-2 py-2 "><%= ta.typeofActivity %></td>
+                  <td class="border border-gray-300 px-2 py-2 "><%= ta.resourceName %></td>
+                  <td class="border border-gray-300 px-2 py-2 "><%= new Date(ta.start).toLocaleDateString() %></td>
+                  <td class="border border-gray-300 px-2 py-2 "><%= new Date(ta.Finish).toLocaleDateString() %></td>
+                  <td class="border border-gray-300 px-2 py-2 "><%= ta.actualStart %></td>
+                  <td class="border border-gray-300 px-2 py-2 "><%= ta.actualFinish %></td>
+                  <td class="border border-gray-300 px-2 py-2 "><%= ta.actualWork %></td>
+                  <td class="border border-gray-300 px-2 py-2 "><%= ta.userComments %></td>
+                  <td class="border border-gray-300 px-2 py-2 "><%= ta.status %></td>
+                  <td class="border border-gray-300 px-2 py-2 "><%= ta.taskCompletePercent === "100" ? "Yes" : "No" %></td>
                   
                 </tr>
               <% }); %>

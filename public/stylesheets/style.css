@@ -12,7 +12,9 @@ html, body{
   font-family: 'century-gothic' !important;
   /* font-size: 12px; */
 }
-
+.full-width{
+  width: 100%;
+}
 .navbar{
   background-color:var(--primary-color);
   width: 100%;

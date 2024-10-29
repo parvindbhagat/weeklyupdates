@@ -66,7 +66,7 @@ router.get("/", async (req, res) => {
 //admin page
 router.get("/admin", isAuthenticated, (req, res) => {
   const user = req.session.user;
-  console.log('logged in user to /admin page is: ', user.name);
+  console.log("logged in user to /admin page is: ", user.name);
   res.render("admin");
 });
 
@@ -761,7 +761,7 @@ router.get("/oauth/redirect", async (req, res) => {
 });
 
 //profile page to land after access token authenticated
-router.get("/profile", async (req, res) => {
+router.get("/profile", isAuthenticated, async (req, res) => {
   if (!req.session.user) {
     return res.redirect("/");
   }
@@ -874,23 +874,25 @@ router.get("/profile", async (req, res) => {
       console.error("Error checking resource collection", err);
     }
   }
-
+  try {
   const user = req.session.user;
   const accessToken = req.session.token;
   const resourceName = user.name;
-  console.log("LOGGED IN USER", resourceName);
   const encodedName = encodeResourceName(resourceName);
+  console.log("LOGGED IN USER to /profile is : ", resourceName);
   initializeResources();
   const resourceDetails = await resourceModel.findOne({
-    resourceName: user.name,
+    resourceName: resourceName,
   });
 
   const userTasks = await taskModel.find({resourceName: resourceName});
-   const incompleteTasks = userTasks.filter(((task) => {
-    task.taskCompletePercent < 100;
-   }));
+  // console.log('userTasks length is: ', userTasks.length);
+   const incompleteTasks = userTasks.filter((task) => {
+    return task.taskCompletePercent < 100;
+   });
 
-   res.render('profile', {user, incompleteTasks, resourceDetails});
+   res.render('profile', {user, incompleteTasks, resourceDetails});  //  Actual data to be passed to view for usrs view.
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // console.log(`UserDetails are: ${resourceDetails}`);
 
   // try {
@@ -926,36 +928,30 @@ router.get("/profile", async (req, res) => {
   //       }
   //     );
 
-  //     return {
-  //       assignments: assignmentsResponse.data.value,
-  //     };
+  //     return assignmentsResponse.data.value;
   //   });
   //   const assignments = await Promise.all(assignmentsPromises);
+  //   const allAssignments = assignments.flat();
 
-  //   const nonEmptyAssignments = assignments.flatMap((assignment) =>
-  //     assignment.assignments.filter(
-  //       (nestedAssignment) => Object.keys(nestedAssignment).length > 0
-  //     )
-  //   );
   //   console.log(
-  //     `Total assignments from ongoing projects for ${user.name} are: ${nonEmptyAssignments.length}`
+  //     `Total assignments from ongoing projects for ${user.name} are: ${allAssignments.length}`
   //   );
-  //   const incompleteAssignments = nonEmptyAssignments.filter(
+  //   const incompleteAssignments = allAssignments.filter(
   //     (assignment) => assignment.AssignmentPercentWorkCompleted < 100
   //   );
   //   console.log(
   //     `The total number of incomplete Assignements for ${user.name} are: ${incompleteAssignments.length}`
   //   );
   //   res.render("profile", { user, incompleteAssignments, resourceDetails });
-  // } catch (error) {
-  //     console.log(error.message);
-  // }
+  } catch (error) {
+    console.log(error.message);
+  }
 });
 
 //Save tasks from tasks api in the Master Tasklist
 //router.post('/addtasks', (req, res) =>{
 // });
-// LOGOUT route
+// LOGOUT route  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 router.post("/logout", (req, res) => {
   req.session.destroy((err) => {
     if (err) {
@@ -965,7 +961,7 @@ router.post("/logout", (req, res) => {
   });
 });
 
-// show resource list from resourceModel
+// show resource list from resourceModel   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 router.get("/resourcelist", async (req, res) => {
   const resource = await resourceModel.find().sort({ resourceName: 1 });
   res.render("resourcelist", { resource });
@@ -973,46 +969,57 @@ router.get("/resourcelist", async (req, res) => {
 
 // REFRESH Resource List To used by admin
 
-// all tasks for admin
+// all tasks for admin  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 router.get("/alltasks", isAuthenticated, async (req, res) => {
   try {
-
     //fuction to add clientName and InterventionName to each task with matching projectId
-    async function updateTaskClients (projects) {
+    async function updateTaskClients(projects) {
       try {
         for (const project of projects) {
           const { ProjectId, ClientName, InterventionName } = project;
           await taskModel.updateMany(
             { projectId: ProjectId },
-            { $set: { clientName: ClientName, interventionName: InterventionName } }
+            {
+              $set: {
+                clientName: ClientName,
+                interventionName: InterventionName,
+              },
+            }
           );
           console.log(`Updated tasks for projectId: ${ProjectId}`);
         }
       } catch (error) {
-        console.error('Error updating tasks:', error);
+        console.error("Error updating tasks:", error);
       }
-    };
+    }
 
-    //function to add assigned resourceName and resourceId to each task with matching taskId in the assignment API response. 
+    //function to add assigned resourceName and resourceId to each task with matching taskId in the assignment API response.
     async function updateTaskResources(assignments) {
       try {
         const tasks = await taskModel.find({});
-    
+
         for (const task of tasks) {
-          const assignment = assignments.find(a => a.TaskId === task.taskId);
+          const assignment = assignments.find((a) => a.TaskId === task.taskId);
           if (assignment) {
             await taskModel.updateOne(
               { taskId: task.taskId },
-              { $set: { resourceId: assignment.ResourceId, resourceName: assignment.ResourceName } }
+              {
+                $set: {
+                  resourceId: assignment.ResourceId,
+                  resourceName: assignment.ResourceName,
+                },
+              }
             );
-            console.log(`Updated taskId: ${task.taskId} with resourceId: ${assignment.ResourceId} and resourceName: ${assignment.ResourceName}`);
+            console.log(
+              `Updated taskId: ${task.taskId} with resourceId: ${assignment.ResourceId} and resourceName: ${assignment.ResourceName}`
+            );
           }
         }
       } catch (error) {
-        console.error('Error updating tasks:', error);
+        console.error("Error updating tasks:", error);
       }
-    };
-        //function to initialize tasks data if task collection is empty
+    }
+    //function to initialize tasks data if task collection is empty
     async function initializeTasks() {
       try {
         const count = await taskModel.countDocuments();
@@ -1035,7 +1042,7 @@ router.get("/alltasks", isAuthenticated, async (req, res) => {
             );
             const allprojects = projectAPIresponse.data.value;
             console.log(
-              `The number of resources in the total projects from api response are: ${allprojects.length}`
+              `The number of Projects in the total, from projects api response are: ${allprojects.length}`
             );
             // console.log('All Projects  that is projectapiresponse.data.value is: ', allprojects);
             const ongoingProjects = allprojects.filter(
@@ -1045,6 +1052,29 @@ router.get("/alltasks", isAuthenticated, async (req, res) => {
               "The length of ongoing projects list is: ",
               ongoingProjects.length
             );
+                          // Fetch assignments for each project ===================================
+                          const assignmentsPromises = ongoingProjects.map(
+                            async (project) => {
+                              const projectId = project.ProjectId;
+                              const assignmentsResponse = await axios.get(
+                                `https://chrysalishrd.sharepoint.com/pwa/_api/ProjectData/Projects(guid'${projectId}')/Assignments`,
+                                {
+                                  headers: {
+                                    Authorization: `Bearer ${accessToken}`,
+                                    Accept: "application/json",
+                                    "User-Agent": "MyNodeApp",
+                                  },
+                                }
+                              );
+            
+                              return assignmentsResponse.data.value;
+                            }
+                          );
+                          const assignments = await Promise.all(assignmentsPromises);
+                          const allAssignments = assignments.flat();
+                          console.log('Length of all Assignements is : ', allAssignments.length);
+
+            // get tasks from all the ongoing projects ========================
             const tasksPromises = ongoingProjects.map(async (project) => {
               const projectId = project.ProjectId;
               const tasksResponse = await axios.get(
@@ -1057,24 +1087,32 @@ router.get("/alltasks", isAuthenticated, async (req, res) => {
                   },
                 }
               );
-              console.log('Length of response.data.value is: ', tasksResponse.data.value.length)
+              console.log(
+                "Length of response.data.value is: ",
+                tasksResponse.data.value.length
+              );
               return tasksResponse.data.value;
             });
             const taskarray = await Promise.all(tasksPromises);
             const alltasks = taskarray.flat();
-            console.log('taskarray after promise.all length is: ', alltasks.length);
-            const leapTasks = alltasks.filter(task => 
-              task.LEAPApplicationSync === "Yes" || task.LEAPApplicationSync === "yes"
+            console.log(
+              "taskarray after promise.all length is: ",
+              alltasks.length
             );
-            console.log('the length of leap tasks is: ', leapTasks.length);
+            const leapTasks = alltasks.filter(
+              (task) =>
+                (task.LEAPApplicationSync === "Yes" ||
+                  task.LEAPApplicationSync === "yes") &&
+                task.TaskPercentWorkCompleted < 100
+            );
+            console.log("the length of leap tasks is: ", leapTasks.length);
             /////////////////// return tasks to check nesting
             // return leapTasks;
             // const alltasks = tasks[0].task;
             // console.log("length of alltasks array is: ", alltasks.length);
             // console.log("fist task in the list is: ", alltasks[0]);
             //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-            for (const taskData of leapTasks) 
-            {
+            for (const taskData of leapTasks) {
               const {
                 ProjectId,
                 ProjectName,
@@ -1112,6 +1150,7 @@ router.get("/alltasks", isAuthenticated, async (req, res) => {
               }
             }
             updateTaskClients(ongoingProjects);
+            updateTaskResources(allAssignments);
           }
           //Once the colection is initialized fill resource details from resource api
           //setResource();  //// SetResource function should add resource name and id from the assignement api for task id.
@@ -1130,8 +1169,10 @@ router.get("/alltasks", isAuthenticated, async (req, res) => {
       if (resource.resourceRole === "Admin") {
         console.log("Admin logged in", userName);
         initializeTasks();
-        const tasks = await taskModel.find({ taskCompletePercent: { $lt: 100 } });
-        res.render("alltasks", {tasks});
+        const tasks = await taskModel.find({
+          taskCompletePercent: { $lt: 100 },
+        });
+        res.render("alltasks", { tasks });
       } else {
         console.log("Member logged in: ", userName);
         res.redirect("/profile");
@@ -1145,4 +1186,3 @@ router.get("/alltasks", isAuthenticated, async (req, res) => {
   }
 });
 module.exports = router;
-
