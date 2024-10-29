@@ -10,20 +10,20 @@ const axios = require("axios");
 const msal = require("../authconfig");
 const qs = require("qs");
 
-
 // function to check user is logged in with MSAL Auth flow
 function isAuthenticated(req, res, next) {
-
   if (req.session && req.session.user) {
-    console.log('User is logged in, calling next');
-      return next();
+    console.log("User is logged in, calling next");
+    return next();
   } else {
-      req.session.originalUrl = req.originalUrl; // Store the original URL
-      console.log('User Not logged in, stored url and redirecting to /login, stored usl is: ', req.session.originalUrl);
-      res.redirect('/login');
+    req.session.originalUrl = req.originalUrl; // Store the original URL
+    console.log(
+      "User Not logged in, stored url and redirecting to /login, stored usl is: ",
+      req.session.originalUrl
+    );
+    res.redirect("/login");
   }
 }
-
 
 /* GET home page. */
 // router.get('/', async (req, res) => {
@@ -64,8 +64,10 @@ router.get("/", async (req, res) => {
 });
 
 //admin page
-router.get('/admin', isAuthenticated, (req, res) => {
-  res.render('admin');
+router.get("/admin", isAuthenticated, (req, res) => {
+  const user = req.session.user;
+  console.log('logged in user to /admin page is: ', user.name);
+  res.render("admin");
 });
 
 router.get("/activities", async (req, res) => {
@@ -583,7 +585,7 @@ router.post("/update/:id", async (req, res) => {
 
   try {
     await activityModel.findByIdAndUpdate(id, updatedData);
-    res.redirect('/createactivity?msg=updatesuccess');
+    res.redirect("/createactivity?msg=updatesuccess");
   } catch (error) {
     console.error("Error updating data:", error);
     res.status(500).send("Internal Server Error");
@@ -596,7 +598,7 @@ router.post("/delete/:id", async (req, res) => {
 
   try {
     await activityModel.findByIdAndDelete(id);
-    res.redirect('/createactivity?msg=deletesuccess');
+    res.redirect("/createactivity?msg=deletesuccess");
   } catch (error) {
     console.error("Error deleting data:", error);
     res.status(500).send("Internal Server Error");
@@ -749,10 +751,9 @@ router.get("/oauth/redirect", async (req, res) => {
     req.session.user = response.account;
     req.session.token = response.accessToken;
     // console.log('session data req.session is: ', req.session);
-    const redirectUrl = req.session.originalUrl || '/profile';
+    const redirectUrl = req.session.originalUrl || "/profile";
     delete req.session.originalUrl; // Clear the stored URL
     res.redirect(redirectUrl);
-    
   } catch (error) {
     console.log(error);
     res.status(500).send(error);
@@ -789,24 +790,28 @@ router.get("/profile", async (req, res) => {
     try {
       // Fetch all resources
       const resources = await resourceModel.find();
-  
+
       // Create a map of resourceId to resourceName
       const resourceMap = resources.reduce((map, resource) => {
         map[resource.resourceId] = resource.resourceName;
         return map;
       }, {});
-        console.log(resourceMap);
+      console.log(resourceMap);
       // Update each resource with the manager's name
       for (const resource of resources) {
-        if (resource.resourceManagerId && resourceMap[resource.resourceManagerId]) {
-          resource.resourceManagerName = resourceMap[resource.resourceManagerId];
+        if (
+          resource.resourceManagerId &&
+          resourceMap[resource.resourceManagerId]
+        ) {
+          resource.resourceManagerName =
+            resourceMap[resource.resourceManagerId];
           await resource.save();
         }
       }
-  
-      console.log('Manager names updated successfully.');
+
+      console.log("Manager names updated successfully.");
     } catch (error) {
-      console.error('Error updating manager names:', error);
+      console.error("Error updating manager names:", error);
     }
   }
 
@@ -861,7 +866,7 @@ router.get("/profile", async (req, res) => {
           }
         }
         //Once the colection is initialized fill manager details from mananger id
-        fillManagerNames(); 
+        fillManagerNames();
       } else {
         console.log("Resource collection is not empty. No action taken.");
       }
@@ -876,67 +881,76 @@ router.get("/profile", async (req, res) => {
   console.log("LOGGED IN USER", resourceName);
   const encodedName = encodeResourceName(resourceName);
   initializeResources();
-  const resourceDetails = await resourceModel.findOne({resourceName: user.name});
+  const resourceDetails = await resourceModel.findOne({
+    resourceName: user.name,
+  });
+
+  const userTasks = await taskModel.find({resourceName: resourceName});
+   const incompleteTasks = userTasks.filter(((task) => {
+    task.taskCompletePercent < 100;
+   }));
+
+   res.render('profile', {user, incompleteTasks, resourceDetails});
   // console.log(`UserDetails are: ${resourceDetails}`);
-  
-  
-  try {
-    // console.log('user account json is: ', user);
-    // console.log('the access token is: ', accessToken);
-    const projectapiresponse = await axios.get(
-      "https://chrysalishrd.sharepoint.com/pwa/_api/ProjectData/Projects",
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          Accept: "application/json",
-          "User-Agent": "MyNodeApp",
-        },
-      }
-    );
-    const projects = projectapiresponse.data.value;
-    const ongoingProjects = projects.filter(
-      (project) => project.ProjectPercentCompleted < 100
-    );
-    console.log("number of ongoing Projects is: ", ongoingProjects.length);
 
-    // Fetch assignments for each project
-    const assignmentsPromises = ongoingProjects.map(async (project) => {
-      const projectId = project.ProjectId;
-      const assignmentsResponse = await axios.get(
-        `https://chrysalishrd.sharepoint.com/pwa/_api/ProjectData/Projects(guid'${projectId}')/Assignments?$filter=ResourceName %20eq%20'${encodedName}'`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            Accept: "application/json",
-            "User-Agent": "MyNodeApp",
-          },
-        }
-      );
+  // try {
+  //   // console.log('user account json is: ', user);
+  //   // console.log('the access token is: ', accessToken);
+  //   const projectapiresponse = await axios.get(
+  //     "https://chrysalishrd.sharepoint.com/pwa/_api/ProjectData/Projects",
+  //     {
+  //       headers: {
+  //         Authorization: `Bearer ${accessToken}`,
+  //         Accept: "application/json",
+  //         "User-Agent": "MyNodeApp",
+  //       },
+  //     }
+  //   );
+  //   const projects = projectapiresponse.data.value;
+  //   const ongoingProjects = projects.filter(
+  //     (project) => project.ProjectPercentCompleted < 100
+  //   );
+  //   console.log("number of ongoing Projects is: ", ongoingProjects.length);
 
-      return {
-        assignments: assignmentsResponse.data.value,
-      };
-    });
-    const assignments = await Promise.all(assignmentsPromises);
+  //   // Fetch assignments for each project
+  //   const assignmentsPromises = ongoingProjects.map(async (project) => {
+  //     const projectId = project.ProjectId;
+  //     const assignmentsResponse = await axios.get(
+  //       `https://chrysalishrd.sharepoint.com/pwa/_api/ProjectData/Projects(guid'${projectId}')/Assignments?$filter=ResourceName %20eq%20'${encodedName}'`,
+  //       {
+  //         headers: {
+  //           Authorization: `Bearer ${accessToken}`,
+  //           Accept: "application/json",
+  //           "User-Agent": "MyNodeApp",
+  //         },
+  //       }
+  //     );
 
-    const nonEmptyAssignments = assignments.flatMap((assignment) =>
-      assignment.assignments.filter(
-        (nestedAssignment) => Object.keys(nestedAssignment).length > 0
-      )
-    );
-    console.log(
-      `Total assignments from ongoing projects for ${user.name} are: ${nonEmptyAssignments.length}`
-    );
-    const incompleteAssignments = nonEmptyAssignments.filter(
-      (assignment) => assignment.AssignmentPercentWorkCompleted < 100
-    );
-    console.log(
-      `The total number of incomplete Assignements for ${user.name} are: ${incompleteAssignments.length}`
-    );
-    res.render("profile", { user, incompleteAssignments, resourceDetails });
-  } catch (error) {}
+  //     return {
+  //       assignments: assignmentsResponse.data.value,
+  //     };
+  //   });
+  //   const assignments = await Promise.all(assignmentsPromises);
+
+  //   const nonEmptyAssignments = assignments.flatMap((assignment) =>
+  //     assignment.assignments.filter(
+  //       (nestedAssignment) => Object.keys(nestedAssignment).length > 0
+  //     )
+  //   );
+  //   console.log(
+  //     `Total assignments from ongoing projects for ${user.name} are: ${nonEmptyAssignments.length}`
+  //   );
+  //   const incompleteAssignments = nonEmptyAssignments.filter(
+  //     (assignment) => assignment.AssignmentPercentWorkCompleted < 100
+  //   );
+  //   console.log(
+  //     `The total number of incomplete Assignements for ${user.name} are: ${incompleteAssignments.length}`
+  //   );
+  //   res.render("profile", { user, incompleteAssignments, resourceDetails });
+  // } catch (error) {
+  //     console.log(error.message);
+  // }
 });
-
 
 //Save tasks from tasks api in the Master Tasklist
 //router.post('/addtasks', (req, res) =>{
@@ -952,39 +966,183 @@ router.post("/logout", (req, res) => {
 });
 
 // show resource list from resourceModel
-router.get('/resourcelist', async (req, res) => {
+router.get("/resourcelist", async (req, res) => {
   const resource = await resourceModel.find().sort({ resourceName: 1 });
-  res.render('resourcelist', {resource});
+  res.render("resourcelist", { resource });
 });
 
 // REFRESH Resource List To used by admin
 
-
 // all tasks for admin
-router.get('/alltasks', isAuthenticated, async (req, res) => {
-  
+router.get("/alltasks", isAuthenticated, async (req, res) => {
   try {
+
+    //fuction to add clientName and InterventionName to each task with matching projectId
+    async function updateTaskClients (projects) {
+      try {
+        for (const project of projects) {
+          const { ProjectId, ClientName, InterventionName } = project;
+          await taskModel.updateMany(
+            { projectId: ProjectId },
+            { $set: { clientName: ClientName, interventionName: InterventionName } }
+          );
+          console.log(`Updated tasks for projectId: ${ProjectId}`);
+        }
+      } catch (error) {
+        console.error('Error updating tasks:', error);
+      }
+    };
+
+    //function to add assigned resourceName and resourceId to each task with matching taskId in the assignment API response. 
+    async function updateTaskResources(assignments) {
+      try {
+        const tasks = await taskModel.find({});
+    
+        for (const task of tasks) {
+          const assignment = assignments.find(a => a.TaskId === task.taskId);
+          if (assignment) {
+            await taskModel.updateOne(
+              { taskId: task.taskId },
+              { $set: { resourceId: assignment.ResourceId, resourceName: assignment.ResourceName } }
+            );
+            console.log(`Updated taskId: ${task.taskId} with resourceId: ${assignment.ResourceId} and resourceName: ${assignment.ResourceName}`);
+          }
+        }
+      } catch (error) {
+        console.error('Error updating tasks:', error);
+      }
+    };
+        //function to initialize tasks data if task collection is empty
+    async function initializeTasks() {
+      try {
+        const count = await taskModel.countDocuments();
+        if (count === 0) {
+          console.log("Task collection is empty. Adding Tasks...");
+
+          const accessToken = req.session.token;
+          if (!accessToken) {
+            console.log("access token mission. could not fetch tasks data.");
+          } else {
+            const projectAPIresponse = await axios.get(
+              "https://chrysalishrd.sharepoint.com/pwa/_api/ProjectData/Projects",
+              {
+                headers: {
+                  Authorization: `Bearer ${accessToken}`,
+                  Accept: "application/json",
+                  "User-Agent": "MyNodeApp",
+                },
+              }
+            );
+            const allprojects = projectAPIresponse.data.value;
+            console.log(
+              `The number of resources in the total projects from api response are: ${allprojects.length}`
+            );
+            // console.log('All Projects  that is projectapiresponse.data.value is: ', allprojects);
+            const ongoingProjects = allprojects.filter(
+              (project) => project.ProjectPercentCompleted < 100
+            );
+            console.log(
+              "The length of ongoing projects list is: ",
+              ongoingProjects.length
+            );
+            const tasksPromises = ongoingProjects.map(async (project) => {
+              const projectId = project.ProjectId;
+              const tasksResponse = await axios.get(
+                `https://chrysalishrd.sharepoint.com/pwa/_api/ProjectData/Projects(guid'${projectId}')/Tasks`,
+                {
+                  headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                    Accept: "application/json",
+                    "User-Agent": "MyNodeApp",
+                  },
+                }
+              );
+              console.log('Length of response.data.value is: ', tasksResponse.data.value.length)
+              return tasksResponse.data.value;
+            });
+            const taskarray = await Promise.all(tasksPromises);
+            const alltasks = taskarray.flat();
+            console.log('taskarray after promise.all length is: ', alltasks.length);
+            const leapTasks = alltasks.filter(task => 
+              task.LEAPApplicationSync === "Yes" || task.LEAPApplicationSync === "yes"
+            );
+            console.log('the length of leap tasks is: ', leapTasks.length);
+            /////////////////// return tasks to check nesting
+            // return leapTasks;
+            // const alltasks = tasks[0].task;
+            // console.log("length of alltasks array is: ", alltasks.length);
+            // console.log("fist task in the list is: ", alltasks[0]);
+            //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+            for (const taskData of leapTasks) 
+            {
+              const {
+                ProjectId,
+                ProjectName,
+                TaskId,
+                TaskName,
+                ParentTaskName,
+                TaskStartDate,
+                TaskFinishDate,
+                TaskWork,
+                TypeofActivity,
+                TaskPercentWorkCompleted,
+                LEAPApplicationSync,
+              } = taskData;
+              const source = "PWA";
+              const task = new taskModel({
+                projectId: ProjectId,
+                projectName: ProjectName,
+                taskId: TaskId,
+                taskName: TaskName,
+                parentTaskName: ParentTaskName,
+                start: TaskStartDate,
+                Finish: TaskFinishDate,
+                taskWork: TaskWork,
+                typeofActivity: TypeofActivity,
+                taskCompletePercent: TaskPercentWorkCompleted,
+                LeapSync: LEAPApplicationSync,
+                source: source,
+              });
+              // console.log(`The task data is: ${task} `);
+              try {
+                await task.save();
+                // console.log(`saved task: ${TaskName}`);
+              } catch (error) {
+                console.error(`Error saving task: ${TaskName}`, error);
+              }
+            }
+            updateTaskClients(ongoingProjects);
+          }
+          //Once the colection is initialized fill resource details from resource api
+          //setResource();  //// SetResource function should add resource name and id from the assignement api for task id.
+        } else {
+          console.log("Resource collection is not empty. No action taken.");
+        }
+      } catch (err) {
+        console.error("Error checking resource collection", err);
+      }
+    }
     const user = req.session.user;
     // console.log('user details are: ', user);
     const userName = user.name;
     const resource = await resourceModel.findOne({ resourceName: userName });
-    
     if (resource) {
-        if (resource.resourceRole === 'Admin') {
-            console.log('Admin logged in', userName);
-
-            res.render('alltasks');
-        } else {
-            console.log('Member logged in: ', userName);
-            res.redirect('/profile');
-        }
+      if (resource.resourceRole === "Admin") {
+        console.log("Admin logged in", userName);
+        initializeTasks();
+        const tasks = await taskModel.find({ taskCompletePercent: { $lt: 100 } });
+        res.render("alltasks", {tasks});
+      } else {
+        console.log("Member logged in: ", userName);
+        res.redirect("/profile");
+      }
     } else {
-        res.redirect('/profile');
+      res.redirect("/profile");
     }
-} catch (error) {
-    console.error('Error fetching resource:', error);
-    res.status(500).send('Internal Server Error');
-}
-
+  } catch (error) {
+    console.error("Error fetching resource:", error);
+    res.status(500).send("Internal Server Error");
+  }
 });
 module.exports = router;
+

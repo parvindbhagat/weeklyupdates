@@ -7,13 +7,13 @@ const taskSchema = new mongoose.Schema({
     taskId: {    type: String,     },  
     taskName: {    type: String,  },
     parentTaskName: {    type: String, },  
-    taskCompletePercent: {type: String,  },
+    taskCompletePercent: {type: Number,  },
     taskWork: {    type: Number,  },    
     start: {    type: String, },
     Finish: {    type: String,},
     resourceId: { type: String },
     resourceName: { type: String },
-    activityType: {   type: String, },
+    typeofActivity: {   type: String, },
     LeapSync: {    type: String, },  
     clientName: { type: String },
     interventionName: { type: String },
@@ -22,7 +22,8 @@ const taskSchema = new mongoose.Schema({
     actualWork: { type: String },
     userComment: {type: String },
     approvalStatus: {type: String },
-    source:{type: String},
+    source:{type: String, default: "PWA"},
+    submitted: {type: Number, default: 0}
   });
   const task = mongoose.model("task", taskSchema);
   module.exports = task;

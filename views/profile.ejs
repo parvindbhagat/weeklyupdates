@@ -13,7 +13,7 @@
 </head>
 <body>
   <script>
-    window.sessions = <%- JSON.stringify(incompleteAssignments) %>;
+    window.sessions = <%- JSON.stringify(incompletetasks) %>;
     console.log(sessions);
   </script>
 
@@ -22,7 +22,7 @@
   <button type="submit" class="rounded">Logout</button>
 </form>
 <div class="d-flex flex-wrap justify-content-around mb-4">
-  <h3 style=" margin-top: 3rem;"><strong>EMail</strong>: <%= user.username %></h3>
+  <h3 style=" margin-top: 3rem;"><strong>EMail</strong>: <%= resourceDetails.resourceName %></h3>
   <h3 style=" margin-top: 3rem;"><strong>Group</strong>: <%= resourceDetails.resourceGroup %></h3>
   <h3 style=" margin-top: 3rem;"><strong>Manager</strong>: <%= resourceDetails.resourceManagerName %></h3>
   <h3 style=" margin-top: 3rem;"><strong>Role</strong>: <%=resourceDetails.resourceRole %></h3>
@@ -71,7 +71,7 @@
 
 <div class="container">
   <div class="row">
-    <% incompleteAssignments.forEach(activity => { %>
+    <% incompletetasks.forEach(activity => { %>
       <div class="col-md-4 mb-4">
         <div class="card">
           <div class="card-body">
