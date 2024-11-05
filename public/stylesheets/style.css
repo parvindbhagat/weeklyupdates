@@ -15,6 +15,9 @@ html, body{
 .full-width{
   width: 100%;
 }
+.hidden{
+  display: none;
+}
 .navbar{
   background-color:var(--primary-color);
   width: 100%;
@@ -63,6 +66,12 @@ button{
   background-color: var(--primary-color);
   color: white;
   margin-right: 1rem;
+}
+button:disabled {
+  background-color: #ccc !important; /* Gray background */
+  color: #666 !important; /* Gray text */
+  cursor: not-allowed; /* Change cursor to indicate it's not clickable */
+  opacity: 0.6; /* Make it slightly transparent */
 }
 .footerright button:hover{
   background-color: var(--secondary-color);

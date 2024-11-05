@@ -1,9 +1,19 @@
 document.addEventListener('DOMContentLoaded', () => {
     const sessions = window.sessions;
+    const countd = document.querySelector('.countd');
     const timerElement = document.getElementById('timer');
     const activityDetailsElement = document.getElementById('activity-details');
     const upcomingSessionsElement = document.getElementById('upcomingSessions');
     // console.log(sessions);
+    if (!sessions || sessions.length === 0) {
+        // Select the div with class 'countd'
+        let countd = document.querySelector('.countd');
+        
+        // Add the 'hidden' class to the div
+        if (countd) {
+            countd.classList.add('hidden');
+        }
+    }
   
     function getNextSession(sessions) {
         const now = new Date();

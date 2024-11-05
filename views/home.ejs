@@ -34,6 +34,10 @@
     .hidden {
       display: none;
     }
+    .right{
+      float: right;
+      padding-right: 2rem;
+    }
 
     .options {
       /* border: 2px solid white; */
@@ -257,10 +261,19 @@
   <div class="marquee">
     Timmy says, Fill your TimeSheet!
   </div>
+  <% if (msg) { %>
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <%= msg %>
+        
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close">
+            
+    </div>
+    
+  <% } %>
   <div class="main">
     <div class="options">
       <div class="title-text contentSection">LEAP</div>
-      <a href="/activities" style="text-decoration: none; color: inherit" id="activities" class="box">
+      <a href="/pwaactivities" style="text-decoration: none; color: inherit" id="activities" class="box">
         <div class="contentSection">
           <h4>Chrysalis Weekly Plan</h4>
           <p style="font-size: 1.2rem">
@@ -286,7 +299,7 @@
         </div>
       </a>
     </div>
-    <div class="countd">
+    <!-- <div class="countd">
       <h1 id="activity-details"></h1>
 
       <div id="timer" class="timer">
@@ -310,12 +323,13 @@
           <small>Seconds</small>
         </div>
       </div>
-    </div>
-
+    </div> -->
+  </div>
   <div class="copyrightbar">
     <!-- <p style=" text-align: center; margin-top: 10px;">  <a href="/countdown" style="color: inherit; text-decoration: none;">Next Session</a></p> -->
     <!-- <p style=" text-align: center; margin-top: 10px;">Copyright © 2024  <a href="https://chrysalis.in" style="color: inherit; text-decoration: none;">Chrysalis HRD</a></p> -->
-     <a href="/admin">a</a>
+    <a class="right" href="/profile">My Tasks <i>Beta</i></a>
+     <a class="right" href="/admin">Admin <i>Beta</i></a>
   </div>
 </body>
 

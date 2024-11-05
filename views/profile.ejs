@@ -13,14 +13,74 @@
 </head>
 <body>
   <script>
-    window.sessions = <%- JSON.stringify(incompleteTasks) %>;
-    console.log(sessions);
-  </script>
+    document.addEventListener('DOMContentLoaded', () => {
+        window.activities = <%- JSON.stringify(incompleteTasks) %>;
+        let tablediv = document.querySelector('.tablediv');
+        console.log(activities.length);
+        if (activities.length === 0) {
+            tablediv.classList.add('hidden');
+        } else {
+            tablediv.classList.remove('hidden');
+            // Populate the table with activities
+        }
+    });
+</script>
+<!-- Below script to trigger update modal -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const updateButtons = document.querySelectorAll('.update-btn');
+    updateButtons.forEach(button => {
+        const rowId = button.getAttribute('data-id');
+        const row = document.getElementById(`row-${rowId}`);
+        const submitted = row.children[7].innerText;
+
+        // Disable the button if submitted is "Yes"
+        if (submitted === "Yes") {
+            button.disabled = true;
+        }
+
+        button.addEventListener('click', function() {
+            // Extract data from the row
+            const projectName = row.children[0].innerText;
+            const taskName = row.children[1].innerText;
+            const scheduledStart = row.children[2].innerText;
+            const scheduledFinish = row.children[3].innerText;
+            const actualStart = row.children[4].innerText;
+            const actualFinish = row.children[5].innerText;
+            const actualWork = row.children[6].innerText;
+            const comment = row.children[9].innerText;
+
+            console.log("value of submitted is: ", submitted);
+            // Populate the form fields in the modal
+            document.getElementById('projectName').value = projectName;
+            document.getElementById('taskName').value = taskName;
+            document.getElementById('scheduledStart').value = scheduledStart;
+            document.getElementById('scheduledFinish').value = scheduledFinish;
+            document.getElementById('actualStart').value = actualStart;
+            document.getElementById('actualFinish').value = actualFinish;
+            document.getElementById('actualWork').value = actualWork;
+            document.getElementById('comment').value = comment;
+            document.getElementById('activityId').value = rowId;
+
+            // Show the modal if submitted is "No"
+            if (submitted === "No") {
+                const updateModal = new bootstrap.Modal(document.getElementById('updateModal'));
+                updateModal.show();
+            } else {
+                alert("You have already submitted this task updates. Pick another task or contact your Manager to reassign that task to make any changes to it.");
+            }
+        });
+    });
+});
+
+</script>
 
 <h1 style=" margin-right: 3rem; text-align: center;">Welcome, <%= user.name %> </h1>
 <form style="display: inline-block; margin-left: 3rem; margin-top: 3rem;" action="/logout" method="POST">
   <button type="submit" class="rounded">Logout</button>
 </form>
+<a href="/">Home</a>
+<a href="/admin">Admin Console</a>
 <div class="d-flex flex-wrap justify-content-around mb-4">
   <h3 style=" margin-top: 3rem;"><strong>EMail</strong>: <%= resourceDetails.resourceEmail %></h3>
   <h3 style=" margin-top: 3rem;"><strong>Group</strong>: <%= resourceDetails.resourceGroup %></h3>
@@ -28,10 +88,20 @@
   <h3 style=" margin-top: 3rem;"><strong>Role</strong>: <%=resourceDetails.resourceRole %></h3>
 </div>
 
+<% if (msg) { %>
+  <div class="alert alert-success alert-dismissible fade show" role="alert">
+      <%= msg %>
+      
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close">
+          
+  </div>
+  
+<% } %>
+
 <!-- <button><a href="/profileDetails">My info</a></button> -->
 <!-- <button><a href="/mytasks">My Tasks from PWA</a></button> -->
 
-<div class="activitylist mb-50 m-2 ">
+<div class="tablediv mb-50 m-2 ">
     <table class="table-striped full-width bg-white border border-gray-300" >
       <thead >
         <tr>
@@ -40,28 +110,30 @@
             <th  class="bg-warning">Scheduled Start</th>
             <th  class="bg-warning">Scheduled Finish</th>
             <th  class="bg-warning">Actual Start</th>
-            <th  class="bg-warning">Actual Finish</th>
-            <th  class="bg-warning">Scheduled Work</th>
+            <th  class="bg-warning">Actual Finish</th>            
             <th  class="bg-warning">Actual Work</th>
-            <th  class="bg-warning">Sbmitted</th>
-            <th  class="bg-warning">Complete %</th>            
+            <th  class="bg-warning">Submitted</th>
+            <th  class="bg-warning">Complete</th>   
+            <th  class="bg-warning">Comment</th>         
             <th  class="bg-warning">Status</th>
+            <th  class="bg-warning">Action</th>
         </tr>
       </thead>
       <tbody>
         <% incompleteTasks.forEach(activity => { %>
-          <tr class="tableData">
-            <td class="border border-gray-300 px-4 py-2 "><%= activity.projectName %></td>
-            <td class="border border-gray-300 px-4 py-2 "><%= activity.taskName %></td>
-            <td class="border border-gray-300 px-4 py-2 "><%= new Date(activity.start).toLocaleDateString() %></td>
-            <td class="border border-gray-300 px-4 py-2 "><%= new Date(activity.Finish).toLocaleDateString() %></td>
-            <td class="border border-gray-300 px-4 py-2 "><%= activity.actualStart%></td>
-            <td class="border border-gray-300 px-4 py-2 "><%= activity.actualFinish %></td>
-            <td class="border border-gray-300 px-4 py-2 "><%= activity.actualWork %></td>
-            <td class="border border-gray-300 px-4 py-2 "><%= activity.actualWork %></td>
-            <td class="border border-gray-300 px-4 py-2 "><%= activity.submitted ? "Yes" : "No" %></td>
-            <td class="border border-gray-300 px-4 py-2 "><%= activity.TaskPercentWorkCompleted %></td>
-            <td class="border border-gray-300 px-4 py-2 "><%= activity.status %></td>
+          <tr class="tableData" id="row-<%= activity._id %>">
+            <td class="border border-gray-300 px-1 py-1 "><%= activity.projectName %></td>
+            <td class="border border-gray-300 px-1 py-1 "><%= activity.taskName %></td>
+            <td class="border border-gray-300 px-1 py-1 "><%= new Date(activity.start).toLocaleDateString('en-in') %></td>
+            <td class="border border-gray-300 px-1 py-1 "><%= new Date(activity.Finish).toLocaleDateString('en-in') %></td>
+            <td class="border border-gray-300 px-1 py-1 "><%= activity.actualStart ? new Date(activity.actualStart).toLocaleDateString('en-in') : " " %></td>
+            <td class="border border-gray-300 px-1 py-1 "><%= activity.actualFinish ? new Date(activity.actualFinish).toLocaleDateString('en-in') : " " %></td>
+            <td class="border border-gray-300 px-1 py-1 "><%= activity.actualWork %></td>
+            <td class="border border-gray-300 px-1 py-1 "><%= activity.submitted ? "Yes" : "No" %></td>
+            <td class="border border-gray-300 px-1 py-1 "><%= (activity.taskCompletePercent < 100) ? "No" : "Yes" %></td>
+            <td class="border border-gray-300 px-1 py-1 "><%= activity.userComment %></td>
+            <td class="border border-gray-300 px-1 py-1 "><%= activity.approvalStatus %></td>
+            <td class="text-center px-2"><button class="btn btn-primary update-btn border border-gray-300" data-id="<%= activity._id %>">Update</button></td>
           </tr>
         <% }); %>
       </tbody>
@@ -93,12 +165,66 @@
   </div>
 </div> -->
 
+
+<div class="modal fade" id="updateModal" tabindex="-1" aria-labelledby="updateModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+      <div class="modal-content">
+          <div class="modal-header">
+              <h5 class="modal-title" id="updateModalLabel">Fill TimeSheet for Task</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+              <form id="updateForm" action="/updatetask" method="post">
+                  <div class="mb-3">
+                      <label for="projectName" class="form-label">Project Name</label>
+                      <input type="text" class="form-control" id="projectName" name="projectName" readonly>
+                  </div>
+                  <div class="mb-3">
+                      <label for="taskName" class="form-label">Task Name</label>
+                      <input type="text" class="form-control" id="taskName" name="taskName" readonly>
+                  </div>
+                  <div class="mb-3">
+                      <label for="scheduledStart" class="form-label">Scheduled Start</label>
+                      <input type="text" class="form-control" id="scheduledStart" name="scheduledStart" readonly>
+                  </div>
+                  <div class="mb-3">
+                      <label for="scheduledFinish" class="form-label">Scheduled Finish</label>
+                      <input type="text" class="form-control" id="scheduledFinish" name="scheduledFinish" readonly>
+                  </div>
+                  <div class="mb-3">
+                      <label for="actualStart" class="form-label">Actual Start</label>
+                      <input type="date" class="form-control" id="actualStart" name="actualStart">
+                  </div>
+                  <div class="mb-3">
+                      <label for="actualFinish" class="form-label">Actual Finish</label>
+                      <input type="date" class="form-control" id="actualFinish" name="actualFinish">
+                  </div>
+                  <div class="mb-3">
+                      <label for="actualWork" class="form-label">Actual Work</label>
+                      <input type="number" class="form-control" id="actualWork" name="actualWork">
+                  </div>
+                  <div class="mb-3">
+                      <label for="comment" class="form-label">Comment</label>
+                      <input type="text" class="form-control" id="comment" name="comment">
+                  </div>
+                  <input type="hidden" id="activityId" name="activityId">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                  <button type="submit" class="btn btn-primary" id="submitUpdate">Submit Task Completion</button>
+              </form>
+          </div>
+          <div class="modal-footer">
+              <p> Caution! Once submitted, you cannot make any changes to this Task.</p>
+          </div>
+      </div>
+  </div>
+</div>
+
 <!-- Button trigger modal -->
 <button type="button" class="btn btn-primary ms-5" data-bs-toggle="modal" data-bs-target="#staticBackdrop">
-  Submit new task
+  Submit NEW Task
 </button>
 
-<!-- Modal -->
+<!-- Modal FOR NEW MANUAL TASK-->
 <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -107,33 +233,33 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <Form>
+        <Form id="addTaskForm" action="/profile" method="post">
           <label for="" class="form-label">Project Name</label>
-          <input type="text" name="projectName" id="", value="Administrative"> <br>
+          <input type="text" name="projectName" id="", value="Administrative" readonly> <br>
           <label for="" class="form-label">Task</label>
-          <select class="form-select" aria-label="Default select example">
+          <select class="form-select my-2" name="taskName" aria-label="Default select example" required>
             <option selected>Pick a task from the list.</option>
-            <option value="1">Break</option>
-            <option value="2">Chrysalis: Administrative Work</option>
-            <option value="3">Chrysalis: Client Acquisition</option>
-            <option value="4">Chrysalis: Internal meetings/calls</option>
-            <option value="5">Chrysalis: Research</option>
-            <option value="6">Chrysalis: Internal Projects</option>
-            <option value="7">Chrysalis: Self Development</option>
+            <option value="Break">Break</option>
+            <option value="Chrysalis: Administrative Work">Chrysalis: Administrative Work</option>
+            <option value="Chrysalis: Client Acquisition">Chrysalis: Client Acquisition</option>
+            <option value="Chrysalis: Internal meetings/calls">Chrysalis: Internal meetings/calls</option>
+            <option value="Chrysalis: Research">Chrysalis: Research</option>
+            <option value="Chrysalis: Internal Projects">Chrysalis: Internal Projects</option>
+            <option value="Chrysalis: Self Development">Chrysalis: Self Development</option>
           </select>
           <label for="" class="form-label">Start Date</label>
-          <input type="date" name="AssignmentActualStartDate"> <br>
+          <input type="date" name="actualStart" required> <br>
           <label for="" class="form-label">Finish Date</label>
-          <input type="date" name="AssignmentActualFinishDate"> <br>
+          <input type="date" name="actualFinish" required> <br>
           <label for="" class="form-label">Work (in Hours)</label>
-          <input type="number" name="AssignmentActualWork">
+          <input type="number" name="actualWork" required>
           <div class="mb-3">
-            <label for="" class="form-label">Comments</label>
-            <textarea class="form-control" name="Comments" id="" rows="3" placeholder="Your comments please."></textarea>
+            <label for="" class="form-label">userComment</label>
+            <textarea class="form-control" name="userComment" id="" rows="3" placeholder="Your comments please."></textarea>
           </div>
           <p> Alert! Once submitted, you cannot make any changes.</p>
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-          <button type="button" class="btn btn-primary">Submit</button>
+          <button type="submit" class="btn btn-primary" id="addTaskBtn" >Submit</button>
         </Form>
       </div>
       <!-- <div class="modal-footer">
@@ -151,5 +277,60 @@
 
 
   <!-- <pre><%= JSON.stringify(incompleteTasks, null, 2) %></pre> -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('#addTaskForm');
+        const submitButton = document.querySelector('#addTaskBtn');
+    
+        submitButton.addEventListener('click', function(event) {
+            // Prevent the form from submitting
+            event.preventDefault();
+    
+            // Get form fields
+            const taskName = form.querySelector('select[name="taskName"]');
+            const actualStart = form.querySelector('input[name="actualStart"]');
+            const actualFinish = form.querySelector('input[name="actualFinish"]');
+            const actualWork = form.querySelector('input[name="actualWork"]');
+    
+            // Validate the taskName field
+            if (taskName.value === "Pick a task from the list.") {
+                alert('Please select a valid task.');
+                return;
+            }
+    
+            // Validate the date fields
+            if (!actualStart.value) {
+                alert('Please enter a start date.');
+                return;
+            }
+    
+            if (!actualFinish.value) {
+                alert('Please enter a finish date.');
+                return;
+            }
+    
+            // Validate the actualWork field
+            if (!actualWork.value) {
+                alert('Please enter the work hours.');
+                return;
+            }
+            // Additional validation for "Break" task
+          if (taskName.value === "Break") {
+            if (actualStart.value !== actualFinish.value) {
+                alert('For "Break", the start and finish dates must be the same.');
+                return;
+            }
+            if (parseFloat(actualWork.value) > 8) {
+                alert('For "Break", the work hours must not exceed 8.');
+                return;
+            }
+          }
+    
+            // If all validations pass, submit the form
+            form.submit();
+        });
+      });
+    </script>
+    
    <script src="/javascripts/bootstrap.bundle.min.js"></script>
 </body>
