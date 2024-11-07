@@ -14,7 +14,7 @@
 <body>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-        window.activities = <%- JSON.stringify(incompleteTasks) %>;
+        window.activities = <%- JSON.stringify(tasks) %>;
         let tablediv = document.querySelector('.tablediv');
         console.log(activities.length);
         if (activities.length === 0) {
@@ -32,26 +32,31 @@
     updateButtons.forEach(button => {
         const rowId = button.getAttribute('data-id');
         const row = document.getElementById(`row-${rowId}`);
-        const submitted = row.children[7].innerText;
+        const submitted = row.children[8].innerText;
 
         // Disable the button if submitted is "Yes"
-        if (submitted === "Yes") {
-            button.disabled = true;
+        if (submitted === "0" || submitted === "1" ) {
+            button.disabled = false;
+        } else {
+          button.disabled = true;
         }
 
         button.addEventListener('click', function() {
             // Extract data from the row
-            const projectName = row.children[0].innerText;
-            const taskName = row.children[1].innerText;
-            const scheduledStart = row.children[2].innerText;
-            const scheduledFinish = row.children[3].innerText;
-            const actualStart = row.children[4].innerText;
-            const actualFinish = row.children[5].innerText;
-            const actualWork = row.children[6].innerText;
-            const comment = row.children[9].innerText;
+            const resourceName = row.children[0].innerText;
+            const projectName = row.children[1].innerText;
+            const taskName = row.children[2].innerText;
+            const scheduledStart = row.children[3].innerText;
+            const scheduledFinish = row.children[4].innerText;
+            const actualStart = row.children[5].innerText;
+            const actualFinish = row.children[6].innerText;
+            const actualWork = row.children[7].innerText;
+            const status = row.children[11].innerText;
+            const comment = row.children[10].innerText;
 
             console.log("value of submitted is: ", submitted);
             // Populate the form fields in the modal
+            document.getElementById('resourceName').value = resourceName;
             document.getElementById('projectName').value = projectName;
             document.getElementById('taskName').value = taskName;
             document.getElementById('scheduledStart').value = scheduledStart;
@@ -60,15 +65,13 @@
             document.getElementById('actualFinish').value = actualFinish;
             document.getElementById('actualWork').value = actualWork;
             document.getElementById('comment').value = comment;
+            document.getElementById('status').value = status;
             document.getElementById('activityId').value = rowId;
 
-            // Show the modal if submitted is "No"
-            if (submitted === "No") {
+
                 const updateModal = new bootstrap.Modal(document.getElementById('updateModal'));
                 updateModal.show();
-            } else {
-                alert("You have already submitted this task updates. Pick another task or contact your Manager to reassign that task to make any changes to it.");
-            }
+            
         });
     });
 });
@@ -81,18 +84,13 @@
 </nav>
 <h1 style=" margin-right: 3rem; text-align: center;">Welcome, <%= user.name %> </h1>
 <div class="d-flex flex-row-reverse gap-3">
-  <form style="display: inline-block; margin-left: 3rem;" action="/logout" method="POST">
+  <form style="display: inline-block; margin-right: 3rem;" action="/logout" method="POST">
     <button type="submit" class="rounded">Logout</button>
   </form>
-  <a class="ml-3" href="/">Home</a> 
-  <a class="ml-3" href="/admin">Admin Console</a>
+  <a class="me-3" href="/">Home</a> 
+  <a class="me-3" href="/profile">My Tasks</a>
 </div>
-<div class="d-flex flex-wrap justify-content-around mb-4">
-  <h3 style=" margin-top: 3rem;"><strong>EMail</strong>: <%= resourceDetails.resourceEmail %></h3>
-  <h3 style=" margin-top: 3rem;"><strong>Group</strong>: <%= resourceDetails.resourceGroup %></h3>
-  <h3 style=" margin-top: 3rem;"><strong>Manager</strong>: <%= resourceDetails.resourceManagerName %></h3>
-  <h3 style=" margin-top: 3rem;"><strong>Role</strong>: <%=resourceDetails.resourceRole %></h3>
-</div>
+
 
 <% if (msg) { %>
   <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -106,9 +104,25 @@
 
 
 <div class="tablediv mb-50 m-2 ">
+  <div class="ms-3 my-3">
+    <label for="resourceFilter">Filter by Resource Name:</label>
+    <select id="resourceFilter" onchange="filterTable()">
+      <option value="">All</option>
+      <% 
+        const uniqueResources = new Set();
+        tasks.forEach(res => {
+          uniqueResources.add(res.resourceName);
+        });
+        uniqueResources.forEach(manager => { 
+      %>
+        <option value="<%= manager %>"><%= manager %></option>
+      <% }); %>
+    </select>
+  </div>
     <table class="table-striped full-width bg-white border border-gray-300" >
       <thead >
         <tr>
+            <th  class="bg-warning">Resource Name</th>
             <th  class="bg-warning">Project Name</th>
             <th  class="bg-warning">Task Name</th>
             <th  class="bg-warning">Scheduled Start</th>
@@ -124,8 +138,9 @@
         </tr>
       </thead>
       <tbody>
-        <% incompleteTasks.forEach(activity => { %>
+        <% tasks.forEach(activity => { %>
           <tr class="tableData" id="row-<%= activity._id %>">
+            <td class="border border-gray-300 px-1 py-1 "><%= activity.resourceName %></td>
             <td class="border border-gray-300 px-1 py-1 "><%= activity.projectName %></td>
             <td class="border border-gray-300 px-1 py-1 "><%= activity.taskName %></td>
             <td class="border border-gray-300 px-1 py-1 "><%= new Date(activity.start).toLocaleDateString('en-in') %></td>
@@ -133,7 +148,7 @@
             <td class="border border-gray-300 px-1 py-1 "><%= activity.actualStart ? new Date(activity.actualStart).toLocaleDateString('en-in') : " " %></td>
             <td class="border border-gray-300 px-1 py-1 "><%= activity.actualFinish ? new Date(activity.actualFinish).toLocaleDateString('en-in') : " " %></td>
             <td class="border border-gray-300 px-1 py-1 "><%= activity.actualWork %></td>
-            <td class="border border-gray-300 px-1 py-1 "><%= activity.submitted ? "Yes" : "No" %></td>
+            <td class="border border-gray-300 px-1 py-1 "><%= activity.submitted %></td>
             <td class="border border-gray-300 px-1 py-1 "><%= (activity.taskCompletePercent < 100) ? "No" : "Yes" %></td>
             <td class="border border-gray-300 px-1 py-1 "><%= activity.userComment %></td>
             <td class="border border-gray-300 px-1 py-1 "><%= activity.approvalStatus %></td>
@@ -147,7 +162,7 @@
 
 <!-- <div class="container">
   <div class="row">
-    <% incompleteTasks.forEach(activity => { %>
+    <% tasks.forEach(activity => { %>
       <div class="col-md-4 mb-4">
         <div class="card">
           <div class="card-body">
@@ -179,6 +194,10 @@
           </div>
           <div class="modal-body">
               <form id="updateForm" action="/updatetask" method="post">
+                <div class="mb-3">
+                  <label for="resourceName" class="form-label">Resource Name</label>
+                  <input type="text" class="form-control" id="resourceName" name="resourceName" readonly>
+                </div>
                   <div class="mb-3">
                       <label for="projectName" class="form-label">Project Name</label>
                       <input type="text" class="form-control" id="projectName" name="projectName" readonly>
@@ -197,20 +216,29 @@
                   </div>
                   <div class="mb-3">
                       <label for="actualStart" class="form-label">Actual Start</label>
-                      <input type="date" class="form-control" id="actualStart" name="actualStart">
+                      <input type="text" class="form-control" id="actualStart" name="actualStart">
                   </div>
                   <div class="mb-3">
                       <label for="actualFinish" class="form-label">Actual Finish</label>
-                      <input type="date" class="form-control" id="actualFinish" name="actualFinish">
+                      <input type="text" class="form-control" id="actualFinish" name="actualFinish">
                   </div>
                   <div class="mb-3">
                       <label for="actualWork" class="form-label">Actual Work</label>
-                      <input type="number" class="form-control" id="actualWork" name="actualWork">
+                      <input type="text" class="form-control" id="actualWork" name="actualWork">
                   </div>
                   <div class="mb-3">
                       <label for="comment" class="form-label">Comment</label>
                       <input type="text" class="form-control" id="comment" name="comment">
                   </div>
+                  <div class="mb-3">
+                    <label for="status" class="form-label">Status update</label>                    
+                    <select id="status" name="status" class="form-select form-control my-2" aria-label="Default select " required>
+                      <option selected>Awaiting Approval</option>
+                      <option value="Approved">Approve</option>
+                      <option value="Rejected">Reject</option>
+                      <option value="Re-assign">Re-assign</option>                      
+                    </select>
+                </div>
                   <input type="hidden" id="activityId" name="activityId">
                   <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                   <button type="submit" class="btn btn-primary" id="submitUpdate">Submit Task Completion</button>
@@ -224,11 +252,11 @@
 </div>
 
 <!-- Button trigger NEW Task modal -->
-<button type="button" class="btn btn-primary ms-5" data-bs-toggle="modal" data-bs-target="#staticBackdrop">
+<!-- <button type="button" class="btn btn-primary ms-5" data-bs-toggle="modal" data-bs-target="#staticBackdrop">
   Submit NEW Task
-</button>
+</button> -->
 
-<!-- Modal FOR NEW MANUAL TASK-->
+<!-- Modal FOR NEW TASK-->
 <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -280,7 +308,7 @@
 </div>
 
 
-  <!-- <pre><%= JSON.stringify(incompleteTasks, null, 2) %></pre> -->
+  <!-- <pre><%= JSON.stringify(tasks, null, 2) %></pre> -->
    <!-- below script for NEW task form validation -->
   <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -336,6 +364,7 @@
         });
       });
     </script>
+    <!-- below script for update form validation -->
     <script>
       document.addEventListener('DOMContentLoaded', function() {
           const form = document.querySelector('#updateForm');
@@ -383,6 +412,25 @@
           });
         });
       </script>
-    
+  <!-- below script for filter BY resourceName -->
+  <script>
+    function filterTable() {
+      var filter = document.getElementById("resourceFilter").value.toUpperCase();
+      var table = document.querySelector("table");
+      var tr = table.getElementsByTagName("tr");
+  
+      for (var i = 1; i < tr.length; i++) {
+        var td = tr[i].getElementsByTagName("td")[0]; // Index 0 for the resourceName column
+        if (td) {
+          var txtValue = td.textContent || td.innerText;
+          if (filter === "" || txtValue.toUpperCase() === filter) {
+            tr[i].style.display = "";
+          } else {
+            tr[i].style.display = "none";
+          }
+        }
+      }
+    }
+  </script>  
    <script src="/javascripts/bootstrap.bundle.min.js"></script>
 </body>

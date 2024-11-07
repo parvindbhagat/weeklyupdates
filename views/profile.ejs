@@ -102,12 +102,12 @@ document.addEventListener('DOMContentLoaded', function() {
 </nav>
 <h1 style=" margin-right: 3rem; text-align: center;">Welcome, <%= user.name %> </h1>
 <div class="d-flex flex-row-reverse gap-3">
-  <form style="display: inline-block; margin-left: 3rem;" action="/logout" method="POST">
+  <form style="display: inline-block; margin-right: 3rem;" action="/logout" method="POST">
     <button type="submit" class="rounded">Logout</button>
   </form>
-  <a class="ml-3" href="/">Home</a> 
-  <a class="ml-3" id="adminBtn" href="/admin">Admin Console</a>
-  <a class="ml-3" id="myTeamBtn" href="/manager">My Team</a>
+  <a class="me-3" href="/">Home</a> 
+  <a class="me-3" id="adminBtn" href="/admin">Admin Console</a>
+  <a class="me-3" id="myTeamBtn" href="/manager">My Team</a>
 </div>
 <div class="d-flex flex-wrap justify-content-around mb-4">
   <h3 style=" margin-top: 3rem;"><strong>EMail</strong>: <%= resourceDetails.resourceEmail %></h3>
@@ -246,8 +246,9 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 
 <!-- Button trigger NEW Task modal -->
+ <p class="ms-5">Don't see the task you want to update, add a new one!</p>
 <button type="button" class="btn btn-primary ms-5" data-bs-toggle="modal" data-bs-target="#staticBackdrop">
-  Submit NEW Task
+  Add NEW Task
 </button>
 
 <!-- Modal FOR NEW MANUAL TASK-->

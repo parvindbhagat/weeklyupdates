@@ -1746,4 +1746,26 @@ router.post('/updatetask', async (req, res) => {
     res.redirect('/profile?msg=successupdate');
   }
 });
+// Manager route to render tasks for all membes under a manager.
+router.get('/manager', async (req, res) => {
+  try {
+  const user = req.session.user;
+  const managerName = user.name;
+  const teamMembers = await resourceModel.find({resourceManagerName : managerName});
+  const tasksForAllMembers = await Promise.all(
+    teamMembers.map(async (member) => {
+      const tasks = await taskModel.find({ resourceName: member.resourceName });
+      return tasks;
+    })
+  );
+  
+  const flattenedTasks = tasksForAllMembers.flat();
+  let msg;
+
+  res.render('manager', {tasks: flattenedTasks, user, msg});
+    
+  } catch (error) {
+    console.log(error.message);
+  }
+});
 module.exports = router;
