@@ -25,8 +25,8 @@ html, body{
 }
 
 .navbar-brand img{
-  margin-left: 4rem;
-}
+  margin: 0 0 0 4rem;
+  }
 
 .datafield{
   padding: 5px;
@@ -65,7 +65,13 @@ html, body{
 button{
   background-color: var(--primary-color);
   color: white;
-  margin-right: 1rem;
+  /* margin-right: 1rem; */
+  border-radius: 0.5rem;
+  border: none;
+}
+button a{
+  text-decoration: none;
+  color: white;
 }
 button:disabled {
   background-color: #ccc !important; /* Gray background */

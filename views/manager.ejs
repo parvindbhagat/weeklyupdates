@@ -12,7 +12,6 @@
   <link rel="stylesheet" href="/stylesheets/style.css">
 </head>
 <body>
-  <!-- script to show/hide tablediv if its empty. -->
   <script>
     document.addEventListener('DOMContentLoaded', () => {
         window.activities = <%- JSON.stringify(incompleteTasks) %>;
@@ -75,26 +74,6 @@
 });
 
 </script>
-<!-- below script  to show/hide my team btn  and admin console btn. -->
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-  const adminBtn = document.getElementById('adminBtn'); 
-  const myTeamBtn = document.getElementById('myTeamBtn');
-  const role = "<%= resourceDetails.resourceRole %>";
-  if (role === "Manager") {      
-      myTeamBtn.classList.remove('hidden');
-      console.log("showing my team btn");
-  }else{
-    myTeamBtn.classList.add('hidden');
-      console.log("hiding taskTable");
-  }
-  if (role === "Admin") {
-    adminBtn.classList.remove('hidden');
-  } else{
-    adminBtn.classList.add('hidden');
-  }
-});
-</script>
 <nav class="navbar">
   <a class="navbar-brand" href="/">
     <img src="/images/logo.png" alt="Chrysalis" >
@@ -106,8 +85,7 @@ document.addEventListener('DOMContentLoaded', function() {
     <button type="submit" class="rounded">Logout</button>
   </form>
   <a class="ml-3" href="/">Home</a> 
-  <a class="ml-3" id="adminBtn" href="/admin">Admin Console</a>
-  <a class="ml-3" id="myTeamBtn" href="/manager">My Team</a>
+  <a class="ml-3" href="/admin">Admin Console</a>
 </div>
 <div class="d-flex flex-wrap justify-content-around mb-4">
   <h3 style=" margin-top: 3rem;"><strong>EMail</strong>: <%= resourceDetails.resourceEmail %></h3>

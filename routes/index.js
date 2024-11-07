@@ -50,6 +50,34 @@ async function isAdmin(req, res, next) {
   }
 }
 
+//function to check if user is a MANAGER
+async function isManager(req, res, next) {
+  if (req.session && req.session.user) {
+    console.log("User is logged in, checking user Role in resource model.");
+    const user = req.session.user;
+    const resource = await resourceModel.findOne({resourceName: user.name});
+    if(!resource){
+      console.log("user not found in db. sending to /profile");
+      res.redirect('/profile');
+    } else{
+      if(resource.resourceRole === "Manager"){
+        console.log("logged in user is Manager and user is: ", user.name);
+        return next();
+      }else {
+        res.redirect('/profile');
+      }
+    }
+  
+  } else {
+    req.session.originalUrl = req.originalUrl; // Store the original URL
+    console.log(
+      "User Not logged in, stored url and redirecting to /login, stored usl is: ",
+      req.session.originalUrl
+    );
+    res.redirect("/login");
+  }
+}
+
 /* GET home page. */
 // router.get('/', async (req, res) => {
 //   try {
@@ -90,7 +118,7 @@ router.get("/", async (req, res) => {
 });
 
 //admin page
-router.get("/admin", isAuthenticated, (req, res) => {
+router.get("/admin", isAdmin, (req, res) => {
   const user = req.session.user;
   console.log("logged in user to /admin page is: ", user.name);
   res.render("admin");
@@ -359,15 +387,8 @@ router.post("/escadmin", async (req, res) => {
   }
 });
 
-// router.get('/createactivity', ensureActivityAuth, async function(req, res, next) {
-//   const activities = await activityModel.find().sort({ updatedOn: -1 });
-//   const msg = req.query.msg === 'successmsg' ? 'New Activity added successfully.' : '';
-//   res.render('createactivity', { activities, msg });
-// });
 
-router.get(
-  "/createactivity",
-  ensureActivityAuth,
+router.get("/createactivity", ensureActivityAuth,
   async function (req, res, next) {
     const search = req.query.search || "";
     console.log(search);
@@ -665,6 +686,13 @@ function getDateRangeForWeek(weekNumber, year) {
   return { startDate, endDate };
 }
 
+function getDateRangeForMonth() {
+  const today = new Date();
+  const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+  const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+  return { monthStart, monthEnd };
+}
+
 function ensureActivityAuth(req, res, next) {
   if (req.session.isAuthenticated && req.session.authType === "activity") {
     return next();
@@ -909,13 +937,41 @@ router.get("/profile", isAuthenticated, async (req, res) => {
   const resourceName = user.name;
   const encodedName = encodeResourceName(resourceName);
   console.log("LOGGED IN USER to /profile is : ", resourceName);
-  initializeResources();
+  await initializeResources();
   const resourceDetails = await resourceModel.findOne({
     resourceName: resourceName,
   });
+  const { startDate, endDate } = getDateRangeForWeek(
+    getWeekNumber(new Date()),
+    new Date().getFullYear()
+  );
+  function formatDateToLocalISOString(date) {
+    const offset = date.getTimezoneOffset();
+    const localDate = new Date(date.getTime() - (offset * 60 * 1000));
+    return localDate.toISOString().split('T')[0] + 'T00:00:00.000Z';
+  }
 
+const startDateString = formatDateToLocalISOString(startDate);
+const endDateString = formatDateToLocalISOString(endDate);
   // const userTasks = await taskModel.find({resourceName: resourceName});
-  const incompleteTasks = await taskModel.find({resourceName: resourceName});
+  const incompleteTasks = await taskModel.find({
+    $and: [
+      {
+        $or: [
+          { start: { $gte: startDateString, $lte: endDateString } }, // starts within current week
+          { Finish: { $gte: startDateString, $lte: endDateString } },  //Finishes within current week
+          {
+            $and: [
+              { start: { $lt: startDateString } },
+              { Finish: { $gt: endDateString } }
+            ]  // such task start before current week and will finish after current week.
+          },
+          {       $and: [{Finish: { $lt: startDateString }, taskCompletePercent: {$lt: 100}}]         }  // Task has finish date in past week but its still incomplete
+        ]
+      },
+      { resourceName: resourceName }
+    ]  
+  });
 
   // console.log('userTasks length is: ', userTasks.length);
   //  const incompleteTasks = userTasks.filter((task) => {
@@ -1049,8 +1105,6 @@ router.post("/profile", async (req, res) => {
     } catch (error) {
       console.log(error.message);
     }
-
-
     
   } catch (error) {
     console.log(error.message);
@@ -1078,15 +1132,15 @@ const activities = await taskModel.find({
   $and: [
     {
       $or: [
-        { start: { $gte: startDateString, $lte: endDateString } },
-        { Finish: { $gte: startDateString, $lte: endDateString } },
+        { start: { $gte: startDateString, $lte: endDateString } }, // starts within current week
+        { Finish: { $gte: startDateString, $lte: endDateString } },  //Finishes within current week
         {
           $and: [
             { start: { $lt: startDateString } },
             { Finish: { $gt: endDateString } }
-          ]
+          ]  // such task start before current week and will finish after current week.
         },
-        {          start: { $lt: startDateString }, taskCompletePercent: {$lt: 100}         }
+        {       $and: [{Finish: { $lt: startDateString }, taskCompletePercent: {$lt: 100}}]         }  // Task has finish date in past week but its still incomplete
       ]
     },
     { source: "PWA" }
@@ -1104,9 +1158,56 @@ const activities = await taskModel.find({
   console.log("length of activities is: ", activities.length);
   res.render('pwaactivities', {groupedActivities, startDate, endDate} );
 });
-//Save tasks from tasks api in the Master Tasklist
-//router.post('/addtasks', (req, res) =>{
-// });
+
+// route to render monthly plan for viewers
+router.get("/monthlyplan", async(req, res) => {
+  const { startDate, endDate } = getDateRangeForWeek(
+    getWeekNumber(new Date()),
+    new Date().getFullYear()
+  );
+  const {monthStart, monthEnd} = getDateRangeForMonth();
+
+  function formatDateToLocalISOString(date) {
+    const offset = date.getTimezoneOffset();
+    const localDate = new Date(date.getTime() - (offset * 60 * 1000));
+    return localDate.toISOString().split('T')[0] + 'T00:00:00.000Z';
+  }
+
+const startDateString = formatDateToLocalISOString(monthStart);
+const endDateString = formatDateToLocalISOString(monthEnd);
+
+console.log('startDateString is: ', startDateString);
+console.log("enddateStrin is:",endDateString );
+const activities = await taskModel.find({
+  $and: [
+    {
+      $or: [
+        { start: { $gte: startDateString, $lte: endDateString } }, // starts within current week
+        { Finish: { $gte: startDateString, $lte: endDateString } },  //Finishes within current week
+        {
+          $and: [
+            { start: { $lt: startDateString } },
+            { Finish: { $gt: endDateString } }
+          ]  // such task start before current week and will finish after current week.
+        },
+        {       $and: [{Finish: { $lt: startDateString }, taskCompletePercent: {$lt: 100}}]         }  // Task has finish date in past week but its still incomplete
+      ]
+    },
+    { source: "PWA" }
+  ]  
+}).sort({ start: 1 });  //returns activities with start/finish between current weekor activity that either starts or finish in current week.
+
+  // Group activities by typeofActivity
+  const groupedActivities = activities.reduce((acc, activity) => {
+    if (!acc[activity.typeofActivity]) {
+      acc[activity.typeofActivity] = [];
+    }
+    acc[activity.typeofActivity].push(activity);
+    return acc;
+  }, {});
+  console.log("length of activities is: ", activities.length);
+  res.render('monthlyplan', {groupedActivities, monthStart, monthEnd} );
+});
 // LOGOUT route  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 router.post("/logout", (req, res) => {
   req.session.destroy((err) => {
