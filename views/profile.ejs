@@ -12,33 +12,58 @@
   <link rel="stylesheet" href="/stylesheets/style.css">
 </head>
 <body>
-  <!-- script to show/hide tablediv if its empty. -->
+  <!-- script to show/hide tablediv if its empty and show/hide save and update btns. -->
   <script>
     document.addEventListener('DOMContentLoaded', () => {
         window.activities = <%- JSON.stringify(incompleteTasks) %>;
         let tablediv = document.querySelector('.tablediv');
         console.log(activities.length);
+
+        let totalwork = 0;
+        activities.forEach(act => {
+          totalwork += parseFloat(act.actualWork);
+        });
+        document.getElementById('totalWork').innerText = totalwork;
+
         if (activities.length === 0) {
             tablediv.classList.add('hidden');
         } else {
-            tablediv.classList.remove('hidden');
-            // Populate the table with activities
+            tablediv.classList.remove('hidden');            // Populate the table with activities
+            const saveBtns = document.querySelectorAll('.save-btn');
+            const updateBtns = document.querySelectorAll('.update-btn');
+            saveBtns.forEach(btn => {
+                const rowId = btn.getAttribute('data-id');                
+                const activity = activities.find(act => act._id === rowId);
+                if (activity) {
+                    if (activity.saved === 1) {
+                        btn.classList.add('hidden');
+                    } else {
+                      btn.classList.remove('hidden');
+
+                    }
+                }
+              });
+              updateBtns.forEach(btn => {
+                const rowId = btn.getAttribute('data-id');
+                const activity = activities.find(act => act._id === rowId);
+                if (activity) {
+                    if (activity.saved === 1) {
+                        btn.classList.remove('hidden');
+                    } else {
+                        btn.classList.add('hidden');
+                    }
+                }
+            });
         }
     });
 </script>
-<!-- Below script to trigger update modal -->
+<!-- Below script to trigger save modal -->
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    const updateButtons = document.querySelectorAll('.update-btn');
-    updateButtons.forEach(button => {
+    const saveButtons = document.querySelectorAll('.save-btn');
+    saveButtons.forEach(button => {
         const rowId = button.getAttribute('data-id');
         const row = document.getElementById(`row-${rowId}`);
-        const submitted = row.children[7].innerText;
-
-        // Disable the button if submitted is "Yes"
-        if (submitted === "Yes") {
-            button.disabled = true;
-        }
 
         button.addEventListener('click', function() {
             // Extract data from the row
@@ -50,8 +75,8 @@
             const actualFinish = row.children[5].innerText;
             const actualWork = row.children[6].innerText;
             const comment = row.children[9].innerText;
+            const completed = row.children[8].innerText;
 
-            console.log("value of submitted is: ", submitted);
             // Populate the form fields in the modal
             document.getElementById('projectName').value = projectName;
             document.getElementById('taskName').value = taskName;
@@ -61,15 +86,62 @@
             document.getElementById('actualFinish').value = actualFinish;
             document.getElementById('actualWork').value = actualWork;
             document.getElementById('comment').value = comment;
+            document.getElementById('status_sv').value = completed
             document.getElementById('activityId').value = rowId;
 
             // Show the modal if submitted is "No"
-            if (submitted === "No") {
+                const saveModal = new bootstrap.Modal(document.getElementById('saveModal'));
+                saveModal.show();            
+        });
+    });
+});
+</script>
+<!-- Below script to trigger update modal -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const updateButtons = document.querySelectorAll('.update-btn');
+    updateButtons.forEach(button => {
+        const rowId = button.getAttribute('data-id');
+        const row = document.getElementById(`row-${rowId}`);
+        // const submitted = row.children[8].innerText;
+
+        // Disable the button if submitted is "Yes"
+        // if (submitted === "0" || submitted === "1" ) {
+        //     button.disabled = false;
+        // } else {
+        //   button.disabled = true;
+        // }
+
+        button.addEventListener('click', function() {
+            // Extract data from the row
+            const projectName = row.children[0].innerText;
+            const taskName = row.children[1].innerText;
+            const scheduledStart = row.children[2].innerText;
+            const scheduledFinish = row.children[3].innerText;
+            // const actualStart = row.children[4].innerText;
+            // const actualFinish = row.children[5].innerText;
+            const actualWork = row.children[6].innerText;
+            const status = row.children[10].innerText;
+            const comment = row.children[9].innerText;
+
+            // console.log("value of submitted is: ", submitted);
+            // Populate the form fields in the modal
+            document.getElementById('projectName_uf').value = projectName;
+            document.getElementById('taskName_uf').value = taskName;
+            document.getElementById('scheduledStart_uf').value = scheduledStart;
+            document.getElementById('scheduledFinish_uf').value = scheduledFinish;
+            // document.getElementById('actualStart_uf').value = actualStart;
+            // document.getElementById('actualFinish_uf').value = actualFinish;
+            document.getElementById('workSoFar_uf').value = actualWork;
+            // document.getElementById('actualWork_uf').value = actualWork;
+            // document.getElementById('comment_uf').value = comment;
+            // document.getElementById('status_uf').value = status;
+            document.getElementById('activityId_uf').value = rowId;
+
+
                 const updateModal = new bootstrap.Modal(document.getElementById('updateModal'));
                 updateModal.show();
-            } else {
-                alert("You have already submitted this task updates. Pick another task or contact your Manager to reassign that task to make any changes to it.");
-            }
+            
         });
     });
 });
@@ -78,8 +150,8 @@
 <!-- below script  to show/hide my team btn  and admin console btn. -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  const adminBtn = document.getElementById('adminBtn'); 
-  const myTeamBtn = document.getElementById('myTeamBtn');
+  const adminBtn = document.getElementById('adminBtn').parentElement; 
+  const myTeamBtn = document.getElementById('myTeamBtn').parentElement;
   const role = "<%= resourceDetails.resourceRole %>";
   if (role === "Manager") {      
       myTeamBtn.classList.remove('hidden');
@@ -105,9 +177,13 @@ document.addEventListener('DOMContentLoaded', function() {
   <form style="display: inline-block; margin-right: 3rem;" action="/logout" method="POST">
     <button type="submit" class="rounded">Logout</button>
   </form>
-  <a class="me-3" href="/">Home</a> 
-  <a class="me-3" id="adminBtn" href="/admin">Admin Console</a>
-  <a class="me-3" id="myTeamBtn" href="/manager">My Team</a>
+  <button><a class="me-3" href="/">Home</a></button> 
+  <button><a class="me-3" id="adminBtn" href="/admin">Admin Console</a></button>
+  <button><a class="me-3" id="myTeamBtn" href="/manager">My Team</a></button>
+  <details class="me-3">
+    <summary>HOW it works?</summary>
+    <p>Save a tasks that you have worked on, through this week. In the end of week you can click 'Submit' to send all the saved items to manager for approval. </p>
+  </details>
 </div>
 <div class="d-flex flex-wrap justify-content-around mb-4">
   <h3 style=" margin-top: 3rem;"><strong>EMail</strong>: <%= resourceDetails.resourceEmail %></h3>
@@ -122,10 +198,10 @@ document.addEventListener('DOMContentLoaded', function() {
       
       <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close">
           
-  </div>
-  
+  </div>  
 <% } %>
 
+<h3 style="text-align: center;">My Tasks this week</h3>
 
 <div class="tablediv mb-50 m-2 ">
     <table class="table-striped full-width bg-white border border-gray-300" >
@@ -159,9 +235,13 @@ document.addEventListener('DOMContentLoaded', function() {
             <td class="border border-gray-300 px-1 py-1 "><%= (activity.taskCompletePercent < 100) ? "No" : "Yes" %></td>
             <td class="border border-gray-300 px-1 py-1 "><%= activity.userComment %></td>
             <td class="border border-gray-300 px-1 py-1 "><%= activity.approvalStatus %></td>
-            <td class="text-center px-2"><button class="btn btn-primary update-btn border border-gray-300" data-id="<%= activity._id %>">Update</button></td>
+            <td class="text-center px-2"><button class="btn btn-primary update-btn border border-gray-300" data-id="<%= activity._id %>">Update</button><button class="btn btn-primary save-btn border border-gray-300 hidden" data-id="<%= activity._id %>">Save</button></td>
           </tr>
         <% }); %>
+        <tr>
+          <td colspan="6" class="border border-gray-300 px-1 py-1 "> Total work hours: <span id="totalWork"></span></td>
+          <td colspan="6" class="border border-gray-300 px-1 py-1 "><button class="btn btn-primary" id="submitToManager">Submit To Manager</button></td>
+        </tr>
       </tbody>
     </table>
 </div>
@@ -191,16 +271,16 @@ document.addEventListener('DOMContentLoaded', function() {
   </div>
 </div> -->
 
-<!-- Update task modal form -->
-<div class="modal fade" id="updateModal" tabindex="-1" aria-labelledby="updateModalLabel" aria-hidden="true">
+<!-- save task modal form -->
+<div class="modal fade" id="saveModal" tabindex="-1" aria-labelledby="saveModalLabel" aria-hidden="true">
   <div class="modal-dialog">
       <div class="modal-content">
           <div class="modal-header">
-              <h5 class="modal-title" id="updateModalLabel">Fill TimeSheet for Task</h5>
+              <h5 class="modal-title" id="saveModalLabel">Fill TimeSheet for Task</h5>
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
-              <form id="updateForm" action="/updatetask" method="post">
+              <form id="saveForm" action="/savetask" method="post">
                   <div class="mb-3">
                       <label for="projectName" class="form-label">Project Name</label>
                       <input type="text" class="form-control" id="projectName" name="projectName" readonly>
@@ -230,28 +310,36 @@ document.addEventListener('DOMContentLoaded', function() {
                       <input type="number" class="form-control" id="actualWork" name="actualWork">
                   </div>
                   <div class="mb-3">
+                    <label for="status_sv" class="form-label">Is the task Completed?</label>
+                    <select id="status_sv" class="form-select my-2" name="completed" aria-label="Default select example" required>  
+                      <option selected>Pick an option.</option>                    
+                      <option value="0">No, Needs more work.</option>
+                      <option value="100">Yes, Mark as completed.</option>
+                    </select>
+                </div>
+                  <div class="mb-3">
                       <label for="comment" class="form-label">Comment</label>
                       <input type="text" class="form-control" id="comment" name="comment">
                   </div>
                   <input type="hidden" id="activityId" name="activityId">
                   <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                  <button type="submit" class="btn btn-primary" id="submitUpdate">Submit Task Completion</button>
+                  <button type="submit" class="btn btn-primary" id="submitSave">Save Task</button>
               </form>
           </div>
           <div class="modal-footer">
-              <p> Caution! Once submitted, you cannot make any changes to this Task.</p>
+              <!-- <p> Caution! Once submitted, you cannot make any changes to this Task.</p> -->
           </div>
       </div>
   </div>
 </div>
 
 <!-- Button trigger NEW Task modal -->
- <p class="ms-5">Don't see the task you want to update, add a new one!</p>
+ <p class="ms-5">Don't see the task you want to save, add a new one!</p>
 <button type="button" class="btn btn-primary ms-5" data-bs-toggle="modal" data-bs-target="#staticBackdrop">
   Add NEW Task
 </button>
 
-<!-- Modal FOR NEW MANUAL TASK-->
+<!-- Modal FOR NEW TASK-->
 <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -280,23 +368,92 @@ document.addEventListener('DOMContentLoaded', function() {
           <input type="date" name="actualFinish" required> <br>
           <label for="" class="form-label">Work (in Hours)</label>
           <input type="number" name="actualWork" required>
+          <label for="status_nt" class="form-label">Is the task Completed?</label>
+          <select id="status_nt" class="form-select my-2" name="completed" aria-label="Default select example" required>
+            <option selected>Pick an option.</option>
+            <option value="0">No, Needs more work.</option>
+            <option value="100">Yes, Mark as completed.</option>
+          </select>
           <div class="mb-3">
             <label for="" class="form-label">userComment</label>
             <textarea class="form-control" name="userComment" id="" rows="3" placeholder="Your comments please."></textarea>
           </div>
-          <p> Alert! Once submitted, you cannot make any changes.</p>
+          <!-- <p> Alert! Once submitted, you cannot make any changes.</p> -->
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
           <button type="submit" class="btn btn-primary" id="addTaskBtn" >Submit</button>
         </Form>
       </div>
-      <!-- <div class="modal-footer">
-        <p> Alert! Once submitted, you cannot make any changes.</p>
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-        <button type="button" class="btn btn-primary">Submit</button>
-      </div> -->
     </div>
   </div>
 </div>
+
+ <!-- Update task modal form -->
+<div class="modal fade" id="updateModal" tabindex="-1" aria-labelledby="updateModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+      <div class="modal-content">
+          <div class="modal-header">
+              <h5 class="modal-title" id="updateModalLabel">Update TimeSheet</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+              <form id="updateForm" action="/updatetask" method="post">
+                
+                  <div class="mb-3">
+                      <label for="projectName_uf" class="form-label">Project Name</label>
+                      <input type="text" class="form-control" id="projectName_uf" name="projectName" readonly>
+                  </div>
+                  <div class="mb-3">
+                      <label for="taskName_uf" class="form-label">Task Name</label>
+                      <input type="text" class="form-control" id="taskName_uf" name="taskName" readonly>
+                  </div>
+                  <div class="mb-3">
+                      <label for="scheduledStart_uf" class="form-label">Scheduled Start</label>
+                      <input type="text" class="form-control" id="scheduledStart_uf" name="scheduledStart" readonly>
+                  </div>
+                  <div class="mb-3">
+                      <label for="scheduledFinish_uf" class="form-label">Scheduled Finish</label>
+                      <input type="text" class="form-control" id="scheduledFinish_uf" name="scheduledFinish" readonly>
+                  </div>
+                  <!-- <div class="mb-3">
+                      <label for="actualStart_uf" class="form-label">Actual Start</label>
+                      <input type="text" class="form-control" id="actualStart_uf" name="actualStart">
+                  </div>
+                  <div class="mb-3">
+                      <label for="actualFinish_uf" class="form-label">Actual Finish</label>
+                      <input type="text" class="form-control" id="actualFinish_uf" name="actualFinish">
+                  </div> -->
+                  <div class="mb-3">
+                    <label for="workSoFar_uf" class="form-label">Work done so far</label>
+                    <input type="number" class="form-control" id="workSoFar_uf" name="workSoFar" readonly>
+                </div>
+                  <div class="mb-3">
+                      <label for="actualWork_uf" class="form-label">Add Work Hours for this update</label>
+                      <input type="number" value="0" class="form-control" id="actualWork_uf" name="actualWork" >
+                  </div>
+                  <div class="mb-3">
+                      <label for="comment_uf" class="form-label">Comment</label>
+                      <input type="text" class="form-control" id="comment_uf" name="comment" placeholder="Enter a new comment for this update.">
+                  </div>
+                  <div class="mb-3">
+                    <label for="status_uf" class="form-label">Is the task Completed?</label>
+                    <select id="status_uf" class="form-select my-2" name="completed" aria-label="Default select example" required>   
+                      <option selected>Pick an option.</option>                   
+                      <option value="0">No, Needs more work.</option>
+                      <option value="100">Yes, Mark as completed.</option>
+                    </select>
+                </div>
+                  <input type="hidden" id="activityId_uf" name="activityId">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                  <button type="submit" class="btn btn-primary" id="submitUpdate">Update Task</button>
+              </form>
+          </div>
+          <div class="modal-footer">
+              <!-- <p> Caution! Once submitted, you cannot make any changes to this Task.</p> -->
+          </div>
+      </div>
+  </div>
+</div>
+
 <div class="footer" >
   <h4 class="footext">That was all!  </h4>
   <!-- <p style=" text-align: center; position: relative; bottom: 1px;">Copyright © 2024  <a href="https://chrysalis.in" style="text-decoration: none;">Chrysalis HRD</a></p> -->
@@ -304,6 +461,30 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
   <!-- <pre><%= JSON.stringify(incompleteTasks, null, 2) %></pre> -->
+
+  <!-- below script to submit all the tasks on /profile and make submitted = 1 -->
+  <script>
+    document.getElementById('submitToManager').addEventListener('click', function() {
+      fetch('/submitToManager', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ submitted: 1 })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          alert('All tasks submitted successfully!');
+          // Optionally, update the UI to reflect the changes
+        } else {
+          alert('Failed to submit tasks. Refresh the page and try again.');
+        }
+      })
+      .catch(error => console.error('Error:', error));
+    });
+  </script>
+  
    <!-- below script for NEW task form validation -->
   <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -315,6 +496,7 @@ document.addEventListener('DOMContentLoaded', function() {
             event.preventDefault();
     
             // Get form fields
+            const completed = form.querySelector('select[name="completed"]');
             const taskName = form.querySelector('select[name="taskName"]');
             const actualStart = form.querySelector('input[name="actualStart"]');
             const actualFinish = form.querySelector('input[name="actualFinish"]');
@@ -324,7 +506,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (taskName.value === "Pick a task from the list.") {
                 alert('Please select a valid task.');
                 return;
-            }
+            }                     
     
             // Validate the date fields
             if (!actualStart.value) {
@@ -336,12 +518,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert('Please enter a finish date.');
                 return;
             }
-    
+            
+            // validate actual finish date is greater than or equal to actualStart date
+            if(actualFinish.value < actualStart.value){
+              alert('Task cannot finish before start.')
+              return;
+            }
+
             // Validate the actualWork field
             if (!actualWork.value) {
                 alert('Please enter the work hours.');
                 return;
             }
+            if (actualStart.value == actualFinish.value && parseFloat(actualWork.value) > 9) {
+                  alert('Workaholic! Work hours cannot be more than 9 in a day.');
+                  return;
+              }
+              
             // Additional validation for "Break" task
           if (taskName.value === "Break") {
             if (actualStart.value !== actualFinish.value) {
@@ -353,22 +546,29 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
           }
+          // validate completed status of the task
+          if (completed.value === "Pick an option.") {
+                alert('Please select a valid option for task completion.');
+                return;
+            }
     
             // If all validations pass, submit the form
             form.submit();
         });
       });
     </script>
+    <!-- below script to validate save validation -->
     <script>
       document.addEventListener('DOMContentLoaded', function() {
-          const form = document.querySelector('#updateForm');
-          const submitButton = document.querySelector('#submitUpdate');
+          const form = document.querySelector('#saveForm');
+          const submitButton = document.querySelector('#submitSave');
       
           submitButton.addEventListener('click', function(event) {
               // Prevent the form from submitting
               event.preventDefault();
       
-              // Get form fields              
+              // Get form fields     
+              const completed = form.querySelector('select{name="completed"}');        
               const actualStart = form.querySelector('input[name="actualStart"]');
               const actualFinish = form.querySelector('input[name="actualFinish"]');
               const actualWork = form.querySelector('input[name="actualWork"]');      
@@ -396,16 +596,55 @@ document.addEventListener('DOMContentLoaded', function() {
               }
               // Additional validation for "Break" task
             
-              if (actualStart.value == actualFinish.value && parseFloat(actualWork.value) > 9) {
-                  alert('Workaholic! Work hours cannot be more than 9 in a day.');
+              if (actualStart.value == actualFinish.value && parseFloat(actualWork.value) > 8) {
+                  alert('Workaholic! Work hours cannot be more than 8 in a day.');
                   return;
               }
+              if (completed.value === "Pick an option.") {
+                alert('Please select a valid option for task completion.');
+                return;
+            }
               
               // If all validations pass, submit the form
               form.submit();
           });
         });
       </script>
-    
+    <!-- below script to validate update form submissions -->
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+          const form = document.querySelector('#updateForm');
+          const UpdateButton = document.querySelector('#submitUpdate');
+      
+          UpdateButton.addEventListener('click', function(event) {
+              // Prevent the form from submitting
+              event.preventDefault();
+      
+              // Get form fields
+              const completed = form.querySelector('select[name="completed"]');
+              const actualWork = form.querySelector('input[name="actualWork"]');
+              const comment = form.querySelector('input[name="comment"]');
+
+            //validation for task to be less than 9 hours
+            if(actualWork >8){
+              alert('Task cannot have mor than 8 hours work in one update. If you have worked more than 8 hours, update again to add more hours of work to this task.');
+              return;
+            }
+            //validation for comment
+            if(!comment){
+              alert('Please enter a comment for this update to task progress.');
+              return;
+            }
+            // validate completed status of the task
+            if (completed.value === "Pick an option.") {
+                  alert('Please select a valid option for task completion.');
+                  return;
+              }
+      
+              // If all validations pass, submit the form
+              form.submit();
+          });
+        });
+      </script>
    <script src="/javascripts/bootstrap.bundle.min.js"></script>
 </body>

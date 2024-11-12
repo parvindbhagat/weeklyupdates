@@ -29,8 +29,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateTimer() {
         const nextSession = getNextSession(sessions);
         if (!nextSession) {
-            timerElement.textContent = '';
-            activityDetailsElement.textContent = '';
+            timerElement.innerText = '';
+            activityDetailsElement.innerText = '';
             return;
         }
 

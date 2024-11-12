@@ -53,6 +53,8 @@
     .activity-type-row {
       background-color: #e0e0e0;
       font-weight: bold;
+      position: sticky;
+      top: 2rem;
     }
     .activity-table {
       width: 100%;
@@ -62,7 +64,18 @@
       border: 1px solid #ddd;
       padding: 8px;
     }
-    
+    #topButton {
+            position: fixed;
+            bottom: 20px;
+            right: 30px;
+            display: none;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
   </style>
 </head>
 <body>
@@ -134,5 +147,25 @@
           <button onclick="location.href='/'" style="border-radius: 5px; font-size: 1.2rem;">Home</button>
         </div>
       </div>
+      <button id="topButton" onclick="scrollToTop()">TOP</button>
+
+      <script>
+          // Show the button when the user scrolls down 20px from the top of the document
+          window.onscroll = function() {scrollFunction()};
+  
+          function scrollFunction() {
+              if (document.body.scrollTop > 50 || document.documentElement.scrollTop > 50) {
+                  document.getElementById("topButton").style.display = "block";
+              } else {
+                  document.getElementById("topButton").style.display = "none";
+              }
+          }
+  
+          // Scroll to the top of the document
+          function scrollToTop() {
+              document.body.scrollTop = 0;
+              document.documentElement.scrollTop = 0;
+          }
+      </script>
 </body>
 </html>

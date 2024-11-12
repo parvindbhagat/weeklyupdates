@@ -52,9 +52,9 @@
                   <td class="border border-gray-300 px-2 py-2 "><%= ta.actualStart ? new Date(ta.actualStart).toLocaleDateString('en-in') : " " %></td>
                   <td class="border border-gray-300 px-2 py-2 "><%= ta.actualFinish ? new Date(ta.actualFinish).toLocaleDateString('en-in') : " " %></td>
                   <td class="border border-gray-300 px-2 py-2 "><%= ta.actualWork %></td>
-                  <td class="border border-gray-300 px-2 py-2 "><%= ta.userComments %></td>
-                  <td class="border border-gray-300 px-2 py-2 "><%= ta.status %></td>
-                  <td class="border border-gray-300 px-2 py-2 "><%= ta.taskCompletePercent === "100" ? "Yes" : "No" %></td>
+                  <td class="border border-gray-300 px-2 py-2 "><%= ta.userComment %></td>
+                  <td class="border border-gray-300 px-2 py-2 "><%= ta.approvalStatus %></td>
+                  <td class="border border-gray-300 px-2 py-2 "><%= ta.taskCompletePercent === 100 ? "Yes" : "No" %></td>
                   
                 </tr>
               <% }); %>

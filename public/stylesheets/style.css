@@ -19,6 +19,7 @@ html, body{
   display: none;
 }
 .navbar{
+  padding: 0;
   background-color:var(--primary-color);
   width: 100%;
   box-sizing: border-box;
@@ -104,4 +105,16 @@ th{
       display: block;
       overflow-x: auto;
   }
+}
+#topButton {
+  position: fixed;
+  bottom: 20px;
+  right: 30px;
+  display: none;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  cursor: pointer;
+  border-radius: 5px;
 }

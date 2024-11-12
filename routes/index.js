@@ -302,7 +302,7 @@ router.get("/auth", (req, res) => {
 //   }
 // });
 
-//updated router to distinguis different code and session for authentication to access  activity admin and escalation section.
+// router to distinguis different code and session for authentication to access  activity admin and escalation section.
 router.post("/auth", (req, res) => {
   const { code } = req.body;
   const validCodeA = process.env.VCA;
@@ -948,30 +948,49 @@ router.get("/profile", isAuthenticated, async (req, res) => {
   function formatDateToLocalISOString(date) {
     const offset = date.getTimezoneOffset();
     const localDate = new Date(date.getTime() - (offset * 60 * 1000));
-    return localDate.toISOString().split('T')[0] + 'T00:00:00.000Z';
+    return localDate.toISOString().split('T')[0] + 'T00:00:00';
   }
 
 const startDateString = formatDateToLocalISOString(startDate);
 const endDateString = formatDateToLocalISOString(endDate);
+
   // const userTasks = await taskModel.find({resourceName: resourceName});
   const incompleteTasks = await taskModel.find({
     $and: [
-      {
-        $or: [
-          { start: { $gte: startDateString, $lte: endDateString } }, // starts within current week
-          { Finish: { $gte: startDateString, $lte: endDateString } },  //Finishes within current week
-          {
-            $and: [
-              { start: { $lt: startDateString } },
-              { Finish: { $gt: endDateString } }
-            ]  // such task start before current week and will finish after current week.
-          },
-          {       $and: [{Finish: { $lt: startDateString }, taskCompletePercent: {$lt: 100}}]         }  // Task has finish date in past week but its still incomplete
-        ]
-      },
-      { resourceName: resourceName }
-    ]  
-  });
+        {
+            $or: [
+                { start: { $gte: startDateString, $lte: endDateString } }, // starts within current week
+                { Finish: { $gte: startDateString, $lte: endDateString } }, // finishes within current week
+                {
+                    $and: [
+                        { start: { $lt: startDateString } },
+                        { Finish: { $gt: endDateString } }
+                    ] // starts before current week and finishes after current week
+                },
+                {
+                    $and: [
+                        { Finish: { $lt: startDateString } },
+                        { taskCompletePercent: { $lt: 100 } }
+                    ] // finished before current week but still incomplete
+                },
+                {
+                    $and: [
+                        { start: { $gte: startDateString, $lte: endDateString } },
+                        { taskCompletePercent: { $eq: 100 } }
+                    ] // completed tasks that started within the week
+                },
+                {
+                    $and: [
+                        { Finish: { $gte: startDateString, $lte: endDateString } },
+                        { taskCompletePercent: { $eq: 100 } }
+                    ] // completed tasks that finished within the week
+                }
+            ]
+        },
+        { resourceName: resourceName }
+    ]
+}).sort({start: 1});
+
 
   // console.log('userTasks length is: ', userTasks.length);
   //  const incompleteTasks = userTasks.filter((task) => {
@@ -982,10 +1001,14 @@ const endDateString = formatDateToLocalISOString(endDate);
       msg = "New task added successfully.";
     } else if (req.query.msg === "failadd") {
       msg = "Failed to add new task. Please login and try again.";
+    } else if (req.query.msg === "failsave") {
+      msg = "Failed to save task data. Please try again.";
+    } else if (req.query.msg === "successsave") {
+      msg = "Task saved successfully.";
+    } else if (req.query.msg === "successupdate") {
+      msg = "Task updated successfully.";
     } else if (req.query.msg === "failupdate") {
       msg = "Failed to update task data. Please try again.";
-    } else if (req.query.msg === "successupdate") {
-      msg = "Task Updated successfully. Awaiting Manager Approval.";
     }
 
    res.render('profile', {user, incompleteTasks, resourceDetails, msg});  //  Actual data to be passed to view for usrs view.
@@ -1045,7 +1068,7 @@ const endDateString = formatDateToLocalISOString(endDate);
   }
 });
 
-// /profile method post to save user data and Manual Task Entries.  /////////////////////////////////////////////////////////////////////////////////////////////////
+// /profile method post to SAVE Manual Task Entries.  /////////////////////////////////////////////////////////////////////////////////////////////////
 router.post("/profile", async (req, res) => {
   try {
     if(!req.session.user) {
@@ -1058,19 +1081,22 @@ router.post("/profile", async (req, res) => {
     const resourceName = user.name
     const resource = await resourceModel.findOne({resourceName: resourceName });
     const resourceId = resource.resourceId;
-    const {projectName, taskName, actualStart, actualFinish, actualWork, userComment} = req.body;
+    const {projectName, taskName, actualStart, actualFinish, actualWork, userComment, completed} = req.body;
     const start = actualStart + "T00:00:00";
-    const Finish = actualFinish + "T00:00:00";
-    const completePercent = 100;
+   
+    let Finish = actualFinish + "T00:00:00";
+    if(completed === 100){
+       Finish = newDate();  
+    }
+    // const completePercent = 100;
     const source = "MTE";
     const LEAPApplicationSync = "No";
-    const submitted = 1;
-    approvalStatus = "Awaiting Approval";
+    const saved = 1;
+    approvalStatus = "Saved, Awaiting Submission";
     const clientName = "Chrysalis";
-    console.log(" start is: ", start);
-    console.log("type of actual start is: ", typeof start);
-    const task = new taskModel({
-      
+    const datedComment = "(" + new Date().toLocaleDateString('en-in') + ": " + actualWork + " Hrs)" + userComment;
+
+    const task = new taskModel({      
       projectName: projectName,      
       taskName: taskName,
       actualStart: start,
@@ -1078,12 +1104,12 @@ router.post("/profile", async (req, res) => {
       actualFinish: Finish,
       Finish: Finish,
       actualWork: actualWork,
-      taskCompletePercent: completePercent,
+      taskCompletePercent: completed,
       LeapSync: LEAPApplicationSync,
       source: source,
-      submitted: submitted,
+      saved: saved,
       approvalStatus: approvalStatus,
-      userComment: userComment,
+      userComment: datedComment,
       resourceName: resourceName,
       resourceId: resourceId,
       clientName: clientName,
@@ -1120,14 +1146,12 @@ router.get("/pwaactivities", async(req, res) => {
   function formatDateToLocalISOString(date) {
     const offset = date.getTimezoneOffset();
     const localDate = new Date(date.getTime() - (offset * 60 * 1000));
-    return localDate.toISOString().split('T')[0] + 'T00:00:00.000Z';
+    return localDate.toISOString().split('T')[0] + 'T00:00:00';
   }
 
 const startDateString = formatDateToLocalISOString(startDate);
 const endDateString = formatDateToLocalISOString(endDate);
 
-console.log('startDateString is: ', startDateString);
-console.log("enddateStrin is:",endDateString );
 const activities = await taskModel.find({
   $and: [
     {
@@ -1170,7 +1194,7 @@ router.get("/monthlyplan", async(req, res) => {
   function formatDateToLocalISOString(date) {
     const offset = date.getTimezoneOffset();
     const localDate = new Date(date.getTime() - (offset * 60 * 1000));
-    return localDate.toISOString().split('T')[0] + 'T00:00:00.000Z';
+    return localDate.toISOString().split('T')[0] + 'T00:00:00';
   }
 
 const startDateString = formatDateToLocalISOString(monthStart);
@@ -1469,6 +1493,7 @@ router.get("/refreshdatabase", async (req, res) => {
           existingTask.resourceName = task.ResourceName;
           existingTask.parentTaskName = task.ParentTaskName;
           existingTask.typeofActivity = task.TypeofActivity;
+          existingTask.taskIsActive = task.TaskIsActive
           await existingTask.save();
         } else {
           // Insert new task
@@ -1663,6 +1688,7 @@ router.get("/alltasks", isAdmin, async (req, res) => {
                 TypeofActivity,
                 TaskPercentWorkCompleted,
                 LEAPApplicationSync,
+                TaskIsActive
               } = taskData;
               
               const source = "PWA";
@@ -1679,6 +1705,7 @@ router.get("/alltasks", isAdmin, async (req, res) => {
                 taskCompletePercent: TaskPercentWorkCompleted,
                 LeapSync: LEAPApplicationSync,
                 source: source,
+                taskIsActive: TaskIsActive
               });
               // console.log(`The task data is: ${task} `);
               try {
@@ -1724,28 +1751,67 @@ router.get("/alltasks", isAdmin, async (req, res) => {
   }
 });
 
-
-router.post('/updatetask', async (req, res) => {
-  const { activityId, actualStart, actualFinish, actualWork, comment } = req.body;
-  
-  // Update the activity in the database
-  const update = await taskModel.findByIdAndUpdate(activityId, {
+// Save task in the database and then it can be updated or submitted to manager for approval
+router.post('/savetask', async (req, res) => {
+  let { activityId, actualStart, actualFinish, actualWork, comment, completed } = req.body;
+  const datedComment = "(" + new Date().toLocaleDateString('en-in') + ": " + actualWork + " Hrs)" + comment;
+  console.log('dated comment is: ', datedComment);
+  if(completed === 100){
+    actualFinish = new Date();
+  }
+  // save the activity in the database
+  const save = await taskModel.findByIdAndUpdate(activityId, {
       actualStart: actualStart + "T00:00:00",
       actualFinish: actualFinish + "T00:00:00",
       actualWork: actualWork,
-      userComment: comment,
-      submitted: 1,
-      taskCompletePercent: 100,
-      approvalStatus: "Awaiting Approval"
+      userComment: datedComment,
+      saved: 1,
+      taskCompletePercent: completed,
+      approvalStatus: "Saved, Awaiting Submission"
   });
-  if(!update){
-    console.log("Task data failed to update.");
-    res.redirect('/profile?msg=failupdate');
+  if(!save){
+    console.log("Task data failed to save.");
+    res.redirect('/profile?msg=failsave');
   } else{
-    console.log("Task data updated successfully");
-    res.redirect('/profile?msg=successupdate');
+    console.log("Task data saved successfully");
+    res.redirect('/profile?msg=successsave');
   }
 });
+
+//UPDATE saved tasks by member before submission. 
+router.post('/updatetask', async (req, res) => {
+  const {  actualWork, comment, completed, activityId } = req.body;
+  
+
+  const existingTask = await taskModel.findById(activityId);
+  const existingWorkDone = existingTask.actualWork;
+  const previousComment = existingTask.userComment || ""; // Get the existing comment or an empty string if none exists
+  let actualFinish = existingTask.actualFinish;
+  if(completed === 100){
+     actualFinish = newDate();
+  }
+  const datedComment = "(" + new Date().toLocaleDateString('en-in') + ": " + actualWork + " Hrs) " + comment; 
+  const newComment = previousComment + "; " + datedComment; // Concatenate the previous comment with the new dated comment
+
+  try {
+      const update = await taskModel.findByIdAndUpdate(activityId, {
+          actualFinish: actualFinish,
+          actualWork: Number(existingWorkDone) + Number(actualWork),
+          userComment: newComment,
+          taskCompletePercent: completed,
+      });
+      if(!update){
+        console.log("Failed to update Task data.");
+        res.redirect('/profile?msg=failupdate');
+      } else{
+        console.log("Task data updated successfully!");
+        res.redirect('/profile?msg=successupdate');
+      }     
+  } catch (error) {
+      console.log(error.message);
+  }
+});
+
 // Manager route to render tasks for all membes under a manager.
 router.get('/manager', async (req, res) => {
   try {
@@ -1754,18 +1820,45 @@ router.get('/manager', async (req, res) => {
   const teamMembers = await resourceModel.find({resourceManagerName : managerName});
   const tasksForAllMembers = await Promise.all(
     teamMembers.map(async (member) => {
-      const tasks = await taskModel.find({ resourceName: member.resourceName });
+      const tasks = await taskModel.find({ resourceName: member.resourceName, submitted: 1 });
       return tasks;
     })
   );
   
   const flattenedTasks = tasksForAllMembers.flat();
+  // Group tasks by member
+    const groupedMembers = flattenedTasks.reduce((acc, task) => {
+      if (!acc[task.resourceName]) {
+        acc[task.resourceName] = [];
+      }
+      acc[task.resourceName].push(task);
+      return acc;
+    }, {});
+    // console.log('Grouped Activities:', groupedMembers);
   let msg;
 
-  res.render('manager', {tasks: flattenedTasks, user, msg});
+  res.render('manager', {tasks: flattenedTasks, groupedMembers, user, msg});
     
   } catch (error) {
     console.log(error.message);
   }
 });
+
+// Submit to Manager route to submit user tasks to manager for approval////////////////////////////////////////////////////////////////////////////////////////////////
+router.post('/submitToManager', isAuthenticated, async (req, res) => {
+  try {
+    const user = req.session.user; // Assuming you have user authentication and can get the logged-in user's ID
+    const update = { submitted: 1,
+                    approvalStatus: "Submitted. Awaiting Approval"
+     };
+
+    // Update all objects for the logged-in user
+    const result = await taskModel.updateMany({ resourceName: user.name }, update);
+
+    res.json({ success: true, message: 'All items submitted successfully!' });
+  } catch (err) {
+    res.json({ success: false, message: 'Failed to submit items.' });
+  }
+});
+
 module.exports = router;

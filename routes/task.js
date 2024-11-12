@@ -9,6 +9,7 @@ const taskSchema = new mongoose.Schema({
     parentTaskName: {    type: String, },  
     taskCompletePercent: {type: Number,  },
     taskWork: {    type: Number,  },    
+    taskIsActive: { type: Boolean},
     start: {    type: String, },
     Finish: {    type: String,},
     typeofActivity: {   type: String, },
@@ -23,6 +24,7 @@ const taskSchema = new mongoose.Schema({
     userComment: {type: String },
     approvalStatus: {type: String },
     source:{type: String, default: "PWA"},
+    saved: {type: Number, default: 0 },
     submitted: {type: Number, default: 0}
   });
   const task = mongoose.model("task", taskSchema);
