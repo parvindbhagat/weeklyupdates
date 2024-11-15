@@ -54,7 +54,7 @@
       background-color: #e0e0e0;
       font-weight: bold;
       position: sticky;
-      top: 2rem;
+      top: 3rem;
     }
     .activity-table {
       width: 100%;
@@ -102,13 +102,13 @@
     <table class="activity-table">
         <thead>
           <tr>
-            <th class="table-header text-white">Activity</th>
-            <th class="table-header text-white">Start Date</th>
-            <th class="table-header text-white">End Date</th>
-            <th class="table-header text-white">Resource</th>
-            <th class="table-header text-white">Activity Type</th>
-            <th class="table-header text-white">Remarks</th>
-            <th class="table-header text-white">Status</th>
+            <th class="table-header text-white" onclick="sortGroupedTable(0)">Activity<i class="ri-arrow-up-down-fill float-end"></i></th>
+            <th class="table-header text-white" onclick="sortGroupedTable(1)">Start Date <i class="ri-arrow-up-down-fill "></i></th>
+            <th class="table-header text-white" onclick="sortGroupedTable(2)">End Date<i class="ri-arrow-up-down-fill "></i></th>
+            <th class="table-header text-white" onclick="sortGroupedTable(3)">Resource<i class="ri-arrow-up-down-fill float-end"></i></th>
+            <th class="table-header text-white" onclick="sortGroupedTable(4)">Activity Type<i class="ri-arrow-up-down-fill float-end"></i></th>
+            <th class="table-header text-white" onclick="sortGroupedTable(5)">Remarks<i class="ri-arrow-up-down-fill float-end"></i></th>
+            <th class="table-header text-white" onclick="sortGroupedTable(6)">Status<i class="ri-arrow-up-down-fill float-end"></i></th>
           </tr>
         </thead>
         <tbody>
@@ -136,8 +136,8 @@
     </div>
       <div class="footer" >
         <div class="footerleft">
-          <a href="/createactivity" style="text-decoration: none; display: block;"><i class="ri-admin-line"></i>Project Manager Login</a> 
-          <a href="/allactivities" style="text-decoration: none;"><i class="ri-timer-line"></i>Chrysalis Weekly Plan Archive</a>
+          <a href="/Admin" style="text-decoration: none; display: block;"><i class="ri-admin-line"></i>Admin Console</a> 
+          <a href="/profile" style="text-decoration: none;"><i class="ri-file-list-line"></i></i>My Weekly Tasks</a>
         </div>
         <div class="footercenter">
           <h4 style="text-align: center;">End Of Updates!</h4>
@@ -167,5 +167,45 @@
               document.documentElement.scrollTop = 0;
           }
       </script>
+<script>    
+      var sortDirections = {};
+
+function sortGroupedTable(columnIndex) {
+  var table = document.querySelector('.activity-table tbody');
+  var groups = Array.from(table.querySelectorAll('.activity-type-row'));
+
+  // Toggle sort direction
+  if (!sortDirections[columnIndex]) {
+    sortDirections[columnIndex] = 'asc';
+  } else {
+    sortDirections[columnIndex] = sortDirections[columnIndex] === 'asc' ? 'desc' : 'asc';
+  }
+
+  groups.forEach(function(group) {
+    var nextSibling = group.nextElementSibling;
+    var rows = [];
+
+    while (nextSibling && !nextSibling.classList.contains('activity-type-row')) {
+      rows.push(nextSibling);
+      nextSibling = nextSibling.nextElementSibling;
+    }
+
+    rows.sort(function(a, b) {
+      var cellA = a.cells[columnIndex].innerText.toLowerCase();
+      var cellB = b.cells[columnIndex].innerText.toLowerCase();
+      if (sortDirections[columnIndex] === 'asc') {
+        return cellA.localeCompare(cellB);
+      } else {
+        return cellB.localeCompare(cellA);
+      }
+    });
+
+    rows.forEach(function(row) {
+      table.insertBefore(row, nextSibling);
+    });
+  });
+}
+
+</script>
 </body>
 </html>

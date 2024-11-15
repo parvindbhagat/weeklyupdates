@@ -42,6 +42,11 @@ html, body{
   background-color: #FCB22B;
   color: #000;
 }
+
+.spanBtn{
+  border: #E95757;
+  border-radius: 0.5rem;
+}
 /* .footer{
   display: block;
   justify-content: center;

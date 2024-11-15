@@ -50,7 +50,7 @@ async function isAdmin(req, res, next) {
   }
 }
 
-//function to check if user is a MANAGER
+//function to check if user is a MANAGER also allow Admin role to go to this page
 async function isManager(req, res, next) {
   if (req.session && req.session.user) {
     console.log("User is logged in, checking user Role in resource model.");
@@ -60,8 +60,8 @@ async function isManager(req, res, next) {
       console.log("user not found in db. sending to /profile");
       res.redirect('/profile');
     } else{
-      if(resource.resourceRole === "Manager"){
-        console.log("logged in user is Manager and user is: ", user.name);
+      if(resource.resourceRole === "Manager" || resource.resourceRole === "Admin"){
+        console.log("logged in user Role is Manager/Admin and user Name is: ", user.name);
         return next();
       }else {
         res.redirect('/profile');
@@ -118,47 +118,33 @@ router.get("/", async (req, res) => {
 });
 
 //admin page
-router.get("/admin", isAdmin, (req, res) => {
+router.get("/admin", isAdmin, async (req, res) => {
   const user = req.session.user;
   console.log("logged in user to /admin page is: ", user.name);
-  res.render("admin");
+  const tasks = await taskModel.find();
+
+  // Process data to get the count of tasks per projectName and their completion status
+  const taskData = tasks.reduce((acc, task) => {
+    if (!acc[task.projectName]) {
+      acc[task.projectName] = { count: 0, complete: 0, incomplete: 0 };
+    }
+    acc[task.projectName].count += 1;
+    if (task.taskCompletePercent === 100) {
+      acc[task.projectName].complete += 1;
+    } else {
+      acc[task.projectName].incomplete += 1;
+    }
+    return acc;
+  }, {});
+
+  const projectNames = Object.keys(taskData);
+  const taskCounts = projectNames.map(name => taskData[name].count);
+  const taskCompleteCounts = projectNames.map(name => taskData[name].complete);
+  const taskIncompleteCounts = projectNames.map(name => taskData[name].incomplete);
+
+  res.render("admin", { projectNames, taskCounts, taskCompleteCounts, taskIncompleteCounts });
 });
 
-router.get("/activities", async (req, res) => {
-  try {
-    const { startDate, endDate } = getDateRangeForWeek(
-      getWeekNumber(new Date()),
-      new Date().getFullYear()
-    );
-    const activities = await activityModel
-      .find({
-        $or: [
-          {
-            weekNumber: getWeekNumber(new Date()),
-            year: new Date().getFullYear(),
-          },
-          { status: { $in: ["OnGoing", "On Hold", "Not Started"] } },
-        ],
-      })
-      .sort({ startDate: 1 });
-
-    // Group activities by activityType
-    const groupedActivities = activities.reduce((acc, activity) => {
-      if (!acc[activity.activityType]) {
-        acc[activity.activityType] = [];
-      }
-      acc[activity.activityType].push(activity);
-      return acc;
-    }, {});
-    // console.log('Grouped Activities:', groupedActivities)
-
-    res.render("activities", { groupedActivities, startDate, endDate });
-  } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error fetching activities", error: error.message });
-  }
-});
 
 // test automatic Escalations  route with server side logic to assign level of esc
 
@@ -1463,7 +1449,9 @@ router.get("/refreshdatabase", async (req, res) => {
   async function updateOrInsertTasks() {
     try {
       const { projects, tasks, resources } = await fetchDataFromAPIs();
-  
+
+      const newTaskIds = tasks.map(task => task.TaskId);
+      await taskModel.deleteMany({ taskId: { $nin: newTaskIds }, source: "PWA" }); //delete tasks from database that are deleted by PM
 
   
       for (const task of tasks) {
@@ -1813,7 +1801,7 @@ router.post('/updatetask', async (req, res) => {
 });
 
 // Manager route to render tasks for all membes under a manager.
-router.get('/manager', async (req, res) => {
+router.get('/manager', isManager, async (req, res) => {
   try {
   const user = req.session.user;
   const managerName = user.name;
@@ -1847,16 +1835,78 @@ router.get('/manager', async (req, res) => {
 // Submit to Manager route to submit user tasks to manager for approval////////////////////////////////////////////////////////////////////////////////////////////////
 router.post('/submitToManager', isAuthenticated, async (req, res) => {
   try {
-    const user = req.session.user; // Assuming you have user authentication and can get the logged-in user's ID
+    const user = req.session.user; //Athentication check and can get the logged-in user's ID
     const update = { submitted: 1,
                     approvalStatus: "Submitted. Awaiting Approval"
      };
 
     // Update all objects for the logged-in user
-    const result = await taskModel.updateMany({ resourceName: user.name }, update);
+    const result = await taskModel.updateMany({ resourceName: user.name, saved: 1, submitted: 0 }, update);
 
     res.json({ success: true, message: 'All items submitted successfully!' });
   } catch (err) {
+    res.json({ success: false, message: 'Failed to submit items.' });
+  }
+});
+
+
+router.post('/approve', async (req, res) => {
+  try {
+    const user = req.session.user;
+    let approved = 0;
+    let reassigned = 0;
+    const { resourceName } = req.body;
+    console.log("/approve is running. Resource name is: ", resourceName);
+
+    const tasks = await taskModel.find({ resourceName: resourceName, submitted: 1 });
+    console.log("Result of db find: ", tasks);
+
+    const updatePromises = tasks.map(async (task) => {
+      if (task.taskCompletePercent === 100) {
+        await taskModel.findByIdAndUpdate(task._id, { submitted: 2, approvalStatus: "Approved" });
+        console.log("Task approved: ", task.taskName);
+        approved += 1;
+      } else {
+        await taskModel.findByIdAndUpdate(task._id, { submitted: 0, approvalStatus: "Reassigned" });
+        console.log("Task reassigned: ", task.taskName);
+        reassigned += 1;
+      }
+    });
+
+    await Promise.all(updatePromises);
+
+    const result = await resourceModel.findOneAndUpdate({resourceName: resourceName}, {managerComment: ""});
+    console.log("Number of tasks approved: ", approved);
+    console.log("Number of tasks reassigned: ", reassigned);
+
+    res.json({ success: true, message: `Tasks processed. Approved: ${approved}, Reassigned: ${reassigned}` });
+  } catch (err) {
+    console.error("Error in /approve route: ", err);
+    res.json({ success: false, message: 'Failed to submit items.' });
+  }
+});
+// Route to handle Reassign tasks from Manager to make all tasks where saved =1 and submitted= 1 to submitted = 0 and save comment in resourceModel
+router.post('/reassign', async (req, res) => {
+  try {
+    const {resourceName, comment} = req.body;
+    console.log('req body resource name is: ', resourceName);
+    console.log('req body comment is: ', comment);
+    const tasks = await taskModel.find({resourceName: resourceName, submitted: 1});
+    console.log("Result of db find: ", tasks);
+    if (tasks.length > 0) {
+      // Update all matching tasks
+      await taskModel.updateMany(
+        { resourceName: resourceName, submitted: 1 },
+        { $set: { submitted: 0, approvalStatus: "Reassigned" } }
+      );
+      console.log(`${tasks.length} tasks reassigned.`);
+    }
+    const result = await resourceModel.findOneAndUpdate({resourceName: resourceName}, {managerComment: comment});
+
+    res.json({ success: true, message: `Tasks processed.` });
+    
+  } catch (err) {
+    console.error("Error in /approve route: ", err);
     res.json({ success: false, message: 'Failed to submit items.' });
   }
 });

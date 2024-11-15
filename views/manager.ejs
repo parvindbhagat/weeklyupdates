@@ -30,12 +30,14 @@
     document.addEventListener('DOMContentLoaded', () => {
         window.activities = <%- JSON.stringify(tasks) %>;
         let tablediv = document.querySelector('.tablediv');
+        const nothing = document.querySelector('.nothingToShow');
         console.log(activities.length);
         if (activities.length === 0) {
             tablediv.classList.add('hidden');
+            nothing.classList.remove('hidden')
         } else {
-            tablediv.classList.remove('hidden');
-            // Populate the table with activities
+            tablediv.classList.remove('hidden');            // Populate the table with activities
+            nothing.classList.add('hidden');
         }
     });
 </script>
@@ -62,6 +64,10 @@
           
   </div>  
 <% } %>
+
+<div class="nothingToShow hidden">
+  <h3 style="text-align: center;">Nothing to Show! No task submitted by members of your team this week. Check back later.</h3>
+</div>
 
 <div class="tablediv mb-50 m-2 ">
   <!-- <div class="ms-3 my-3">
@@ -103,7 +109,7 @@
           </tr>
           <% let totalWork = 0; %>
           <% groupedMembers[resourceName].forEach(activity => { %>
-          <tr class="tableData" id="row-<%= activity._id %>">
+          <tr class="tableData" id="<%= activity._id %>">
             <td class="border border-gray-300 px-1 py-1 "><%= activity.projectName %></td>
             <td class="border border-gray-300 px-1 py-1 "><%= activity.taskName %></td>
             <td class="border border-gray-300 px-1 py-1 "><%= new Date(activity.start).toLocaleDateString('en-in') %></td>
@@ -121,82 +127,38 @@
         <% }); %>
         <tr style="background-color: #0dbeb0 ; font-weight: bold; color: white;" class="resource-name-row">
           <td colspan="8"> Total work by <%= resourceName %>: <%= totalWork %> Hrs.          </td>
-          <td colspan="1"><button class="btn btn-primary approve-btn border border-gray-300" data-id="<%= resourceName %>" data-bs-toggle="tooltip" data-bs-placement="top" title="Approve all task entries and work done and Reassign Incomplete tasks.">Approve All</button></td>
-          <td colspan="1"><button class="btn btn-primary reassign-btn border border-gray-300" data-id="<%= resourceName %>" data-bs-toggle="tooltip" data-bs-placement="top" title="Reassign all tasks to the member to make changes as per your Comment.">Reassign</button></td>
-          
+          <td colspan="1"><button id="approveBtn" class="btn btn-primary approve-btn border border-gray-300" data-id="<%= resourceName %>" data-bs-toggle="tooltip" data-bs-placement="top" title="Approve all task entries and work done and Reassign Incomplete tasks.">Approve All</button></td>
+          <td colspan="1"><button type="button" class="btn btn-primary reassign-all-btn" data-bs-toggle="modal" data-id="<%= resourceName %>" data-bs-target="#reassignModal"  data-bs-toggle="tooltip" data-bs-placement="top" title="Reassign all tasks to the member to make changes as per your Comment.">
+            Reassign All
+          </button></td>          
         </tr>
         <tr>
-          <td colspan="10" style="color: white;">.  </td>
-          
+          <td colspan="10" style="color: white;">.  </td>          
         </tr>
         <% }); %>
       </tbody>
     </table>
 </div>
 
-<!-- Update task modal form -->
-<div class="modal fade" id="updateModal" tabindex="-1" aria-labelledby="updateModalLabel" aria-hidden="true">
+<!--Reassign Modal -->
+<div class="modal fade" id="reassignModal" tabindex="-1" aria-labelledby="reassignModalLabel" aria-hidden="true">
   <div class="modal-dialog">
-      <div class="modal-content">
-          <div class="modal-header">
-              <h5 class="modal-title" id="updateModalLabel">Fill TimeSheet for Task</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-              <form id="updateForm" action="/updatetask" method="post">
-                <div class="mb-3">
-                  <label for="resourceName" class="form-label">Resource Name</label>
-                  <input type="text" class="form-control" id="resourceName" name="resourceName" readonly>
-                </div>
-                  <div class="mb-3">
-                      <label for="projectName" class="form-label">Project Name</label>
-                      <input type="text" class="form-control" id="projectName" name="projectName" readonly>
-                  </div>
-                  <div class="mb-3">
-                      <label for="taskName" class="form-label">Task Name</label>
-                      <input type="text" class="form-control" id="taskName" name="taskName" readonly>
-                  </div>
-                  <div class="mb-3">
-                      <label for="scheduledStart" class="form-label">Scheduled Start</label>
-                      <input type="text" class="form-control" id="scheduledStart" name="scheduledStart" readonly>
-                  </div>
-                  <div class="mb-3">
-                      <label for="scheduledFinish" class="form-label">Scheduled Finish</label>
-                      <input type="text" class="form-control" id="scheduledFinish" name="scheduledFinish" readonly>
-                  </div>
-                  <div class="mb-3">
-                      <label for="actualStart" class="form-label">Actual Start</label>
-                      <input type="text" class="form-control" id="actualStart" name="actualStart">
-                  </div>
-                  <div class="mb-3">
-                      <label for="actualFinish" class="form-label">Actual Finish</label>
-                      <input type="text" class="form-control" id="actualFinish" name="actualFinish">
-                  </div>
-                  <div class="mb-3">
-                      <label for="actualWork" class="form-label">Actual Work</label>
-                      <input type="text" class="form-control" id="actualWork" name="actualWork">
-                  </div>
-                  <div class="mb-3">
-                      <label for="comment" class="form-label">Comment</label>
-                      <input type="text" class="form-control" id="comment" name="comment">
-                  </div>
-                  <div class="mb-3">
-                    <label for="status" class="form-label">Status update</label>                    
-                    <select id="status" name="status" class="form-select form-control my-2" aria-label="Default select " required>
-                      <option selected>Awaiting Approval</option>
-                      <option value="Approved">Approve</option>
-                      <option value="Reassign">Reassign</option>                      
-                    </select>
-                </div>
-                  <input type="hidden" id="activityId" name="activityId">
-                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                  <button type="submit" class="btn btn-primary" id="submitUpdate">Submit Task Completion</button>
-              </form>
-          </div>
-          <div class="modal-footer">
-              <p> Caution! Once submitted, you cannot make any changes to this Task.</p>
-          </div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="reassignModalLabel">Reassign all tasks for <span id="modalResourceName"></span>.</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
+      <div class="modal-body">
+        <form id="reassignForm">
+          <p>Please enter a comment specifying reason for reassignment.</p>
+          <div class="form-group">
+            <label for="comment">Comment</label>
+            <textarea class="form-control mb-3" id="comment" rows="3" required></textarea>
+          </div>
+          <button type="submit" id="reassignBtn" data-dismiss="modal" aria-label="Close" class="btn btn-primary reassign-btn close">Reassign</button>
+        </form>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -217,7 +179,6 @@
                 document.getElementById("topButton").style.display = "none";
             }
         }
-
         // Scroll to the top of the document
         function scrollToTop() {
             document.body.scrollTop = 0;
@@ -225,6 +186,122 @@
         }
     </script>
   <!-- <pre><%= JSON.stringify(tasks, null, 2) %></pre> -->   
+<!-- below script to approve all the completed tasks on for a member and make submitted = 2 for completed task and 0 for incomplete task -->
+<script>
+  document.querySelectorAll('.approve-btn').forEach(button => {
+  button.addEventListener('click', function() {
+    const resourceName = button.getAttribute('data-id');
+    console.log("resource name fetched for this user approve btn click is: ", resourceName);
+    fetch('/approve', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ resourceName: resourceName })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        // Optionally update the DOM or refresh the page
+        window.location.reload();
+        // alert('approve success');
+      } else {
+        console.error('Failed to process tasks:', data.message);
+      }
+    })
+    .catch(error => console.error('Error:', error));
+  });
+});
+</script>
 
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+  // Initialize tooltips
+  var tooltipElements = document.querySelectorAll('[data-toggle="tooltip"]');
+  tooltipElements.forEach(function(elem) {
+    new bootstrap.Tooltip(elem);
+  });
+
+  // When the modal is about to be shown
+  var reassignModal = document.getElementById('reassignModal');
+  reassignModal.addEventListener('show.bs.modal', function(event) {
+    var button = event.relatedTarget; // Button that triggered the modal
+    var resourceName = button.getAttribute('data-id'); // Extract info from data-* attributes
+    var modalTitle = reassignModal.querySelector('.modal-title #modalResourceName');
+    var reassignForm = reassignModal.querySelector('.modal-body #reassignForm');
+
+    modalTitle.textContent = resourceName; // Update the modal's title
+    reassignForm.dataset.resourceName = resourceName; // Store resourceName in form data
+  });
+
+  // Handle form submission
+  var reassignForm = document.getElementById('reassignForm');
+  reassignForm.addEventListener('submit', function(event) {
+    event.preventDefault();
+    var resourceName = reassignForm.dataset.resourceName;
+    var comment = document.getElementById('comment').value;
+
+    fetch('/reassign', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ resourceName: resourceName, comment: comment })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        // Optionally update the DOM or refresh the page
+        window.location.reload();
+      } else {
+        console.error('Failed to reassign tasks:', data.message);
+      }
+    })
+    .catch(error => console.error('Error:', error));
+  });
+});
+
+</script>
+<!-- <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script> -->
+<!-- script for reassign tasks -->
+<!-- <script>
+$(document).ready(function(){
+  $('[data-toggle="tooltip"]').tooltip();
+
+  // When the modal is about to be shown
+  $('#reassignModal').on('show.bs.modal', function (event) {
+    var button = $(event.relatedTarget); // Button that triggered the modal
+    var resourceName = button.data('id'); // Extract info from data-* attributes
+    var modal = $(this);
+    modal.find('.modal-title #modalResourceName').text(resourceName); // Update the modal's title
+    modal.find('.modal-body #reassignForm').data('resourceName', resourceName); // Store resourceName in form data
+  });
+
+  // Handle form submission
+  $('#reassignForm').on('submit', function(event) {
+    event.preventDefault();
+    var resourceName = $(this).data('resourceName');
+    var comment = $('#comment').val();
+
+    fetch('/reassign', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ resourceName: resourceName, comment: comment })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        // Optionally update the DOM or refresh the page
+        window.location.reload();
+      } else {
+        console.error('Failed to reassign tasks:', data.message);
+      }
+    })
+    .catch(error => console.error('Error:', error));
+  });
+});
+</script> -->
    <script src="/javascripts/bootstrap.bundle.min.js"></script>
 </body>

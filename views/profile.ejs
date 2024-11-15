@@ -17,6 +17,7 @@
     document.addEventListener('DOMContentLoaded', () => {
         window.activities = <%- JSON.stringify(incompleteTasks) %>;
         let tablediv = document.querySelector('.tablediv');
+        const nothing = document.querySelector('.nothingToShow');
         console.log(activities.length);
 
         let totalwork = 0;
@@ -27,7 +28,9 @@
 
         if (activities.length === 0) {
             tablediv.classList.add('hidden');
+            nothing.classList.remove('hidden');
         } else {
+            nothing.classList.add('hidden');
             tablediv.classList.remove('hidden');            // Populate the table with activities
             const saveBtns = document.querySelectorAll('.save-btn');
             const updateBtns = document.querySelectorAll('.update-btn');
@@ -39,7 +42,6 @@
                         btn.classList.add('hidden');
                     } else {
                       btn.classList.remove('hidden');
-
                     }
                 }
               });
@@ -52,6 +54,10 @@
                     } else {
                         btn.classList.add('hidden');
                     }
+
+                  if(activity.submitted === 2){
+                    btn.disabled = true;
+                  }
                 }
             });
         }
@@ -162,6 +168,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   if (role === "Admin") {
     adminBtn.classList.remove('hidden');
+    myTeamBtn.classList.remove('hidden');
   } else{
     adminBtn.classList.add('hidden');
   }
@@ -173,20 +180,33 @@ document.addEventListener('DOMContentLoaded', function() {
   </a>
 </nav>
 <h1 style=" margin-right: 3rem; text-align: center;">Welcome, <%= user.name %> </h1>
-<div class="d-flex flex-row-reverse gap-3">
+<div class="d-flex flex-row-reverse gap-3 mb-3">
   <form style="display: inline-block; margin-right: 3rem;" action="/logout" method="POST">
-    <button type="submit" class="rounded">Logout</button>
+    <button type="submit" class="btn btn-primary rounded">Logout</button>
   </form>
   <button><a class="me-3" href="/">Home</a></button> 
   <button><a class="me-3" id="adminBtn" href="/admin">Admin Console</a></button>
   <button><a class="me-3" id="myTeamBtn" href="/manager">My Team</a></button>
-  <details class="me-3">
+  <!-- HOW IT WORKS Button trigger modal -->
+<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#staticBackdropHow">
+  How it works?
+</button>
+  <!-- <details class="me-3">
     <summary>HOW it works?</summary>
     <p>Save a tasks that you have worked on, through this week. In the end of week you can click 'Submit' to send all the saved items to manager for approval. </p>
-  </details>
+  </details> -->
 </div>
+<% if (resourceDetails.managerComment) { %>
+  <div class="alert alert-danger alert-dismissible fade show m-2" role="alert">
+    <h4>Reassign remarks by Manager</h4>
+      <%= resourceDetails.managerComment %>
+      
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close">
+          
+  </div>  
+<% } %>
 <div class="d-flex flex-wrap justify-content-around mb-4">
-  <h3 style=" margin-top: 3rem;"><strong>EMail</strong>: <%= resourceDetails.resourceEmail %></h3>
+  <h3 style=" margin-top: 3rem;"><strong>Email</strong>: <%= resourceDetails.resourceEmail %></h3>
   <h3 style=" margin-top: 3rem;"><strong>Group</strong>: <%= resourceDetails.resourceGroup %></h3>
   <h3 style=" margin-top: 3rem;"><strong>Manager</strong>: <%= resourceDetails.resourceManagerName %></h3>
   <h3 style=" margin-top: 3rem;"><strong>Role</strong>: <%=resourceDetails.resourceRole %></h3>
@@ -201,9 +221,13 @@ document.addEventListener('DOMContentLoaded', function() {
   </div>  
 <% } %>
 
-<h3 style="text-align: center;">My Tasks this week</h3>
+<div class="nothingToShow hidden">
+  <h3 style="text-align: center; margin-bottom: 2rem 0 2rem 0;">Nothing to Show! No task assigned by Project Manager for this week. Add a NEW task to enter your work details.</h3>
+</div>
+
 
 <div class="tablediv mb-50 m-2 ">
+  <h3 style="text-align: center;">My Tasks this week</h3>
     <table class="table-striped full-width bg-white border border-gray-300" >
       <thead >
         <tr>
@@ -271,6 +295,31 @@ document.addEventListener('DOMContentLoaded', function() {
   </div>
 </div> -->
 
+<!-- Modal for static backdrop HOW IT WORKS -->
+<div class="modal fade" id="staticBackdropHow" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="staticBackdropLabel">Modal title</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>1. All your task assigned by Project Manager for this current week will appear here. </p>
+        <p>2. Worked on task, click <span class="spanBtn border border-danger rounded">SAVE</span> button to enter details of the task.</p>
+        <p>3. If the work is marked incomplete, you can update it later with more work hours if done so.</p>
+        <p>4. If the work is complete, enter the details and choose the option to mark it complete.</p>
+        <p>5. if you work on a task that was worked on before but stayed incomplete, then enter hours of work done today and save to add today's work on that task.</p>
+        <p>6. If your are working on a task that is not assigned by Project Manager, then click <span class="spanBtn border border-danger rounded">ADD A TASK</span> and enter the details to save it.</p>
+        <p>7. In the end of the week, click <span class="spanBtn border border-danger rounded"> SUBMIT TO MANAGER </span> so the manager can review and approve your tasks and work done.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Got it!</button>
+        <!-- <button type="button" class="btn btn-primary">Understood</button> -->
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- save task modal form -->
 <div class="modal fade" id="saveModal" tabindex="-1" aria-labelledby="saveModalLabel" aria-hidden="true">
   <div class="modal-dialog">
@@ -335,12 +384,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <!-- Button trigger NEW Task modal -->
  <p class="ms-5">Don't see the task you want to save, add a new one!</p>
-<button type="button" class="btn btn-primary ms-5" data-bs-toggle="modal" data-bs-target="#staticBackdrop">
+<button type="button" class="btn btn-primary ms-5" data-bs-toggle="modal" data-bs-target="#staticBackdropNew">
   Add NEW Task
 </button>
 
 <!-- Modal FOR NEW TASK-->
-<div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+<div class="modal fade" id="staticBackdropNew" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
@@ -350,7 +399,7 @@ document.addEventListener('DOMContentLoaded', function() {
       <div class="modal-body">
         <Form id="addTaskForm" action="/profile" method="post">
           <label for="" class="form-label">Project Name</label>
-          <input type="text" name="projectName" id="", value="Administrative" readonly> <br>
+          <input type="text" class="form-control" name="projectName" id="", value="Administrative" readonly> <br>
           <label for="" class="form-label">Task</label>
           <select class="form-select my-2" name="taskName" aria-label="Default select example" required>
             <option selected>Pick a task from the list.</option>
@@ -363,11 +412,11 @@ document.addEventListener('DOMContentLoaded', function() {
             <option value="Chrysalis: Self Development">Chrysalis: Self Development</option>
           </select>
           <label for="" class="form-label">Start Date</label>
-          <input type="date" name="actualStart" required> <br>
+          <input type="date" class="form-control" name="actualStart" required> <br>
           <label for="" class="form-label">Finish Date</label>
-          <input type="date" name="actualFinish" required> <br>
+          <input type="date" class="form-control" name="actualFinish" required> <br>
           <label for="" class="form-label">Work (in Hours)</label>
-          <input type="number" name="actualWork" required>
+          <input type="number" class="form-control mb-2" name="actualWork" required>
           <label for="status_nt" class="form-label">Is the task Completed?</label>
           <select id="status_nt" class="form-select my-2" name="completed" aria-label="Default select example" required>
             <option selected>Pick an option.</option>
@@ -475,6 +524,7 @@ document.addEventListener('DOMContentLoaded', function() {
       .then(response => response.json())
       .then(data => {
         if (data.success) {
+          window.location.reload();
           alert('All tasks submitted successfully!');
           // Optionally, update the UI to reflect the changes
         } else {
@@ -568,7 +618,7 @@ document.addEventListener('DOMContentLoaded', function() {
               event.preventDefault();
       
               // Get form fields     
-              const completed = form.querySelector('select{name="completed"}');        
+              const completed = form.querySelector('select[name="completed"]');        
               const actualStart = form.querySelector('input[name="actualStart"]');
               const actualFinish = form.querySelector('input[name="actualFinish"]');
               const actualWork = form.querySelector('input[name="actualWork"]');      

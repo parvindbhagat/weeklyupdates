@@ -74,6 +74,15 @@
             cursor: pointer;
             border-radius: 5px;
         }
+        .activity-type-row {
+      background-color: #e0e0e0;
+      font-weight: bold;
+      position: sticky;
+      top: 4rem;
+    }
+    .collapse {
+        display: none;
+    }
   </style>
 </head>
 <body>
@@ -97,45 +106,48 @@
     <h1 style="text-align: center; " >Chrysalis Monthly Plan</h1>
     <p style="text-align: center; margin: 0.5rem;">(<%= monthStart.toDateString() %> to <%= monthEnd.toDateString() %>)</p>
     <div class="actlist">
-    <table class="activity-table">
+      <table class="activity-table">
         <thead>
           <tr>
-            <th class="table-header text-white">Activity</th>
-            <th class="table-header text-white">Start Date</th>
-            <th class="table-header text-white">End Date</th>
-            <th class="table-header text-white">Resource</th>
-            <th class="table-header text-white">Activity Type</th>
-            <th class="table-header text-white">Remarks</th>
-            <th class="table-header text-white">Status</th>
+            <th class="table-header text-white" onclick="sortGroupedTable(0)">Activity<i class="ri-arrow-up-down-fill float-end"></i></th>
+            <th class="table-header text-white" onclick="sortGroupedTable(1)">Start Date<i class="ri-arrow-up-down-fill float-end"></i></th>
+            <th class="table-header text-white" onclick="sortGroupedTable(2)">End Date<i class="ri-arrow-up-down-fill float-end"></i></th>
+            <th class="table-header text-white" onclick="sortGroupedTable(3)">Resource<i class="ri-arrow-up-down-fill float-end"></i></th>
+            <th class="table-header text-white" onclick="sortGroupedTable(4)">Activity Type<i class="ri-arrow-up-down-fill float-end"></i></th>
+            <th class="table-header text-white" onclick="sortGroupedTable(5)">Remarks<i class="ri-arrow-up-down-fill float-end"></i></th>
+            <th class="table-header text-white" onclick="sortGroupedTable(6)">Status<i class="ri-arrow-up-down-fill float-end"></i></th>
           </tr>
         </thead>
         <tbody>
           <% Object.keys(groupedActivities).forEach(typeofActivity => { %>
-            <tr class="activity-type-row">
+            <tr class="activity-type-row" data-toggle="collapse" data-target="#group-<%= typeofActivity %>">
               <td colspan="7"><%= typeofActivity %></td>
             </tr>
-            <% groupedActivities[typeofActivity].forEach(activity => { %>
-              <tr class="tableData">
-                <td><%= activity.clientName + "_" + activity.interventionName %></td>
-                <td><%= new Date(activity.start).toLocaleDateString('en-uk') %></td>
-                <td><%= new Date(activity.Finish).toLocaleDateString('en-uk') %></td>
-                <td><%= activity.resourceName %></td>
-                <td><%= activity.parentTaskName %></td>
-                <td><%= activity.taskName %></td>
-                <td><%= (activity.taskCompletePercent < 100) ? "On Going" : "Completed" %></td>
-              </tr>
-            <% }); %>
+            <tr id="group-<%= typeofActivity %>" class="group-content">
+              <% groupedActivities[typeofActivity].forEach(activity => { %>
+                <tr class="tableData">
+                  <td><%= activity.clientName + "_" + activity.interventionName %></td>
+                  <td><%= new Date(activity.start).toLocaleDateString('en-uk') %></td>
+                  <td><%= new Date(activity.Finish).toLocaleDateString('en-uk') %></td>
+                  <td><%= activity.resourceName %></td>
+                  <td><%= activity.parentTaskName %></td>
+                  <td><%= activity.taskName %></td>
+                  <td><%= (activity.taskCompletePercent < 100) ? "On Going" : "Completed" %></td>
+                </tr>
+              <% }); %>
+            </tr>
           <% }); %>
         </tbody>
       </table>
+
     </div> 
     <div class="nothing">
 
     </div>
       <div class="footer" >
         <div class="footerleft">
-          <a href="/createactivity" style="text-decoration: none; display: block;"><i class="ri-admin-line"></i>Project Manager Login</a> 
-          <a href="/allactivities" style="text-decoration: none;"><i class="ri-timer-line"></i>Chrysalis Weekly Plan Archive</a>
+          <a href="/admin" style="text-decoration: none; display: block;"><i class="ri-admin-line"></i>Admin Console</a> 
+          <a href="/profile" style="text-decoration: none;"><i class="ri-file-list-line"></i></i>My Weekly Tasks</a>
         </div>
         <div class="footercenter">
           <h4 style="text-align: center;">End Of Updates!</h4>
@@ -146,7 +158,6 @@
         </div>
       </div>
       <button id="topButton" onclick="scrollToTop()">TOP</button>
-
       <script>
           // Show the button when the user scrolls down 20px from the top of the document
           window.onscroll = function() {scrollFunction()};
@@ -157,13 +168,85 @@
               } else {
                   document.getElementById("topButton").style.display = "none";
               }
-          }
-  
+          }  
           // Scroll to the top of the document
           function scrollToTop() {
               document.body.scrollTop = 0;
               document.documentElement.scrollTop = 0;
           }
       </script>
+
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+  var groupHeaders = document.querySelectorAll('.activity-type-row');
+
+  groupHeaders.forEach(function(header) {
+    header.addEventListener('click', function() {
+      var targetId = header.getAttribute('data-target');
+      var targetElement = document.querySelector(targetId);
+
+      if (targetElement.classList.contains('collapse')) {
+        targetElement.classList.remove('collapse');
+      } else {
+        targetElement.classList.add('collapse');
+      }
+    });
+  });
+});
+
+var sortDirections = {};
+
+function sortGroupedTable(columnIndex) {
+  var table = document.querySelector('.activity-table tbody');
+  var groups = Array.from(table.querySelectorAll('.activity-type-row'));
+
+  // Toggle sort direction
+  if (!sortDirections[columnIndex]) {
+    sortDirections[columnIndex] = 'asc';
+  } else {
+    sortDirections[columnIndex] = sortDirections[columnIndex] === 'asc' ? 'desc' : 'asc';
+  }
+
+  groups.forEach(function(group) {
+    var nextSibling = group.nextElementSibling;
+    var rows = [];
+    var groupContent = [];
+
+    while (nextSibling && !nextSibling.classList.contains('activity-type-row')) {
+      if (nextSibling.classList.contains('tableData')) {
+        rows.push(nextSibling);
+      } else if (nextSibling.classList.contains('group-content')) {
+        groupContent.push(nextSibling);
+      }
+      nextSibling = nextSibling.nextElementSibling;
+    }
+
+    // Sort rows
+    rows.sort(function(a, b) {
+      var cellA = a.cells[columnIndex].innerText.toLowerCase();
+      var cellB = b.cells[columnIndex].innerText.toLowerCase();
+      if (sortDirections[columnIndex] === 'asc') {
+        return cellA.localeCompare(cellB);
+      } else {
+        return cellB.localeCompare(cellA);
+      }
+    });
+
+    // Append sorted rows back to the table body
+    var fragment = document.createDocumentFragment();
+    rows.forEach(function(row) {
+      fragment.appendChild(row);
+    });
+
+    groupContent.forEach(function(content) {
+      fragment.appendChild(content);
+    });
+
+    table.insertBefore(fragment, nextSibling);
+  });
+}
+
+</script>
 </body>
 </html>
