@@ -1155,7 +1155,7 @@ const activities = await taskModel.find({
     },
     { source: "PWA" }
   ]  
-}).sort({ start: 1 });  //returns activities with start/finish between current weekor activity that either starts or finish in current week.
+}).sort({ typeofActivity: -1 });  //returns activities with start/finish between current weekor activity that either starts or finish in current week.
 
   // Group activities by typeofActivity
   const groupedActivities = activities.reduce((acc, activity) => {
@@ -1229,14 +1229,14 @@ router.post("/logout", (req, res) => {
 });
 
 // show resource list from resourceModel   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-router.get("/resourcelist", async (req, res) => {
+router.get("/resourcelist", isAdmin, async (req, res) => {
   const resource = await resourceModel.find().sort({ resourceName: 1 });
   console.log("rendering the resource list and length is: ", resource.length);
   res.render("resourcelist", { resource });
 });
 
 // REFRESH Resource List To used by admin
-router.get('/refreshresourcelist', isAuthenticated, async (req, res) => {
+router.get('/refreshresourcelist', isAdmin, async (req, res) => {
   const accessToken = req.session.token;
   const user = req.session.user;
   let sessions;
@@ -1364,7 +1364,7 @@ router.get('/refreshresourcelist', isAuthenticated, async (req, res) => {
 });
 
 // REFRESH DATABASE TASKS BY ADMIN  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-router.get("/refreshdatabase", async (req, res) => {
+router.get("/refreshdatabase", isAdmin, async (req, res) => {
   const accessToken = req.session.token;
   const user = req.session.user;
   let sessions = [];
@@ -1740,7 +1740,7 @@ router.get("/alltasks", isAdmin, async (req, res) => {
 });
 
 // Save task in the database and then it can be updated or submitted to manager for approval
-router.post('/savetask', async (req, res) => {
+router.post('/savetask', isAuthenticated, async (req, res) => {
   let { activityId, actualStart, actualFinish, actualWork, comment, completed } = req.body;
   const datedComment = "(" + new Date().toLocaleDateString('en-in') + ": " + actualWork + " Hrs)" + comment;
   console.log('dated comment is: ', datedComment);
@@ -1767,7 +1767,7 @@ router.post('/savetask', async (req, res) => {
 });
 
 //UPDATE saved tasks by member before submission. 
-router.post('/updatetask', async (req, res) => {
+router.post('/updatetask', isAuthenticated, async (req, res) => {
   const {  actualWork, comment, completed, activityId } = req.body;
   
 
@@ -1850,7 +1850,7 @@ router.post('/submitToManager', isAuthenticated, async (req, res) => {
 });
 
 
-router.post('/approve', async (req, res) => {
+router.post('/approve', isManager, async (req, res) => {
   try {
     const user = req.session.user;
     let approved = 0;
@@ -1886,7 +1886,7 @@ router.post('/approve', async (req, res) => {
   }
 });
 // Route to handle Reassign tasks from Manager to make all tasks where saved =1 and submitted= 1 to submitted = 0 and save comment in resourceModel
-router.post('/reassign', async (req, res) => {
+router.post('/reassign', isManager, async (req, res) => {
   try {
     const {resourceName, comment} = req.body;
     console.log('req body resource name is: ', resourceName);

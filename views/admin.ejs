@@ -16,6 +16,10 @@
           align-items: center;
           height: 80vh; /* Adjust as needed */
         }
+        .z10{
+          z-index: 10;
+          position: relative;
+        }
       </style>
 </head>
 <body>
@@ -25,7 +29,7 @@
         </a>
   </nav>
     <h1 style="text-align: center;">Hi! Welcome to the admin console.</h1>
-    <div class="d-flex gap-3 justify-content-end  mx-3 ">        
+    <div class="d-flex gap-3 justify-content-end  mx-3 z10 ">        
         <button> <a href="/">Home</a> </button> 
         <button><a href="/resourcelist">Resource List</a></button>        
         <button> <a href="/alltasks">All Tasks from Project Online</a> </button>
