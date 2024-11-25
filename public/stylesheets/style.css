@@ -1,3 +1,5 @@
+@import url('https://use.typekit.net/oov2wcw.css');
+
 :root {
   --primary-color: #E95757; 
   --secondary-color: #FCB22B; 
@@ -7,19 +9,31 @@ html, body{
   height: 100%;
   margin: 0;
   padding: 0;
-  font-family: century-gothic;
+  font-family: 'century-gothic' !important;
+  min-height: 100vh;
   /* font-size: 12px; */
 }
-
+.content{
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+.full-width{
+  width: 100%;
+}
+.hidden{
+  display: none;
+}
 .navbar{
+  padding: 0;
   background-color:var(--primary-color);
   width: 100%;
   box-sizing: border-box;
 }
 
 .navbar-brand img{
-  margin-left: 4rem;
-}
+  margin: 0 0 0 4rem;
+  }
 
 .datafield{
   padding: 5px;
@@ -33,6 +47,11 @@ html, body{
 .btn:hover{
   background-color: #FCB22B;
   color: #000;
+}
+
+.spanBtn{
+  border: #E95757;
+  border-radius: 0.5rem;
 }
 /* .footer{
   display: block;
@@ -50,15 +69,30 @@ html, body{
   box-sizing: border-box;
   position: relative;
   bottom: 0;
-  margin-top: 25px;
+  margin-top: 3rem;
   background-color: rgb(203, 230, 230);
-  padding: 10px;
-  
+  padding: 0.5rem;  
+}
+
+.nothing{
+  flex: 1;
 }
 button{
   background-color: var(--primary-color);
   color: white;
-  margin-right: 1rem;
+  /* margin-right: 1rem; */
+  border-radius: 0.5rem;
+  border: none;
+}
+button a{
+  text-decoration: none;
+  color: white;
+}
+button:disabled {
+  background-color: #ccc !important; /* Gray background */
+  color: #666 !important; /* Gray text */
+  cursor: not-allowed; /* Change cursor to indicate it's not clickable */
+  opacity: 0.6; /* Make it slightly transparent */
 }
 .footerright button:hover{
   background-color: var(--secondary-color);
@@ -68,4 +102,46 @@ button{
 }
 .tableData:nth-child(even) {
   background-color: #f9f9f9;
+}
+
+.table-header-row{
+  box-sizing: border-box;
+  height: 3rem;
+  line-height: 1.5rem;
+}
+
+.group-header-row{
+  background-color: #e0e0e0;
+  box-sizing: border-box;
+  font-weight: bold;
+  position: sticky;
+  top: 3.2rem;
+}
+th{
+  /* width: 100%; */
+  position: sticky; 
+  top: 0;
+  z-index: 1;
+}
+@media (max-width: 600px) {
+  .navbar, .footer {
+      width: 100%;
+  }
+  table {
+      width: 100%;
+      display: block;
+      overflow-x: auto;
+  }
+}
+#topButton {
+  position: fixed;
+  bottom: 20px;
+  right: 30px;
+  display: none;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  cursor: pointer;
+  border-radius: 5px;
 }

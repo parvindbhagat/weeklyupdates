@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escalations</title>
+    <link rel="stylesheet" href="https://use.typekit.net/oov2wcw.css" />
+    <link rel="stylesheet" href="/stylesheets/style.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <style>
+      html, body{
+        font-family: century-gothic;
+        height: 100%;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .nothing{
+        flex: 1;
+      }
+
+      .title {
+        display: flex;
+        justify-content: space-between; /* Distributes space equally between items */
+        align-items: center; /* Centers items vertically */
+    }
+
+.item {
+  flex: 1; 
+  text-align: center; /* Centers text within each item */
+}
+.title-text {
+        font-size: 3vw; /* Large size as the width of the screen */
+        font-weight: bold;
+        color: var(--secondary-color);
+      }
+        .delay-low {
+            color: darkgoldenrod;
+        }
+        .delay-medium {
+            color: darkorange ;
+        }
+        .delay-high {
+            color: red;
+        }
+        .hidden{
+          display: none;
+        }
+    </style>
+</head>
+<body>
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+          window.plainTasks = <%- JSON.stringify(plainTasks) %>;
+          // console.log(window.plainTasks.length);
+          
+          const taskTable = document.getElementById('taskTable');
+          const noEsc = document.getElementById('noEsc');
+      
+          if (window.plainTasks.length === 0) {
+              taskTable.classList.add('hidden');
+              console.log("hiding taskTable");
+              noEsc.classList.remove('hidden');
+              console.log("showing noEsc");
+          }
+      });
+  </script>
+    <nav class="navbar">
+        <div class="">
+          <a class="navbar-brand" href="/">
+            <img src="/images/logo.png" alt="Chrysalis" >
+          </a>
+        </div>
+      </nav>
+      <div class="title">
+        <div class="item title-text contentSection">LEAP</div>
+        <div class="item">
+            <h1 class="text-center" style="margin: 2rem;">Chrysalis Projects Escalations</h1>
+        </div>
+        <div class="item">
+            <a style="text-decoration: none;" href="http://chrysalishrd.sharepoint.com/pwa/Timesheet.aspx" target="_blank" class="box"> 
+                <div class="timmylink">
+                  <h4>Timmy the TimeSheet</h4>
+                </div>
+            </a>
+        </div>
+    </div>
+    <div class="legends" style=" border: 2px solid black; padding: 10px; border-radius: 5px; margin: 2rem;">
+      <ul>
+        <li><strong>Escalation Level 1</strong> [Task Owner Level <strong>(0-3 days)</strong>]: If a Project work item/task is not completed within the Service Level Agreement (SLA) of 3 business days, the issue is escalated to the owner of the task.</li>
+        <li><strong>Escalation Level 2</strong> [Project Owner Level <strong>(3-10 days)</strong>]: If a Project work item/task remains pending for a period between 3 to 10 days, the issue is escalated to the Project Owner</li>
+        <li><strong>Escalation Level 3</strong> [Managing Director Level <strong>(>10 days)</strong>]: If a work item/task is pending for more than 10 days, the issue shall be escalated to the Managing Director (MD).</li>
+      </ul>
+    </div>
+
+    <div class="esclist mb-50 d-flex justify-content-center">
+      <div id="noEsc" class="hidden">
+        <h3 style="text-align: center;">Everything is going smooth! No Escalations so far.</h3>
+      </div>
+      <table id="taskTable" class="table-striped table-auto m-2 bg-white border border-gray-300" >
+        <thead class="bg-warning">
+          <tr>
+            <th class="border border-gray-300 px-4 py-2">Client Name</th>
+            <th class="border border-gray-300 px-4 py-2">Task Name</th>
+            <th class="border border-gray-300 px-4 py-2">Planned Finish</th>
+            <th class="border border-gray-300 px-4 py-2">Delay (in Days)</th>
+            <th class="border border-gray-300 px-4 py-2">Resource</th>
+            <th class="border border-gray-300 px-4 py-2">Complete %</th>
+            <th class="border border-gray-300 px-4 py-2">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% plainTasks.forEach(esc => { %>
+                   
+
+            <tr>
+              <td class="border border-gray-300 px-4 py-2 "><%= esc.clientName %></td>
+              <td class="border border-gray-300 px-4 py-2 "><%= esc.parentTaskName + ":" + esc.taskName %></td>
+              <td class="border border-gray-300 px-4 py-2 text-center"><%= new Date(esc.Finish).toLocaleDateString('en-in') %></td>
+              <td class="delay border border-gray-300 px-4 py-2 text-center fw-bold"><%= esc.delayInDays %></td>
+              <td class="border border-gray-300 px-4 py-2 "><%= esc.resourceName %></td>
+              <td class="border border-gray-300 px-4 py-2 "><%= esc.taskCompletePercent %></td>
+              <td class="border border-gray-300 px-4 py-2 "><%= esc.userComment ?  esc.userComment : "Pending" %></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+    <div class="nothing">
+
+    </div>
+  <div class="footer" >
+    <div class="footerleft">
+      <a href="/createactivity" style="text-decoration: none; display: block;"><i class="ri-admin-line"></i>Project Manager Login</a> 
+      <a href="/allactivities" style="text-decoration: none;"><i class="ri-timer-line"></i>Project Management Updates Archive</a>
+    </div>
+    <div class="footercenter">
+      <h4 style="text-align: center;">End Of Updates!</h4>
+
+    </div>
+    <div class="footerright">
+      <button onclick="location.href='/'" style="border-radius: 5px;">Home</button>
+    </div>
+  </div>
+  <script>
+    document.querySelectorAll('#taskTable .delay').forEach(cell => {
+        const value = parseInt(cell.textContent.trim(), 10);
+        if (value < 4) {
+            cell.classList.add('delay-low');
+        } else if (value >= 4 && value <= 10) {
+            cell.classList.add('delay-medium');
+        } else if (value > 10) {
+            cell.classList.add('delay-high');
+        }
+    });
+</script>
+</body>
+</html>

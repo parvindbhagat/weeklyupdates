@@ -4,7 +4,6 @@
     <meta charset="UTF-8"> 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PM Admin</title>
-    <link rel="stylesheet" href="https://use.typekit.net/oov2wcw.css" />
     <link
     href="https://cdn.jsdelivr.net/npm/remixicon@4.3.0/fonts/remixicon.css"
     rel="stylesheet"/>
@@ -139,7 +138,7 @@ background-color: #5a2227;
   }
 
   function confirmDelete(id) {
-      if (confirm('Do you want to delete this activity? Click Yes to delete and Cancel to abort.')) {
+      if (confirm('Do you want to delete this activity? Click OK to delete and Cancel to abort.')) {
           document.getElementById(`delete-form-${id}`).submit();
       }
   }
@@ -200,9 +199,10 @@ background-color: #5a2227;
             
           <% } %>
     </div>
-   <div class=" datafield container border border-danger-subtle border-5">
-
-    <Form action="/createactivity" method="post">
+<div class="d-flex justify-content-evenly align-items-center ">
+   <div class=" datafield  border border-danger-subtle border-5">
+    
+     <Form action="/createactivity" method="post">
       <label for="ActivityType"  name="activityType" class="form-label">Activity Category <span style="color: red;" >*</span></label>
       <input class="form-control" list="datalistOptions" id="ActivityType" name="activityType" placeholder="Type to search... (REQUIRED)" value="<%= typeof activityType != 'undefined' ? activityType : '' %>">
         <datalist id="datalistOptions">
@@ -257,17 +257,10 @@ background-color: #5a2227;
             Add Activity
         </button>
          
-    </Form>
+     </Form>
     </div>
-        <div style="margin-top: 25px;">
-            <p style="margin-left: 3rem;">Note: To change the status of the activity, enter a suitable option.</p>
-            <ul style="margin-left: 3rem;">
-                <li>On Going</li>
-                <li>Not Started</li>
-                <li>On Hold</li>
-                <li>Completed</li>
-                <li>Cancelled</li>
-            </ul>
+        <div style="margin-right: 1.5rem;">
+            
             <p style="margin-left: 3rem;"> Fields with Default Values, if nothing is entered: </p>
             <ol style="margin-left: 3rem;">
                 <li>Start Date or End Date : Today's Date</li>
@@ -283,6 +276,7 @@ background-color: #5a2227;
                 <button type="submit">Search</button>
             </form>
         </div>
+</div>
         <div class="tabledata">
             <h1 style="text-align: center; margin: 1rem;">Activity List</h1>
             <table class="activitytable" >
@@ -323,7 +317,7 @@ background-color: #5a2227;
                         <option value="Not Started"></option>
                         <option value="Cancelled"></option>
                         <option value="Completed"></option>                   
-                    </datalist>
+                      </datalist>
                       <td><input type="text" name="createdOn" value="<%= activity.createdOn %>"  readonly></td>
                       <td><input type="text" name="updatedOn" value="<%= activity.updatedOn %>"  readonly></td>
                       <td>

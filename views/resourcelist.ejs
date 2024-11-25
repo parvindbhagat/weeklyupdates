@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resource List</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="stylesheet" href="/stylesheets/style.css">
+ 
+</head>
+<body>
+  <nav class="navbar">
+    <a class="navbar-brand" href="/">
+      <img src="/images/logo.png" alt="Chrysalis" >
+    </a>
+</nav>
+    <H1 class="text-center">Resource List</H1>
+    <a href="/">Home</a>
+    <a href="/admin">Admin Console</a>
+    <form action="/refreshresourcelist" method="get">
+        <button>Refresh Resource List</button>
+    </form>
+    <div class="activitylist mb-50">
+        <div>
+            <label for="managerFilter">Filter by Manager:</label>
+            <select id="managerFilter" onchange="filterTable()">
+              <option value="">All</option>
+              <% 
+                const uniqueManagers = new Set();
+                resource.forEach(res => {
+                  uniqueManagers.add(res.resourceManagerName);
+                });
+                uniqueManagers.forEach(manager => { 
+              %>
+                <option value="<%= manager %>"><%= manager %></option>
+              <% }); %>
+            </select>
+          </div>
+        <table class="table-striped table-auto w-100 m-2 bg-white border border-gray-300" >
+          <thead >
+            <tr>
+                <th class="bg-warning px-4">Resource Id</th>
+                <th class="bg-warning px-4">Resource Name</th>
+                <th class="bg-warning px-4">Role</th>
+                <th class="bg-warning px-4">Email</th>
+                <th class="bg-warning px-4">Group</th>
+                <th class="bg-warning px-4">Manager</th>
+                
+            </tr>
+          </thead>
+          <tbody>
+            <% resource.forEach(res => { %>
+              <tr class="tableData">
+                <td class="border border-gray-300 px-4 py-2 "><%= res.resourceId %></td>
+                <td class="border border-gray-300 px-4 py-2 "><%= res.resourceName %></td>
+                <td class="border border-gray-300 px-4 py-2 "><%= res.resourceRole %></td>
+                <td class="border border-gray-300 px-4 py-2 "><%= res.resourceEmail %></td>
+                <td class="border border-gray-300 px-4 py-2 "><%= res.resourceGroup %></td>
+                <td class="border border-gray-300 px-4 py-2 "><%= res.resourceManagerName %></td>
+                
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+    </div>
+    
+    <div class="footer" >
+      <h4 class="footext">That was all!  </h4>
+      <!-- <p style=" text-align: center; position: relative; bottom: 1px;">Copyright © 2024  <a href="https://chrysalis.in" style="text-decoration: none;">Chrysalis HRD</a></p> -->
+    </div>
+    
+    
+      <!-- <pre><%= JSON.stringify(resource, null, 2) %></pre> -->
+      <script>
+        function filterTable() {
+          var filter = document.getElementById("managerFilter").value.toUpperCase();
+          var table = document.querySelector("table");
+          var tr = table.getElementsByTagName("tr");
+      
+          for (var i = 1; i < tr.length; i++) {
+            var td = tr[i].getElementsByTagName("td")[5]; // Index 5 for the Manager column
+            if (td) {
+              var txtValue = td.textContent || td.innerText;
+              if (filter === "" || txtValue.toUpperCase() === filter) {
+                tr[i].style.display = "";
+              } else {
+                tr[i].style.display = "none";
+              }
+            }
+          }
+        }
+      </script>
+</body>
+</html>

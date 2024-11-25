@@ -1,3 +1,41 @@
-<h1><%= message %></h1>
-<h2><%= error.status %></h2>
-<pre><%= error.stack %></pre>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error</title>
+    <style>
+        body {
+          font-family: century-gothic, sans-serif;
+          font-weight: 400;
+          font-style: normal;
+          text-align: center;
+          padding: 50px;
+        }
+        .container {
+          max-width: 600px;
+          margin: 0 auto;
+        }
+        a {
+          display: inline-block;
+          margin: 10px;
+          padding: 10px 20px;
+          background-color: #007bff;
+          color: white;
+          text-decoration: none;
+          border-radius: 5px;
+        }
+        a:hover {
+          background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>   
+    <div class="container">
+        <h1>Error <%= errorCode %></h1>
+        <p><%= errorMessage %></p>
+        <a href="/"><i class="ri-home-heart-line"></i> Go to Home</a>
+        <a href="javascript:history.back()"><i class="ri-arrow-left-circle-line"></i> Go Back</a>
+      </div>
+</body>
+</html>

@@ -8,7 +8,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>LEAP</title>
-  <link rel="stylesheet" href="https://use.typekit.net/oov2wcw.css" />
+  <!-- <link rel="stylesheet" href="https://use.typekit.net/oov2wcw.css" /> -->
   <link rel="stylesheet" href="/stylesheets/style.css">
   <style>
     html {
@@ -33,6 +33,10 @@
 
     .hidden {
       display: none;
+    }
+    .right{
+      float: right;
+      padding-right: 2rem;
     }
 
     .options {
@@ -257,10 +261,19 @@
   <div class="marquee">
     Timmy says, Fill your TimeSheet!
   </div>
+  <% if (msg) { %>
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <%= msg %>
+        
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close">
+            
+    </div>
+    
+  <% } %>
   <div class="main">
     <div class="options">
       <div class="title-text contentSection">LEAP</div>
-      <a href="/activities" style="text-decoration: none; color: inherit" id="activities" class="box">
+      <a href="/pwaactivities" style="text-decoration: none; color: inherit" id="activities" class="box">
         <div class="contentSection">
           <h4>Chrysalis Weekly Plan</h4>
           <p style="font-size: 1.2rem">
@@ -268,7 +281,7 @@
           </p>
         </div>
       </a>
-      <a href="/test" style="text-decoration: none; color: inherit" id="escalations" class="box">
+      <a href="/escalation" style="text-decoration: none; color: inherit" id="escalations" class="box">
         <div class="contentSection">
           <h4>Chrysalis Projects Escalations</h4>
           <p style="font-size: 1.2rem">
@@ -276,7 +289,7 @@
           </p>
         </div>
       </a>
-      <a style="text-decoration: none;" href="http://chrysalishrd.sharepoint.com/pwa/Timesheet.aspx" target="_blank"
+      <a style="text-decoration: none;" href="/profile" 
         class="box">
         <div class="contentSection">
           <h4>Timmy the TimeSheet</h4>
@@ -310,11 +323,12 @@
           <small>Seconds</small>
         </div>
       </div>
-    </div>
-
+    </div> 
+  </div>
   <div class="copyrightbar">
     <!-- <p style=" text-align: center; margin-top: 10px;">  <a href="/countdown" style="color: inherit; text-decoration: none;">Next Session</a></p> -->
     <!-- <p style=" text-align: center; margin-top: 10px;">Copyright © 2024  <a href="https://chrysalis.in" style="color: inherit; text-decoration: none;">Chrysalis HRD</a></p> -->
+    <a class="right" href="/admin">Admin <i>Beta</i></a> 
   </div>
 </body>
 
