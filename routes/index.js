@@ -230,7 +230,7 @@ router.get("/escview", async (req, res) => {
 });
 // ALL ACtivities page
 router.get("/allactivities", async function (req, res, next) {
-  // const activities = await activityModel.find().sort({ startDate: -1 });
+try {  // const activities = await activityModel.find().sort({ startDate: -1 });
   const activities = await activityModel.aggregate([
     {
       $addFields: {
@@ -262,6 +262,10 @@ router.get("/allactivities", async function (req, res, next) {
     },
   ]);
   res.render("allactivities", { activities });
+} catch(error) {
+  console.log(error.message);
+  next(error);
+}
 });
 
 router.get("/auth", (req, res) => {
@@ -804,7 +808,7 @@ router.get("/oauth/redirect", async (req, res) => {
 });
 
 //profile page to land after access token authenticated also initialize resource MOdel if empty  /////////////////////////////////////////////////////////////////////////////////////////////////////////////
-router.get("/profile", isAuthenticated, async (req, res) => {
+router.get("/profile", isAuthenticated, async (req, res, next) => {
   if (!req.session.user) {
     return res.redirect("/");
   }
@@ -886,7 +890,7 @@ router.get("/profile", isAuthenticated, async (req, res) => {
             const {
               ResourceId,
               ResourceEmailAddress,
-              ResourceGroup,
+              ResourceDepartments,
               ResourceName,
               ResourceTimesheetManageId,
             } = resourceData;
@@ -895,7 +899,7 @@ router.get("/profile", isAuthenticated, async (req, res) => {
               resourceId: ResourceId,
               resourceName: ResourceName,
               resourceEmail: ResourceEmailAddress,
-              resourceGroup: ResourceGroup,
+              resourceGroup: ResourceDepartments,
               resourceManagerId: ResourceTimesheetManageId,
               resourceRole: resourceRole,
             });
@@ -970,7 +974,14 @@ const endDateString = formatDateToLocalISOString(endDate);
                         { Finish: { $gte: startDateString, $lte: endDateString } },
                         { taskCompletePercent: { $eq: 100 } }
                     ] // completed tasks that finished within the week
-                }
+                },
+                {
+                  $and: [
+                      { Finish: { $lt: startDateString } },
+                      { taskCompletePercent: { $lt: 100 } },
+                      { submitted: { $ne: 2 } }
+                  ] // finished before current week, its completes but still not approved by manager
+              }
             ]
         },
         { resourceName: resourceName }
@@ -1051,6 +1062,7 @@ const endDateString = formatDateToLocalISOString(endDate);
   //   res.render("profile", { user, incompleteAssignments, resourceDetails });
   } catch (error) {
     console.log(error.message);
+    next(error);
   }
 });
 
@@ -1124,7 +1136,7 @@ router.post("/profile", async (req, res) => {
 });
 
 // route to show activites for users from the pwa data stored in the database. //////////////////////////////////////////////////////////////////////////////////////
-router.get("/pwaactivities", async(req, res) => {
+router.get("/pwaactivities", async(req, res, next) => {
   const { startDate, endDate } = getDateRangeForWeek(
     getWeekNumber(new Date()),
     new Date().getFullYear()
@@ -1325,7 +1337,7 @@ router.get('/refreshresourcelist', isAdmin, async (req, res) => {
               const {
                 ResourceId,
                 ResourceEmailAddress,
-                ResourceGroup,
+                ResourceDepartments,
                 ResourceName,
                 ResourceTimesheetManageId,
               } = resourceData;
@@ -1334,7 +1346,7 @@ router.get('/refreshresourcelist', isAdmin, async (req, res) => {
                 resourceId: ResourceId,
                 resourceName: ResourceName,
                 resourceEmail: ResourceEmailAddress,
-                resourceGroup: ResourceGroup,
+                resourceGroup: ResourceDepartments,
                 resourceManagerId: ResourceTimesheetManageId,
                 resourceRole: resourceRole,
               });
@@ -1776,7 +1788,7 @@ router.post('/updatetask', isAuthenticated, async (req, res) => {
   const previousComment = existingTask.userComment || ""; // Get the existing comment or an empty string if none exists
   let actualFinish = existingTask.actualFinish;
   if(completed === 100){
-     actualFinish = newDate();
+     actualFinish = new Date().toLocaleDateString('en-in');
   }
   const datedComment = "(" + new Date().toLocaleDateString('en-in') + ": " + actualWork + " Hrs) " + comment; 
   const newComment = previousComment + "; " + datedComment; // Concatenate the previous comment with the new dated comment
@@ -1908,6 +1920,30 @@ router.post('/reassign', isManager, async (req, res) => {
   } catch (err) {
     console.error("Error in /approve route: ", err);
     res.json({ success: false, message: 'Failed to submit items.' });
+  }
+});
+
+// Route to render Escalation for delayed tasks.
+router.get('/escalation', isManager, async (req, res, next) => {
+  try {
+    const user = req.session.user;
+    const today = new Date().toISOString().split('T')[0] + "T00:00:00";
+    const tasks = await taskModel.find({
+      Finish: { $lt: today },
+      taskCompletePercent: { $lt: 100 }
+    });
+    tasks.forEach(task => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const finishDate = new Date(task.Finish);
+      finishDate.setHours(0, 0, 0, 0);
+      const delayInDays = Math.floor((today - finishDate) / (1000 * 60 * 60 * 24));
+      task.delayInDays = delayInDays;
+    });
+      res.render('escalation', {plainTasks: tasks});
+  } catch (error) {
+    console.log(error.message);
+    next(error);
   }
 });
 

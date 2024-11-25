@@ -20,9 +20,9 @@ const taskSchema = new mongoose.Schema({
     interventionName: { type: String },
     actualStart: { type: String },
     actualFinish: { type: String },
-    actualWork: { type: String },
+    actualWork: { type: Number, default: 0 },
     userComment: {type: String },
-    approvalStatus: {type: String },
+    approvalStatus: {type: String, default: "Pending" },
     source:{type: String, default: "PWA"},
     saved: {type: Number, default: 0 },
     submitted: {type: Number, default: 0}
