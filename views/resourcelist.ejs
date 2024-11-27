@@ -69,7 +69,26 @@
       <!-- <p style=" text-align: center; position: relative; bottom: 1px;">Copyright © 2024  <a href="https://chrysalis.in" style="text-decoration: none;">Chrysalis HRD</a></p> -->
     </div>
     
+    <button id="topButton" onclick="scrollToTop()">TOP</button>
+
+    <script>
+        // Show the button when the user scrolls down 20px from the top of the document
+        window.onscroll = function() {scrollFunction()};
     
+        function scrollFunction() {
+            if (document.body.scrollTop > 50 || document.documentElement.scrollTop > 50) {
+                document.getElementById("topButton").style.display = "block";
+            } else {
+                document.getElementById("topButton").style.display = "none";
+            }
+        }
+    
+        // Scroll to the top of the document
+        function scrollToTop() {
+            document.body.scrollTop = 0;
+            document.documentElement.scrollTop = 0;
+        }
+    </script>    
       <!-- <pre><%= JSON.stringify(resource, null, 2) %></pre> -->
       <script>
         function filterTable() {

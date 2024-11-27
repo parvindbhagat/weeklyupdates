@@ -36,7 +36,7 @@
         color: var(--secondary-color);
       }
         .delay-low {
-            color: darkgoldenrod;
+            color: teal;
         }
         .delay-medium {
             color: darkorange ;
@@ -79,7 +79,7 @@
             <h1 class="text-center" style="margin: 2rem;">Chrysalis Projects Escalations</h1>
         </div>
         <div class="item">
-            <a style="text-decoration: none;" href="http://chrysalishrd.sharepoint.com/pwa/Timesheet.aspx" target="_blank" class="box"> 
+            <a style="text-decoration: none;" href="/profile" target="_blank" class="box"> 
                 <div class="timmylink">
                   <h4>Timmy the TimeSheet</h4>
                 </div>
@@ -99,15 +99,15 @@
         <h3 style="text-align: center;">Everything is going smooth! No Escalations so far.</h3>
       </div>
       <table id="taskTable" class="table-striped table-auto m-2 bg-white border border-gray-300" >
-        <thead class="bg-warning">
+        <thead>
           <tr>
-            <th class="border border-gray-300 px-4 py-2">Client Name</th>
-            <th class="border border-gray-300 px-4 py-2">Task Name</th>
-            <th class="border border-gray-300 px-4 py-2">Planned Finish</th>
-            <th class="border border-gray-300 px-4 py-2">Delay (in Days)</th>
-            <th class="border border-gray-300 px-4 py-2">Resource</th>
-            <th class="border border-gray-300 px-4 py-2">Complete %</th>
-            <th class="border border-gray-300 px-4 py-2">Status</th>
+            <th class="border border-gray-300 px-4 py-2 bg-warning">Client Name</th>
+            <th class="border border-gray-300 px-4 py-2 bg-warning">Task Name</th>
+            <th class="border border-gray-300 px-4 py-2 bg-warning">Planned Finish</th>
+            <th class="border border-gray-300 px-4 py-2 bg-warning">Delay (in Days)</th>
+            <th class="border border-gray-300 px-4 py-2 bg-warning">Resource</th>
+            <th class="border border-gray-300 px-4 py-2 bg-warning">Complete %</th>
+            <th class="border border-gray-300 px-4 py-2 bg-warning">Status</th>
           </tr>
         </thead>
         <tbody>
@@ -115,13 +115,13 @@
                    
 
             <tr>
-              <td class="border border-gray-300 px-4 py-2 "><%= esc.clientName %></td>
+              <td class="border border-gray-300 px-4 py-2 "><%= esc.clientName + " : " + esc.interventionName %></td>
               <td class="border border-gray-300 px-4 py-2 "><%= esc.parentTaskName + ":" + esc.taskName %></td>
               <td class="border border-gray-300 px-4 py-2 text-center"><%= new Date(esc.Finish).toLocaleDateString('en-in') %></td>
               <td class="delay border border-gray-300 px-4 py-2 text-center fw-bold"><%= esc.delayInDays %></td>
               <td class="border border-gray-300 px-4 py-2 "><%= esc.resourceName %></td>
               <td class="border border-gray-300 px-4 py-2 "><%= esc.taskCompletePercent %></td>
-              <td class="border border-gray-300 px-4 py-2 "><%= esc.userComment ?  esc.userComment : "Pending" %></td>
+              <td class="border border-gray-300 px-4 py-2 "><%= esc.userComment %></td>
             </tr>
           <% }); %>
         </tbody>
@@ -132,8 +132,8 @@
     </div>
   <div class="footer" >
     <div class="footerleft">
-      <a href="/createactivity" style="text-decoration: none; display: block;"><i class="ri-admin-line"></i>Project Manager Login</a> 
-      <a href="/allactivities" style="text-decoration: none;"><i class="ri-timer-line"></i>Project Management Updates Archive</a>
+      <a href="/admin" style="text-decoration: none; display: block;"><i class="ri-admin-line"></i>Admin Console</a> 
+      <!-- <a href="/allactivities" style="text-decoration: none;"><i class="ri-timer-line"></i>Project Management Updates Archive</a> -->
     </div>
     <div class="footercenter">
       <h4 style="text-align: center;">End Of Updates!</h4>
@@ -143,7 +143,27 @@
       <button onclick="location.href='/'" style="border-radius: 5px;">Home</button>
     </div>
   </div>
+  <button id="topButton" onclick="scrollToTop()">TOP</button>
+
   <script>
+      // Show the button when the user scrolls down 20px from the top of the document
+      window.onscroll = function() {scrollFunction()};
+  
+      function scrollFunction() {
+          if (document.body.scrollTop > 50 || document.documentElement.scrollTop > 50) {
+              document.getElementById("topButton").style.display = "block";
+          } else {
+              document.getElementById("topButton").style.display = "none";
+          }
+      }
+  
+      // Scroll to the top of the document
+      function scrollToTop() {
+          document.body.scrollTop = 0;
+          document.documentElement.scrollTop = 0;
+      }
+  </script>
+<script>
     document.querySelectorAll('#taskTable .delay').forEach(cell => {
         const value = parseInt(cell.textContent.trim(), 10);
         if (value < 4) {

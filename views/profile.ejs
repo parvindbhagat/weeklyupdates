@@ -180,7 +180,7 @@ document.addEventListener('DOMContentLoaded', function() {
       <img src="/images/logo.png" alt="Chrysalis" >
     </a>
   </nav>
-  <h1 style=" margin-right: 3rem; text-align: center;">Welcome, <%= user.name %> </h1>
+  <h1 style=" margin: 3rem; text-align: center;">Welcome, <%= user.name %> </h1>
   <div class="d-flex flex-row-reverse gap-3 mb-3">
     <form style="display: inline-block; margin-right: 3rem;" action="/logout" method="POST">
       <button type="submit" class="btn btn-primary rounded">Logout</button>
@@ -223,12 +223,12 @@ document.addEventListener('DOMContentLoaded', function() {
   <% } %>
   
   <div class="nothingToShow hidden">
-    <h3 style="text-align: center; margin-bottom: 2rem 0 2rem 0;">Nothing to Show! No task assigned by Project Manager for this week. Add a NEW task to enter your work details.</h3>
+    <h3 style="text-align: center; margin-bottom: 2rem 0 0 0;">Nothing to Show! No task assigned by Project Manager for this week. Add a NEW task to enter your work details.</h3>
   </div>
   
   
   <div class="tablediv mb-50 m-2 ">
-    <h3 style="text-align: center;">My Tasks this week</h3>
+    <h3 style="text-align: center; margin: 2rem;">My Tasks this week (<%= startDate.toLocaleDateString('en-in') %> To <%= endDate.toLocaleDateString('en-in') %>)</h3>
       <table class="table-striped full-width bg-white border border-gray-300" >
         <thead >
           <tr>
@@ -512,6 +512,26 @@ document.addEventListener('DOMContentLoaded', function() {
   </div>
 </div>
 
+<button id="topButton" onclick="scrollToTop()">TOP</button>
+
+<script>
+    // Show the button when the user scrolls down 20px from the top of the document
+    window.onscroll = function() {scrollFunction()};
+
+    function scrollFunction() {
+        if (document.body.scrollTop > 50 || document.documentElement.scrollTop > 50) {
+            document.getElementById("topButton").style.display = "block";
+        } else {
+            document.getElementById("topButton").style.display = "none";
+        }
+    }
+
+    // Scroll to the top of the document
+    function scrollToTop() {
+        document.body.scrollTop = 0;
+        document.documentElement.scrollTop = 0;
+    }
+</script>
 
   <!-- <pre><%= JSON.stringify(incompleteTasks, null, 2) %></pre> -->
 

@@ -13,14 +13,16 @@
         <img src="/images/logo.png" alt="Chrysalis" >
       </a>
 </nav>
-    <a href="/">Home</a>
-    <a class="ml-3" href="/admin">Admin Console</a>
+<div class="d-flex flex-row-reverse gap-3 me-5 mt-2">
+  <a class="ms-3" href="/">Home</a> <br>
+  <a class="ms-3" href="/admin">Admin Console</a>
+</div>
     <h1 class="text-center">All tasks in Database!</h1>
-    <input type="radio" class="btn-check" name="options-outlined" id="success-outlined" autocomplete="off" checked>
+    <!-- <input type="radio" class="btn-check" name="options-outlined" id="success-outlined" autocomplete="off" checked>
 <label class="btn btn-outline-success" for="success-outlined">Weekly Plan</label>
 
 <input type="radio" class="btn-check" name="options-outlined" id="danger-outlined" autocomplete="off">
-<label class="btn btn-outline-danger" for="danger-outlined">Monthly Plan</label>
+<label class="btn btn-outline-danger" for="danger-outlined">Monthly Plan</label> -->
 
     <div class="task_table">
         <table class="table-striped table-auto w-100 bg-white border border-gray-300" >
@@ -61,8 +63,29 @@
             </tbody>
           </table>
     </div>
-    <pre><%= JSON.stringify(tasks, null, 2) %></pre>
+    <!-- <pre><%= JSON.stringify(tasks, null, 2) %></pre> -->
 
-    <p>end of task list.</p>
+    <p style="text-align: center;">End of task list.</p>
+
+    <button id="topButton" onclick="scrollToTop()">TOP</button>
+
+<script>
+    // Show the button when the user scrolls down 20px from the top of the document
+    window.onscroll = function() {scrollFunction()};
+
+    function scrollFunction() {
+        if (document.body.scrollTop > 50 || document.documentElement.scrollTop > 50) {
+            document.getElementById("topButton").style.display = "block";
+        } else {
+            document.getElementById("topButton").style.display = "none";
+        }
+    }
+
+    // Scroll to the top of the document
+    function scrollToTop() {
+        document.body.scrollTop = 0;
+        document.documentElement.scrollTop = 0;
+    }
+</script>
   </body>
 </html>

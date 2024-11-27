@@ -923,9 +923,9 @@ router.get("/profile", isAuthenticated, async (req, res, next) => {
   }
   try {
   const user = req.session.user;
-  const accessToken = req.session.token;
+  // const accessToken = req.session.token;
   const resourceName = user.name;
-  const encodedName = encodeResourceName(resourceName);
+  // const encodedName = encodeResourceName(resourceName);
   console.log("LOGGED IN USER to /profile is : ", resourceName);
   await initializeResources();
   const resourceDetails = await resourceModel.findOne({
@@ -1008,7 +1008,7 @@ const endDateString = formatDateToLocalISOString(endDate);
       msg = "Failed to update task data. Please try again.";
     }
 
-   res.render('profile', {user, incompleteTasks, resourceDetails, msg});  //  Actual data to be passed to view for usrs view.
+   res.render('profile', {user, incompleteTasks, resourceDetails, startDate, endDate, msg});  //  Actual data to be passed to view for usrs view.
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // console.log(`UserDetails are: ${resourceDetails}`);
 
@@ -1930,7 +1930,8 @@ router.get('/escalation', isManager, async (req, res, next) => {
     const today = new Date().toISOString().split('T')[0] + "T00:00:00";
     const tasks = await taskModel.find({
       Finish: { $lt: today },
-      taskCompletePercent: { $lt: 100 }
+      taskCompletePercent: { $lt: 100 },
+      source: "PWA"
     });
     tasks.forEach(task => {
       const today = new Date();
