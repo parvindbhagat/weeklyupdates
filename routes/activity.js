@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 require('dotenv').config();
 
-
+// mongoose.connect('mongodb://root:password3479@mongo:27017/task_data?authSource=admin', {}).then(() => {
 mongoose.connect(process.env.MONGO_URI, {}).then(() => {
   console.log('Connected to MongoDB');
 }).catch(err => {

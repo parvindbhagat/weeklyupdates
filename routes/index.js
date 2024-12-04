@@ -1839,7 +1839,7 @@ router.post('/approve', isManager, async (req, res) => {
     // console.log("Result of db find: ", tasks);
 
     const updatePromises = tasks.map(async (task) => {
-      if (task.taskCompletePercent === 100) {
+      if (task.leapComplete === 100) {
         await taskModel.findByIdAndUpdate(task._id, { submitted: 2, approvalStatus: "Approved" });
         console.log("Task approved: ", task.taskName);
         approved += 1;
@@ -1883,7 +1883,7 @@ router.post('/reassign', isManager, async (req, res) => {
     res.json({ success: true, message: `Tasks processed.` });
     
   } catch (err) {
-    console.error("Error in /approve route: ", err);
+    console.error("Error in /reassign route: ", err);
     res.json({ success: false, message: 'Failed to submit items.' });
   }
 });

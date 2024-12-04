@@ -33,6 +33,7 @@
                   <th class="bg-warning px-2">Project</th>
                   <th class="bg-warning px-2">Parent Task Name - Task Name</th>
                   <th class="bg-warning px-2">Type Of Activity</th>
+                  <th class="bg-warning px-2">Source</th>
                   <th class="bg-warning px-2">Resource</th>
                   <th class="bg-warning px-2">Start</th>
                   <th class="bg-warning px-2">Finish</th>
@@ -50,6 +51,7 @@
                   <td class="border border-gray-300 px-2 py-2 "><%= ta.projectName %></td>
                   <td class="border border-gray-300 px-2 py-2 "><%= ta.parentTaskName + " - " + ta.taskName %></td>
                   <td class="border border-gray-300 px-2 py-2 "><%= ta.typeofActivity %></td>
+                  <td class="border border-gray-300 px-2 py-2 "><%= ta.source %></td>
                   <td class="border border-gray-300 px-2 py-2 "><%= ta.resourceName %></td>
                   <td class="border border-gray-300 px-2 py-2 "><%= new Date(ta.start).toLocaleDateString('en-in') %></td>
                   <td class="border border-gray-300 px-2 py-2 "><%= new Date(ta.Finish).toLocaleDateString('en-in') %></td>
@@ -96,9 +98,10 @@
       let anyMatch = false;
 
       rows.forEach(row => {
-          const status = row.cells[10].innerText.trim();
-          const completed = row.cells[11].innerText.trim();
-          if (status === 'Approved' && completed === 'No') {
+          const source = row.cells[3].innerText.trim();
+          const status = row.cells[11].innerText.trim();
+          const completed = row.cells[12].innerText.trim();
+          if (status === 'Approved' && completed === 'No' && source === 'PWA') {
               row.style.display = '';
               anyMatch = true;
           } else {

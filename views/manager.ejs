@@ -119,7 +119,7 @@
               <td class="border border-gray-300 px-1 py-1 "><%= activity.actualFinish ? new Date(activity.actualFinish).toLocaleDateString('en-in') : " " %></td>
               <td class="border border-gray-300 px-1 py-1 "><%= activity.actualWork %></td>
               <!-- <td class="border border-gray-300 px-1 py-1 "><%= activity.submitted %></td> -->
-              <td class="border border-gray-300 px-1 py-1 "><%= (activity.taskCompletePercent < 100) ? "No" : "Yes" %></td>
+              <td class="border border-gray-300 px-1 py-1 "><%= (activity.leapComplete < 100) ? "No" : "Yes" %></td>
               <td class="border border-gray-300 px-1 py-1 "><%= activity.userComment %></td>
               <td class="border border-gray-300 px-1 py-1 "><%= activity.approvalStatus %></td>
               <!-- <td class="text-center px-2"><button class="btn btn-primary update-btn border border-gray-300" data-id="<%= activity._id %>">Update</button></td> -->
