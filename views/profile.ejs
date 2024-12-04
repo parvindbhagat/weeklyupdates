@@ -18,7 +18,7 @@
         window.activities = <%- JSON.stringify(incompleteTasks) %>;
         let tablediv = document.querySelector('.tablediv');
         const nothing = document.querySelector('.nothingToShow');
-        console.log(activities.length);
+        // console.log(activities.length);
 
         let totalwork = 0;
         activities.forEach(act => {
@@ -161,10 +161,10 @@ document.addEventListener('DOMContentLoaded', function() {
   const role = "<%= resourceDetails.resourceRole %>";
   if (role === "Manager") {      
       myTeamBtn.classList.remove('hidden');
-      console.log("showing my team btn");
+      // console.log("showing my team btn");
   }else{
     myTeamBtn.classList.add('hidden');
-      console.log("hiding taskTable");
+      // console.log("hiding taskTable");
   }
   if (role === "Admin") {
     adminBtn.classList.remove('hidden');
@@ -257,7 +257,7 @@ document.addEventListener('DOMContentLoaded', function() {
               <td class="border border-gray-300 px-1 py-1 "><%= activity.actualFinish ? new Date(activity.actualFinish).toLocaleDateString('en-in') : " " %></td>
               <td class="border border-gray-300 px-1 py-1 "><%= activity.actualWork %></td>
               <td class="border border-gray-300 px-1 py-1 "><%= activity.submitted ? "Yes" : "No" %></td>
-              <td class="border border-gray-300 px-1 py-1 "><%= (activity.taskCompletePercent < 100) ? "No" : "Yes" %></td>
+              <td class="border border-gray-300 px-1 py-1 "><%= (activity.leapComplete < 100) ? "No" : "Yes" %></td>
               <td class="border border-gray-300 px-1 py-1 "><%= activity.userComment %></td>
               <td class="border border-gray-300 px-1 py-1 "><%= activity.approvalStatus %></td>
               <td class="text-center px-2"><button class="btn btn-primary update-btn border border-gray-300" data-id="<%= activity._id %>">Update</button><button class="btn btn-primary save-btn border border-gray-300 hidden" data-id="<%= activity._id %>">Save</button></td>
@@ -305,14 +305,16 @@ document.addEventListener('DOMContentLoaded', function() {
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          <p>1. All your task assigned by Project Manager for this current week will appear here. </p>
-          <p>2. Worked on task, click <span class="spanBtn border border-danger rounded">SAVE</span> button to enter details of the task.</p>
-          <p>3. If the work is marked incomplete, you can update it later with more work hours if done so.</p>
-          <p>4. If the work is complete, enter the details and choose the option to mark it complete.</p>
-          <p>5. if you work on a task that was worked on before but stayed incomplete, then enter hours of work done today and save to add today's work on that task.</p>
-          <p>6. If your are working on a task that is not assigned by Project Manager, then click <span class="spanBtn border border-danger rounded">ADD A TASK</span> and enter the details to save it.</p>
-          <p>7. In the end of the week, click <span class="spanBtn border border-danger rounded"> SUBMIT TO MANAGER </span> so the manager can review and approve your tasks and work done.</p>
-        </div>
+          <p>1. All tasks assigned in Microsoft Project for the current week will appear here.</p>
+          <p>2. To log work on a task, click the SAVE button to enter the details.</p>
+          <p>3 .Add the Actual Start and Finish Date and the number of hours worked on the task.</p>
+          <p>4. If a task is incomplete, choose No, needs more work. This allows you to update it later with additional work hours.</p>
+          <p>5. If a task is complete, enter the details and choose the option to mark it as complete and submit.</p>
+          <p>6. If you are working on a previously incomplete task, enter the hours worked on that particular day.</p>
+          <p>7. Please update the tasks which are incomplete every day.</p>
+          <p>8. At the end of the week, click SUBMIT TO MANAGER so the manager can review and approve your tasks and work done.</p>
+          <p>9. If you are working on a task not assigned by the Project Manager, click ADD A TASK and enter the details. If a task is incomplete, choose No, needs more work. This allows you to update it later with additional work hours. If a task is complete, enter the details and choose the option to mark it as complete and submit.</p>
+         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Got it!</button>
           <!-- <button type="button" class="btn btn-primary">Understood</button> -->

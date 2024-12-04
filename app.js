@@ -22,7 +22,8 @@ app.set('view engine', 'ejs');
 app.use(session({
   secret: 'a8f5f167f44f4964e6c998dff827110c',
   resave: false,
-  saveUninitialized: true
+  saveUninitialized: true,
+  cookie: { maxAge: 60 * 60 * 1000 } // 60 minutes
 }));
 app.use(favicon(path.join(__dirname, 'favicon.png')));
 app.use(logger('dev'));

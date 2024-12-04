@@ -209,3 +209,15 @@ sessions.forEach((session) => {
   let distance  = startTimeSession - now
   console.log(distance);
 })
+
+
+================================ HOW TO USE =======================================================
+1. All tasks assigned in Microsoft Project for the current week will appear here.
+2. To log work on a task, click the SAVE button to enter the details.
+3 .Add the Actual Start and Finish Date and the number of hours worked on the task.
+4. If a task is incomplete, choose No, needs more work. This allows you to update it later with additional work hours.
+5. If a task is complete, enter the details and choose the option to mark it as complete and submit.
+6. If you are working on a previously incomplete task, enter the hours worked on that particular day.
+7. Please update the tasks which are incomplete every day.
+8. At the end of the week, click SUBMIT TO MANAGER so the manager can review and approve your tasks and work done.
+9. If you are working on a task not assigned by the Project Manager, click ADD A TASK and enter the details. If a task is incomplete, choose No, needs more work. This allows you to update it later with additional work hours. If a task is complete, enter the details and choose the option to mark it as complete and submit.

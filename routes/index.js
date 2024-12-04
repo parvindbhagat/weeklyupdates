@@ -13,24 +13,24 @@ const qs = require("qs");
 // function to check user is logged in with MSAL Auth flow
 function isAuthenticated(req, res, next) {
   if (req.session && req.session.user) {
-    console.log("User is logged in, calling next");
+    // console.log("User is logged in, calling next");
     return next();
   } else {
     req.session.originalUrl = req.originalUrl; // Store the original URL
-    console.log(
-      "User Not logged in, stored url and redirecting to /login, stored usl is: ",
-      req.session.originalUrl
-    );
+    // console.log(
+    //   "User Not logged in, stored url and redirecting to /login, stored usl is: ",
+    //   req.session.originalUrl
+    // );
     res.redirect("/login");
   }
 }
 async function isAdmin(req, res, next) {
   if (req.session && req.session.user) {
-    console.log("User is logged in, checking user Role in resource model.");
+    // console.log("User is logged in, checking user Role in resource model.");
     const user = req.session.user;
     const resource = await resourceModel.findOne({resourceName: user.name});
     if(!resource){
-      console.log("user not found in db. sending to /profile");
+      // console.log("user not found in db. sending to /profile");
       res.redirect('/profile');
     } else{
       if(resource.resourceRole === "Admin"){
@@ -42,10 +42,10 @@ async function isAdmin(req, res, next) {
   
   } else {
     req.session.originalUrl = req.originalUrl; // Store the original URL
-    console.log(
-      "User Not logged in, stored url and redirecting to /login, stored usl is: ",
-      req.session.originalUrl
-    );
+    // console.log(
+    //   "User Not logged in, stored url and redirecting to /login, stored usl is: ",
+    //   req.session.originalUrl
+    // );
     res.redirect("/login");
   }
 }
@@ -53,11 +53,11 @@ async function isAdmin(req, res, next) {
 //function to check if user is a MANAGER also allow Admin role to go to this page
 async function isManager(req, res, next) {
   if (req.session && req.session.user) {
-    console.log("User is logged in, checking user Role in resource model.");
+    // console.log("User is logged in, checking user Role in resource model.");
     const user = req.session.user;
     const resource = await resourceModel.findOne({resourceName: user.name});
     if(!resource){
-      console.log("user not found in db. sending to /profile");
+      // console.log("user not found in db. sending to /profile");
       res.redirect('/profile');
     } else{
       if(resource.resourceRole === "Manager" || resource.resourceRole === "Admin"){
@@ -70,10 +70,10 @@ async function isManager(req, res, next) {
   
   } else {
     req.session.originalUrl = req.originalUrl; // Store the original URL
-    console.log(
-      "User Not logged in, stored url and redirecting to /login, stored usl is: ",
-      req.session.originalUrl
-    );
+    // console.log(
+    //   "User Not logged in, stored url and redirecting to /login, stored usl is: ",
+    //   req.session.originalUrl
+    // );
     res.redirect("/login");
   }
 }
@@ -120,7 +120,7 @@ router.get("/", async (req, res) => {
 //admin page
 router.get("/admin", isAdmin, async (req, res) => {
   const user = req.session.user;
-  console.log("logged in user to /admin page is: ", user.name);
+  // console.log("logged in user to /admin page is: ", user.name);
   const tasks = await taskModel.find();
 
   // Process data to get the count of tasks per projectName and their completion status
@@ -197,7 +197,7 @@ router.get("/test", ensureEscalationAuth, async (req, res) => {
         task.level = "Escalation Level 3";
       }
     } else {
-      console.log(`Task ${index + 1} is within deadline.`);
+      // console.log(`Task ${index + 1} is within deadline.`);
     }
   });
   // console.log("plaintasks array is:" )
@@ -381,17 +381,17 @@ router.post("/escadmin", async (req, res) => {
 router.get("/createactivity", ensureActivityAuth,
   async function (req, res, next) {
     const search = req.query.search || "";
-    console.log(search);
+    // console.log(search);
     let activities;
 
     if (search) {
-      console.log("search term is availale, calling findrecords... function.");
+      // console.log("search term is availale, calling findrecords... function.");
       try {
         activities = await findRecordsByFields(search);
       } catch (error) {
         console.error("Error fetching activities:", error);
       }
-      console.log(activities.length);
+      // console.log(activities.length);
     } else {
       activities = await activityModel.find().sort({ updatedOn: -1 });
     }
@@ -728,42 +728,7 @@ async function findRecordsByFields(searchTerm) {
   }
 }
 
-async function updateStatusField() {
-  try {
-    // Find all documents where status is of type Boolean
-    const documents = await activityModel.find({ status: { $type: "bool" } });
 
-    if (documents.length === 0) {
-      console.log("No status of type Bool found.");
-    } else {
-      console.log(documents);
-      // Iterate through each document and update the status field
-      for (let doc of documents) {
-        console.log(
-          `Before update: ${
-            doc.status
-          } and type of status is ${typeof doc.status}`
-        ); // Debugging statement
-        //doc.status = doc.status ? 'Completed' : 'On Going'; // Convert Boolean to specific String values
-        if (doc.status === "true") {
-          doc.status = "Completed";
-        } else {
-          doc.status = "On Going";
-        }
-        console.log(
-          `After update: ${
-            doc.status
-          } and type of status is ${typeof doc.status}`
-        ); // Debugging statement
-        await doc.save();
-      }
-
-      console.log("Status field updated successfully for all documents.");
-    }
-  } catch (error) {
-    console.error("Error updating status field:", error);
-  }
-}
 ///////////////////////////////////////////////////MSAL and PWA routes here ////////////////////////////////////////////////////////
 
 //start MSAL auth process to get auth code with pwa scope
@@ -843,7 +808,7 @@ router.get("/profile", isAuthenticated, async (req, res, next) => {
         map[resource.resourceId] = resource.resourceName;
         return map;
       }, {});
-      console.log(resourceMap);
+      // console.log(resourceMap);
       // Update each resource with the manager's name
       for (const resource of resources) {
         if (
@@ -906,7 +871,7 @@ router.get("/profile", isAuthenticated, async (req, res, next) => {
             // console.log(`The resource data is: ${resource} `);
             try {
               await resource.save();
-              console.log(`saved resource: ${ResourceName}`);
+              // console.log(`saved resource: ${ResourceName}`);
             } catch (error) {
               console.error(`Error saving resource: ${ResourceName}`, error);
             }
@@ -1067,7 +1032,7 @@ const endDateString = formatDateToLocalISOString(endDate);
 });
 
 // /profile method post to SAVE Manual Task Entries.  /////////////////////////////////////////////////////////////////////////////////////////////////
-router.post("/profile", async (req, res) => {
+router.post("/profile", isAuthenticated, async (req, res) => {
   try {
     if(!req.session.user) {
       let sessions;
@@ -1075,7 +1040,7 @@ router.post("/profile", async (req, res) => {
     }
 
     const user = req.session.user;
-    console.log("user details at /post profile is : ", user);  //dev req
+    // console.log("user details at /post profile is : ", user);  //dev req
     const resourceName = user.name
     const resource = await resourceModel.findOne({resourceName: resourceName });
     const resourceId = resource.resourceId;
@@ -1102,7 +1067,7 @@ router.post("/profile", async (req, res) => {
       actualFinish: Finish,
       Finish: Finish,
       actualWork: actualWork,
-      taskCompletePercent: completed,
+      leapComplete: completed,
       LeapSync: LEAPApplicationSync,
       source: source,
       saved: saved,
@@ -1116,8 +1081,8 @@ router.post("/profile", async (req, res) => {
     try {
       const savedTask = await task.save();
       if(savedTask){
-        console.log("saved the task successfully: ", taskName);
-        console.log(savedTask);
+        // console.log("saved the task successfully: ", taskName);
+        // console.log(savedTask);
         // res.render('profile', {msg: "Task added successfully. Awaiting for Manager Approval."});
         res.redirect("/profile?msg=successadd");
       } else{
@@ -1198,8 +1163,8 @@ router.get("/monthlyplan", async(req, res) => {
 const startDateString = formatDateToLocalISOString(monthStart);
 const endDateString = formatDateToLocalISOString(monthEnd);
 
-console.log('startDateString is: ', startDateString);
-console.log("enddateStrin is:",endDateString );
+// console.log('startDateString is: ', startDateString);
+// console.log("enddateStrin is:",endDateString );
 const activities = await taskModel.find({
   $and: [
     {
@@ -1227,11 +1192,11 @@ const activities = await taskModel.find({
     acc[activity.typeofActivity].push(activity);
     return acc;
   }, {});
-  console.log("length of activities is: ", activities.length);
+  // console.log("length of activities is: ", activities.length);
   res.render('monthlyplan', {groupedActivities, monthStart, monthEnd} );
 });
 // LOGOUT route  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-router.post("/logout", (req, res) => {
+router.post("/logout", isAuthenticated, (req, res) => {
   req.session.destroy((err) => {
     if (err) {
       return res.status(500).send("Failed to logout");
@@ -1253,12 +1218,12 @@ router.get('/refreshresourcelist', isAdmin, async (req, res) => {
   const user = req.session.user;
   let sessions;
   if(!user || !accessToken){
-    console.log("Either User or Access Token is missing.");
+    // console.log("Either User or Access Token is missing.");
     res.render('/', {sessions, msg: "Please login to proceed with the action."});
   }
   try {
     const result = await resourceModel.deleteMany({});
-    console.log(`Deleted ${result.deletedCount} documents from the resourceModel collection.`);
+    // console.log(`Deleted ${result.deletedCount} documents from the resourceModel collection.`);
   } catch (error) {
     console.error('Error deleting documents:', error);
   }
@@ -1290,7 +1255,7 @@ router.get('/refreshresourcelist', isAdmin, async (req, res) => {
           map[resource.resourceId] = resource.resourceName;
           return map;
         }, {});
-        console.log(resourceMap);
+        // console.log(resourceMap);
         // Update each resource with the manager's name
         for (const resource of resources) {
           if (
@@ -1353,7 +1318,7 @@ router.get('/refreshresourcelist', isAdmin, async (req, res) => {
               // console.log(`The resource data is: ${resource} `);
               try {
                 await resource.save();
-                console.log(`saved resource: ${ResourceName}`);
+                // console.log(`saved resource: ${ResourceName}`);
               } catch (error) {
                 console.error(`Error saving resource: ${ResourceName}`, error);
               }
@@ -1399,10 +1364,10 @@ router.get("/refreshdatabase", isAdmin, async (req, res) => {
     );
     const allprojects = projectAPIresponse.data.value;
     if (!Array.isArray(allprojects)) {
-      console.log("allproject is not an array, converting it to array.");
+      // console.log("allproject is not an array, converting it to array.");
       allprojects = [allprojects];
     } else{
-      console.log("allprojects is  an array.");
+      // console.log("allprojects is  an array.");
     }
     // console.log("type of allprojects is: ", allprojects);
     //get data from Tasks API
@@ -1546,7 +1511,7 @@ router.get("/alltasks", isAdmin, async (req, res) => {
               },
             }
           );
-          console.log(`Updated tasks for projectId: ${ProjectId}`);
+          // console.log(`Updated tasks for project: ${ProjectName}`);
         }
       } catch (error) {
         console.error("Error updating tasks:", error);
@@ -1570,9 +1535,9 @@ router.get("/alltasks", isAdmin, async (req, res) => {
                 },
               }
             );
-            console.log(
-              `Updated taskId: ${task.taskId} with resourceId: ${assignment.ResourceId} and resourceName: ${assignment.ResourceName}`
-            );
+            // console.log(
+            //   `Updated taskId: ${task.taskId} with resourceId: ${assignment.ResourceId} and resourceName: ${assignment.ResourceName}`
+            // );
           }
         }
       } catch (error) {
@@ -1601,17 +1566,17 @@ router.get("/alltasks", isAdmin, async (req, res) => {
               }
             );
             const allprojects = projectAPIresponse.data.value;
-            console.log(
-              `The number of Projects in the total, from projects api response are: ${allprojects.length}`
-            );
+            // console.log(
+            //   `The number of Projects in the total, from projects api response are: ${allprojects.length}`
+            // );
             // console.log('All Projects  that is projectapiresponse.data.value is: ', allprojects);
             const ongoingProjects = allprojects.filter(
               (project) => project.ProjectPercentCompleted < 100
             );
-            console.log(
-              "The length of ongoing projects list is: ",
-              ongoingProjects.length
-            );
+            // console.log(
+            //   "The length of ongoing projects list is: ",
+            //   ongoingProjects.length
+            // );
                           // Fetch assignments for each project ===================================
                           const assignmentsPromises = ongoingProjects.map(
                             async (project) => {
@@ -1735,7 +1700,7 @@ router.get("/alltasks", isAdmin, async (req, res) => {
       if (resource.resourceRole === "Admin") {
         console.log("Admin logged in", userName);
         initializeTasks();
-        const tasks = await taskModel.find().sort({start: -1});
+        const tasks = await taskModel.find().sort({projectName: 1});
         console.log("rendering incomplete tasks from DB and length is: ", tasks.length);
         res.render("alltasks", { tasks });
       } else {
@@ -1755,7 +1720,7 @@ router.get("/alltasks", isAdmin, async (req, res) => {
 router.post('/savetask', isAuthenticated, async (req, res) => {
   let { activityId, actualStart, actualFinish, actualWork, comment, completed } = req.body;
   const datedComment = "(" + new Date().toLocaleDateString('en-in') + ": " + actualWork + " Hrs)" + comment;
-  console.log('dated comment is: ', datedComment);
+  // console.log('dated comment is: ', datedComment);
   if(completed === 100){
     actualFinish = new Date();
   }
@@ -1766,7 +1731,7 @@ router.post('/savetask', isAuthenticated, async (req, res) => {
       actualWork: actualWork,
       userComment: datedComment,
       saved: 1,
-      taskCompletePercent: completed,
+      leapComplete: completed,
       approvalStatus: "Saved, Awaiting Submission"
   });
   if(!save){
@@ -1798,7 +1763,7 @@ router.post('/updatetask', isAuthenticated, async (req, res) => {
           actualFinish: actualFinish,
           actualWork: Number(existingWorkDone) + Number(actualWork),
           userComment: newComment,
-          taskCompletePercent: completed,
+          leapComplete: completed,
       });
       if(!update){
         console.log("Failed to update Task data.");
@@ -1868,10 +1833,10 @@ router.post('/approve', isManager, async (req, res) => {
     let approved = 0;
     let reassigned = 0;
     const { resourceName } = req.body;
-    console.log("/approve is running. Resource name is: ", resourceName);
+    // console.log("/approve is running. Resource name is: ", resourceName);
 
     const tasks = await taskModel.find({ resourceName: resourceName, submitted: 1 });
-    console.log("Result of db find: ", tasks);
+    // console.log("Result of db find: ", tasks);
 
     const updatePromises = tasks.map(async (task) => {
       if (task.taskCompletePercent === 100) {
@@ -1901,17 +1866,17 @@ router.post('/approve', isManager, async (req, res) => {
 router.post('/reassign', isManager, async (req, res) => {
   try {
     const {resourceName, comment} = req.body;
-    console.log('req body resource name is: ', resourceName);
-    console.log('req body comment is: ', comment);
+    // console.log('req body resource name is: ', resourceName);
+    // console.log('req body comment is: ', comment);
     const tasks = await taskModel.find({resourceName: resourceName, submitted: 1});
-    console.log("Result of db find: ", tasks);
+    // console.log("Result of db find: ", tasks);
     if (tasks.length > 0) {
       // Update all matching tasks
       await taskModel.updateMany(
         { resourceName: resourceName, submitted: 1 },
         { $set: { submitted: 0, approvalStatus: "Reassigned" } }
       );
-      console.log(`${tasks.length} tasks reassigned.`);
+      // console.log(`${tasks.length} tasks reassigned.`);
     }
     const result = await resourceModel.findOneAndUpdate({resourceName: resourceName}, {managerComment: comment});
 

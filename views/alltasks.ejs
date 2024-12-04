@@ -14,8 +14,10 @@
       </a>
 </nav>
 <div class="d-flex flex-row-reverse gap-3 me-5 mt-2">
-  <a class="ms-3" href="/">Home</a> <br>
-  <a class="ms-3" href="/admin">Admin Console</a>
+  <button> <a href="/">Home</a> </button>  <br>
+  <button><a  id="adminBtn" href="/admin">Admin Console</a></button>
+  <button id="filterButton" class="btn btn-primary border-0">Tasks to Update</button>
+
 </div>
     <h1 class="text-center">All tasks in Database!</h1>
     <!-- <input type="radio" class="btn-check" name="options-outlined" id="success-outlined" autocomplete="off" checked>
@@ -29,7 +31,7 @@
             <thead >
               <tr>
                   <th class="bg-warning px-2">Project</th>
-                  <th class="bg-warning px-2">Parent Task Name + Task Name</th>
+                  <th class="bg-warning px-2">Parent Task Name - Task Name</th>
                   <th class="bg-warning px-2">Type Of Activity</th>
                   <th class="bg-warning px-2">Resource</th>
                   <th class="bg-warning px-2">Start</th>
@@ -86,6 +88,29 @@
         document.body.scrollTop = 0;
         document.documentElement.scrollTop = 0;
     }
+</script>
+<!-- script to filter tasks that are aprroved and completed by user and still show incomplete in PWA. -->
+<script>
+  document.getElementById('filterButton').addEventListener('click', function() {
+      const rows = document.querySelectorAll('.tableData');
+      let anyMatch = false;
+
+      rows.forEach(row => {
+          const status = row.cells[10].innerText.trim();
+          const completed = row.cells[11].innerText.trim();
+          if (status === 'Approved' && completed === 'No') {
+              row.style.display = '';
+              anyMatch = true;
+          } else {
+              row.style.display = 'none';
+          }
+      });
+
+      if (!anyMatch) {
+          alert('All tasks are up to date with PWA');
+          rows.forEach(row => row.style.display = '');
+      }
+  });
 </script>
   </body>
 </html>
