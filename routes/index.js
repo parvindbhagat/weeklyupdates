@@ -1047,9 +1047,11 @@ router.post("/profile", isAuthenticated, async (req, res) => {
     const {projectName, taskName, actualStart, actualFinish, actualWork, userComment, completed} = req.body;
     const start = actualStart + "T00:00:00";
    
-    let Finish = actualFinish + "T00:00:00";
-    if(completed === 100){
-       Finish = newDate();  
+    let Finish;
+    if(completed === '100'){
+       Finish = new Date().toLocaleDateString('en-IN').split("/").reverse().map(part => part.padStart(2, '0')).join("-") + "T00:00:00";
+    } else {
+      Finish = actualFinish + "T00:00:00";
     }
     // const completePercent = 100;
     const source = "MTE";
@@ -1182,7 +1184,7 @@ const activities = await taskModel.find({
     },
     { source: "PWA" }
   ]  
-}).sort({ start: 1 });  //returns activities with start/finish between current weekor activity that either starts or finish in current week.
+}).sort({ typeofActivity: 1 });  //returns activities with start/finish between current weekor activity that either starts or finish in current week.
 
   // Group activities by typeofActivity
   const groupedActivities = activities.reduce((acc, activity) => {
@@ -1721,13 +1723,13 @@ router.post('/savetask', isAuthenticated, async (req, res) => {
   let { activityId, actualStart, actualFinish, actualWork, comment, completed } = req.body;
   const datedComment = "(" + new Date().toLocaleDateString('en-in') + ": " + actualWork + " Hrs)" + comment;
   // console.log('dated comment is: ', datedComment);
-  if(completed === 100){
-    actualFinish = new Date();
+  if(completed === '100'){
+    actualFinish = new Date().toLocaleDateString('en-IN').split("/").reverse().map(part => part.padStart(2, '0')).join("-") + "T00:00:00";
   }
   // save the activity in the database
   const save = await taskModel.findByIdAndUpdate(activityId, {
       actualStart: actualStart + "T00:00:00",
-      actualFinish: actualFinish + "T00:00:00",
+      actualFinish: actualFinish,
       actualWork: actualWork,
       userComment: datedComment,
       saved: 1,
@@ -1752,8 +1754,9 @@ router.post('/updatetask', isAuthenticated, async (req, res) => {
   const existingWorkDone = existingTask.actualWork;
   const previousComment = existingTask.userComment || ""; // Get the existing comment or an empty string if none exists
   let actualFinish = existingTask.actualFinish;
-  if(completed === 100){
-     actualFinish = new Date().toLocaleDateString('en-in');
+  console.log(typeof completed);
+  if(completed === '100'){
+     actualFinish = new Date().toLocaleDateString('en-IN').split("/").reverse().map(part => part.padStart(2, '0')).join("-") + "T00:00:00";
   }
   const datedComment = "(" + new Date().toLocaleDateString('en-in') + ": " + actualWork + " Hrs) " + comment; 
   const newComment = previousComment + "; " + datedComment; // Concatenate the previous comment with the new dated comment

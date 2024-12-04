@@ -342,11 +342,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         <input type="text" class="form-control" id="taskName" name="taskName" readonly>
                     </div>
                     <div class="mb-3">
-                        <label for="scheduledStart" class="form-label">Scheduled Start</label>
+                        <label for="scheduledStart" class="form-label">Planned Start</label>
                         <input type="text" class="form-control" id="scheduledStart" name="scheduledStart" readonly>
                     </div>
                     <div class="mb-3">
-                        <label for="scheduledFinish" class="form-label">Scheduled Finish</label>
+                        <label for="scheduledFinish" class="form-label">Planned Finish</label>
                         <input type="text" class="form-control" id="scheduledFinish" name="scheduledFinish" readonly>
                     </div>
                     <div class="mb-3">
@@ -365,8 +365,8 @@ document.addEventListener('DOMContentLoaded', function() {
                       <label for="status_sv" class="form-label">Is the task Completed?</label>
                       <select id="status_sv" class="form-select my-2" name="completed" aria-label="Default select example" required>  
                         <option selected>Pick an option.</option>                    
-                        <option value="0">No, Needs more work.</option>
-                        <option value="100">Yes, Mark as completed.</option>
+                        <option value=0>No, Needs more work.</option>
+                        <option value=100>Yes, Mark as completed.</option>
                       </select>
                   </div>
                     <div class="mb-3">
@@ -423,8 +423,8 @@ document.addEventListener('DOMContentLoaded', function() {
             <label for="status_nt" class="form-label">Is the task Completed?</label>
             <select id="status_nt" class="form-select my-2" name="completed" aria-label="Default select example" required>
               <option selected>Pick an option.</option>
-              <option value="0">No, Needs more work.</option>
-              <option value="100">Yes, Mark as completed.</option>
+              <option value=0>No, Needs more work.</option>
+              <option value=100>Yes, Mark as completed.</option>
             </select>
             <div class="mb-3">
               <label for="" class="form-label">userComment</label>
@@ -459,11 +459,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         <input type="text" class="form-control" id="taskName_uf" name="taskName" readonly>
                     </div>
                     <div class="mb-3">
-                        <label for="scheduledStart_uf" class="form-label">Scheduled Start</label>
+                        <label for="scheduledStart_uf" class="form-label">Planned Start</label>
                         <input type="text" class="form-control" id="scheduledStart_uf" name="scheduledStart" readonly>
                     </div>
                     <div class="mb-3">
-                        <label for="scheduledFinish_uf" class="form-label">Scheduled Finish</label>
+                        <label for="scheduledFinish_uf" class="form-label">Planned Finish</label>
                         <input type="text" class="form-control" id="scheduledFinish_uf" name="scheduledFinish" readonly>
                     </div>
                     <!-- <div class="mb-3">
@@ -475,12 +475,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         <input type="text" class="form-control" id="actualFinish_uf" name="actualFinish">
                     </div> -->
                     <div class="mb-3">
-                      <label for="workSoFar_uf" class="form-label">Work done so far</label>
+                      <label for="workSoFar_uf" class="form-label">Work (in hours) done so far...</label>
                       <input type="number" class="form-control" id="workSoFar_uf" name="workSoFar" readonly>
                   </div>
                     <div class="mb-3">
-                        <label for="actualWork_uf" class="form-label">Add Work Hours for this update</label>
-                        <input type="number" value="0" class="form-control" id="actualWork_uf" name="actualWork" >
+                        <label for="actualWork_uf" class="form-label">Add Work in Hours for this update</label>
+                        <input type="number" value=0 class="form-control" id="actualWork_uf" name="actualWork" >
                     </div>
                     <div class="mb-3">
                         <label for="comment_uf" class="form-label">Comment</label>
@@ -490,8 +490,8 @@ document.addEventListener('DOMContentLoaded', function() {
                       <label for="status_uf" class="form-label">Is the task Completed?</label>
                       <select id="status_uf" class="form-select my-2" name="completed" aria-label="Default select example" required>   
                         <option selected>Pick an option.</option>                   
-                        <option value="0">No, Needs more work.</option>
-                        <option value="100">Yes, Mark as completed.</option>
+                        <option value=0>No, Needs more work.</option>
+                        <option value=100>Yes, Mark as completed.</option>
                       </select>
                   </div>
                     <input type="hidden" id="activityId_uf" name="activityId">

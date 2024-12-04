@@ -69,8 +69,10 @@
     </div>
     <!-- <pre><%= JSON.stringify(tasks, null, 2) %></pre> -->
 
-    <p style="text-align: center;">End of task list.</p>
-
+    <div class="footer" >
+      <h4 class="footext">That was all!  </h4>
+      <!-- <p style=" text-align: center; position: relative; bottom: 1px;">Copyright © 2024  <a href="https://chrysalis.in" style="text-decoration: none;">Chrysalis HRD</a></p> -->
+    </div>
     <button id="topButton" onclick="scrollToTop()">TOP</button>
 
 <script>
@@ -91,7 +93,7 @@
         document.documentElement.scrollTop = 0;
     }
 </script>
-<!-- script to filter tasks that are aprroved and completed by user and still show incomplete in PWA. -->
+<!-- script to filter PWA tasks that are aprroved and completed by user and still show incomplete in PWA. -->
 <script>
   document.getElementById('filterButton').addEventListener('click', function() {
       const rows = document.querySelectorAll('.tableData');
