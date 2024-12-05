@@ -79,30 +79,16 @@ async function isManager(req, res, next) {
 }
 
 /* GET home page. */
-// router.get('/', async (req, res) => {
-//   try {
-
-//     const { startDate, endDate } = getDateRangeForWeek(getWeekNumber(new Date()), new Date().getFullYear());
-//     const activities = await activityModel.find({ weekNumber: getWeekNumber(new Date()) }).sort({startDate: 1});
-
-//     // Group activities by activityType
-//     const groupedActivities = activities.reduce((acc, activity) => {
-//       if (!acc[activity.activityType]) {
-//         acc[activity.activityType] = [];
-//       }
-//       acc[activity.activityType].push(activity);
-//       return acc;
-//     }, {});
-//     // console.log('Grouped Activities:', groupedActivities)
-
-//     res.render('index', { groupedActivities, startDate, endDate });
-//   } catch (error) {
-//     res.status(500).json({ message: 'Error fetching activities', error: error.message });
-//   }
-// });
+router.get('/', async (req, res) => {
+  try {
+        res.render('index');
+  } catch (error) {
+    res.status(500).json({ message: 'Error Loggin in to app.', error: error.message });
+  }
+});
 
 //GET HOME
-router.get("/", async (req, res) => {
+router.get("/home", isAuthenticated, async (req, res) => {
   const currentWeekNumber = getWeekNumber(new Date());
   const currentYear = new Date().getFullYear(); // to be used for filter as later the we will have same week number for current year and next year
   const sessions = await activityModel
@@ -775,7 +761,7 @@ router.get("/oauth/redirect", async (req, res) => {
 //profile page to land after access token authenticated also initialize resource MOdel if empty  /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 router.get("/profile", isAuthenticated, async (req, res, next) => {
   if (!req.session.user) {
-    return res.redirect("/");
+    return res.redirect("/home");
   }
   function encodeResourceName(name) {
     return qs.stringify({ name }).split("=")[1];
@@ -925,25 +911,25 @@ const endDateString = formatDateToLocalISOString(endDate);
                 {
                     $and: [
                         { Finish: { $lt: startDateString } },
-                        { taskCompletePercent: { $lt: 100 } }
+                        { leapComplete: { $lt: 100 } }
                     ] // finished before current week but still incomplete
                 },
                 {
                     $and: [
                         { start: { $gte: startDateString, $lte: endDateString } },
-                        { taskCompletePercent: { $eq: 100 } }
+                        { leapComplete: { $eq: 100 } }
                     ] // completed tasks that started within the week
                 },
                 {
                     $and: [
                         { Finish: { $gte: startDateString, $lte: endDateString } },
-                        { taskCompletePercent: { $eq: 100 } }
+                        { leapComplete: { $eq: 100 } }
                     ] // completed tasks that finished within the week
                 },
                 {
                   $and: [
                       { Finish: { $lt: startDateString } },
-                      { taskCompletePercent: { $lt: 100 } },
+                      { leapComplete: { $lt: 100 } },
                       { submitted: { $ne: 2 } }
                   ] // finished before current week, its completes but still not approved by manager
               }
@@ -1103,7 +1089,7 @@ router.post("/profile", isAuthenticated, async (req, res) => {
 });
 
 // route to show activites for users from the pwa data stored in the database. //////////////////////////////////////////////////////////////////////////////////////
-router.get("/pwaactivities", async(req, res, next) => {
+router.get("/pwaactivities", isAuthenticated, async(req, res, next) => {
   const { startDate, endDate } = getDateRangeForWeek(
     getWeekNumber(new Date()),
     new Date().getFullYear()
@@ -1149,7 +1135,7 @@ const activities = await taskModel.find({
 });
 
 // route to render monthly plan for viewers
-router.get("/monthlyplan", async(req, res) => {
+router.get("/monthlyplan", isAuthenticated, async(req, res) => {
   const { startDate, endDate } = getDateRangeForWeek(
     getWeekNumber(new Date()),
     new Date().getFullYear()

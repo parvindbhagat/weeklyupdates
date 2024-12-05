@@ -260,7 +260,7 @@ document.addEventListener('DOMContentLoaded', function() {
               <td class="border border-gray-300 px-1 py-1 "><%= (activity.leapComplete < 100) ? "No" : "Yes" %></td>
               <td class="border border-gray-300 px-1 py-1 "><%= activity.userComment %></td>
               <td class="border border-gray-300 px-1 py-1 "><%= activity.approvalStatus %></td>
-              <td class="text-center px-2"><button class="btn btn-primary update-btn border border-gray-300" data-id="<%= activity._id %>">Update</button><button class="btn btn-primary save-btn border border-gray-300 hidden" data-id="<%= activity._id %>">Save</button></td>
+              <td class="text-center px-2"><button class="btn btn-primary update-btn border border-gray-300" data-id="<%= activity._id %>">Update</button><button class="btn btn-primary save-btn border border-gray-300 hidden" data-id="<%= activity._id %>">Edit</button></td>
             </tr>
           <% }); %>
           <tr>
@@ -396,7 +396,7 @@ document.addEventListener('DOMContentLoaded', function() {
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="staticBackdropLabel">Submit a new task.</h5>
+          <h5 class="modal-title" id="staticBackdropLabel">Save a new task.</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
@@ -432,7 +432,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
             <!-- <p> Alert! Once submitted, you cannot make any changes.</p> -->
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            <button type="submit" class="btn btn-primary" id="addTaskBtn" >Submit</button>
+            <button type="submit" class="btn btn-primary" id="addTaskBtn" >Save</button>
           </Form>
         </div>
       </div>

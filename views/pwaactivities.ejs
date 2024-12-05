@@ -128,7 +128,7 @@
           <td><%= activity.resourceName %></td>
           <td><%= activity.parentTaskName %></td>
           <td><%= activity.taskName %></td>
-          <td><%= (activity.leapComplete < 100) ? "On Going" : "Completed" %></td>
+          <td><%= (activity.taskCompletePercent < 100) ? "On Going" : "Completed" %></td>
         </tr>
       <% }); %>
     <% }); %>
