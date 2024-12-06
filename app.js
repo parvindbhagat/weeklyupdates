@@ -36,7 +36,7 @@ app.use('/', indexRouter);
 app.use('/activity', activityRouter);
 app.use('/escalation', escalationRouter);
 app.use('/resource', resourceRouter);
-app.unsubscribe('/task', taskRouter);
+app.use('/task', taskRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
