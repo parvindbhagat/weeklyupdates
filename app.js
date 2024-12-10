@@ -38,6 +38,11 @@ app.use('/escalation', escalationRouter);
 app.use('/resource', resourceRouter);
 app.use('/task', taskRouter);
 
+app.use((req, res, next) => {
+  console.log(`Instance: ${process.env.APP_NAME}, User: ${req.ip}, User-Agent: ${req.headers['user-agent']}`);
+  next();
+}); 
+
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
   res.render('404');

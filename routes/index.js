@@ -911,25 +911,25 @@ const endDateString = formatDateToLocalISOString(endDate);
                 {
                     $and: [
                         { Finish: { $lt: startDateString } },
-                        { leapComplete: { $lt: 100 } }
+                        { taskCompletePercent: { $lt: 100 } }
                     ] // finished before current week but still incomplete
                 },
                 {
                     $and: [
                         { start: { $gte: startDateString, $lte: endDateString } },
-                        { leapComplete: { $eq: 100 } }
+                        { taskCompletePercent: { $eq: 100 } }
                     ] // completed tasks that started within the week
                 },
                 {
                     $and: [
                         { Finish: { $gte: startDateString, $lte: endDateString } },
-                        { leapComplete: { $eq: 100 } }
+                        { taskCompletePercent: { $eq: 100 } }
                     ] // completed tasks that finished within the week
                 },
                 {
                   $and: [
                       { Finish: { $lt: startDateString } },
-                      { leapComplete: { $lt: 100 } },
+                      { taskCompletePercent: { $lt: 100 } },
                       { submitted: { $ne: 2 } }
                   ] // finished before current week, its completes but still not approved by manager
               }
