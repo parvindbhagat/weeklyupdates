@@ -262,21 +262,6 @@ router.get("/auth", (req, res) => {
   res.render("auth", { errorMessage });
 });
 
-// router.post('/auth', (req, res) => {
-//   const { code } = req.body;
-//   const validCodeA = process.env.VCA;
-//   const validCodeE = process.env.VCE
-
-//   if (code === validCodeA) {
-//       req.session.isAuthenticated = true;
-//       res.redirect('/createactivity');
-//   } else if (code === validCodeE) {
-//       req.session.isAuthenticated = true;
-//       res.redirect('/escview');
-//   }   else {
-//       res.redirect('/auth?error=invalid_code');
-//   }
-// });
 
 // router to distinguis different code and session for authentication to access  activity admin and escalation section.
 router.post("/auth", (req, res) => {
