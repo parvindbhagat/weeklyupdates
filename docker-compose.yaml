@@ -37,8 +37,8 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: timesheet3
-    # ports:
-    #   - "5003:5000"
+    ports:
+      - "5003:5000"
     depends_on:
       - mongo
     restart: always

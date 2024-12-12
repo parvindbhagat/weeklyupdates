@@ -877,7 +877,7 @@ router.get("/profile", isAuthenticated, async (req, res, next) => {
   // const accessToken = req.session.token;
   const resourceName = user.name;
   // const encodedName = encodeResourceName(resourceName);
-  console.log("LOGGED IN USER to /profile is : ", resourceName);
+  console.log("LOGGED IN to /profile Name is : ", resourceName);
   await initializeResources();
   const resourceDetails = await resourceModel.findOne({
     resourceName: resourceName,
