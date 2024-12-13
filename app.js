@@ -9,7 +9,6 @@ const favicon = require('serve-favicon');
 
 var indexRouter = require('./routes/index');
 var activityRouter = require('./routes/activity');
-var escalationRouter = require('./routes/escalation');
 var resourceRouter = require('./routes/resource');
 var taskRouter = require('./routes/task');
 var app = express();
@@ -20,7 +19,7 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
 app.use(session({
-  secret: 'a8f5f167f44f4964e6c998dff827110c',
+  secret: process.env.EXPRESS_SESSION_SECRET,
   resave: false,
   saveUninitialized: true,
   cookie: { maxAge: 60 * 60 * 1000 } // 60 minutes
@@ -34,7 +33,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
 app.use('/activity', activityRouter);
-app.use('/escalation', escalationRouter);
 app.use('/resource', resourceRouter);
 app.use('/task', taskRouter);
 
