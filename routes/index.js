@@ -82,7 +82,7 @@ async function isManager(req, res, next) {
 //GET APP HOME
 router.get("/", async (req, res) => {  
     let msg = "";
-  res.render("home", { msg });
+  res.render("index", { msg });
 });
 
 router.get("/home", async (req, res) => {  

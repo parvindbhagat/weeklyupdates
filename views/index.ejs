@@ -13,35 +13,27 @@
 
   <link rel="stylesheet" href="/stylesheets/style.css">
   <style>
-    
-    th, td {
-      border: 1px solid #ddd;
-      padding: 8px;
+        body {
+      background-image: url("/images/BG_Home.jpg");
+      /* image path */
+      background-size: cover;
+      /* Ensures the image covers the entire background */
+      background-position: center;
+      /* Centers the image */
+      background-repeat: no-repeat;
+      /* Prevents the image from repeating */
+      background-attachment: fixed;
+      /* Keeps the background fixed during scroll */
+      padding: 0;
+      margin: 0;
+      box-sizing: border-box;
     }
-    
-    .tableData:nth-child(even) {
-      background-color: #f9f9f9;
+    h1, h4, p{
+      color: white;
     }
-    tr:hover {
-      background-color: #ddd;
-    }
-
-    .table-header {
-      text-align: center;
-      background-color: rgb(145, 145, 156);
-      padding: 8px;
-    }
-    .activity-type-row {
-      background-color: #e0e0e0;
-      font-weight: bold;
-    }
-    .activity-table {
-      width: 100%;
-      border-collapse: collapse;      
-    }
-    .activity-table th, .activity-table td {
-      border: 1px solid #ddd;
-      padding: 8px;
+    h1{
+      font-size: 10vw;
+      font-weight: bolder;
     }
   </style>
 </head>
@@ -53,14 +45,21 @@
           </a>          
         </div>
     </nav>
-    <a class="d-flex justify-content-center" href="/home">
+    <!-- <a class="d-flex justify-content-center" href="/home">
       <img style="height: inherit; width: auto;" src="/images/LEAPbyChrysalis.png" alt="LEAP logo" >
-    </a>
-    <h1 style="text-align: center; margin: 5rem;" >Welcome to Leap!</h1>
-    <div class="d-flex flex-column justify-content-between align-items-center">
-      <button class=" btn btn-lg" style="width: 8rem;"><a href="/home">Log in</a></button>
-      <div class="nothing mt-10"></div>      
-    </div>
+    </a> -->
+    <!-- <h1 style="text-align: center; margin: 5rem;" >Welcome to Leap!</h1> -->
+     <div class="d-flex flex-column justify-content-center align-items-center">
+       <div class="main_heading d-flex flex-column justify-content-center align-items-center my-3">
+         <h1>LEAP</h1>
+         <h4>Leading Effective Agile Projects</h4>
+        </div>
+        <div class="d-flex flex-column justify-content-between align-items-center mx-3 my-3">
+          <!-- <p>One stop solution for Chrysalis team. Just log in with your microsoft account i.e. chrysalishrd.com email provided by Chrysalis IT team.</p>
+          <p>* if you don't know your Chrysalishrd email id or password, please contact our it team.</p> -->
+          <button class=" btn btn-warning btn-lg" style="width: 8rem;"><a href="/home">Log in</a></button>
+        </div>     
+      </div>
   <script src="/javascripts/bootstrap.bundle.min.js"></script>
 </body>
 </html>
