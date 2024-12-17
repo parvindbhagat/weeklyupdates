@@ -19,7 +19,7 @@ html, body{
   min-height: 100vh;
 }
 .full-width{
-  width: 100%;
+  width: 100vw;
 }
 .hidden{
   display: none;
@@ -27,7 +27,7 @@ html, body{
 .navbar{
   padding: 0;
   background-color:var(--primary-color);
-  width: 100%;
+  width: 100vw;
   box-sizing: border-box;
 }
 

@@ -2,13 +2,13 @@ var express = require("express");
 var router = express.Router();
 const session = require("express-session");
 const taskModel = require("./task");
-const activityModel = require("./activity");
 const resourceModel = require("./resource");
 require("dotenv").config();
 const mongoose = require("mongoose");
 const axios = require("axios");
 const msal = require("../authconfig");
 const qs = require("qs");
+
 
 // function to check user is logged in with MSAL Auth flow
 function isAuthenticated(req, res, next) {
@@ -78,20 +78,16 @@ async function isManager(req, res, next) {
   }
 }
 
-/* GET home page. */
-router.get('/', async (req, res) => {
-  try {
-        res.render('index');
-  } catch (error) {
-    res.status(500).json({ message: 'Error Loggin in to app.', error: error.message });
-  }
-});
 
 //GET APP HOME
-router.get("/home", isAuthenticated, async (req, res) => {
-  
+router.get("/", async (req, res) => {  
     let msg = "";
   res.render("home", { msg });
+});
+
+router.get("/home", async (req, res) => {  
+  let msg = "";
+res.render("home", { msg });
 });
 
 //admin page
@@ -309,7 +305,6 @@ router.get("/profile", isAuthenticated, async (req, res, next) => {
               headers: {
                 Authorization: `Bearer ${accessToken}`,
                 Accept: "application/json",
-                "User-Agent": "MyNodeApp",
               },
             }
           );
@@ -365,49 +360,41 @@ router.get("/profile", isAuthenticated, async (req, res, next) => {
     getWeekNumber(new Date()),
     new Date().getFullYear()
   );
-  function formatDateToLocalISOString(date) {
-    const offset = date.getTimezoneOffset();
-    const localDate = new Date(date.getTime() - (offset * 60 * 1000));
-    return localDate.toISOString().split('T')[0] + 'T00:00:00';
-  }
-
-const startDateString = formatDateToLocalISOString(startDate);
-const endDateString = formatDateToLocalISOString(endDate);
-
+ 
   // const userTasks = await taskModel.find({resourceName: resourceName});
   const incompleteTasks = await taskModel.find({
     $and: [
         {
             $or: [
-                { start: { $gte: startDateString, $lte: endDateString } }, // starts within current week
-                { Finish: { $gte: startDateString, $lte: endDateString } }, // finishes within current week
+                { start: { $gte: startDate, $lte: endDate } }, // starts within current week
+                { Finish: { $gte: startDate, $lte: endDate } }, // finishes within current week
                 {
                     $and: [
-                        { start: { $lt: startDateString } },
-                        { Finish: { $gt: endDateString } }
+                        { start: { $lt: startDate } },
+                        { Finish: { $gt: endDate } }
                     ] // starts before current week and finishes after current week
                 },
                 {
                     $and: [
-                        { Finish: { $lt: startDateString } },
+                        { Finish: { $lt: startDate } },
                         { taskCompletePercent: { $lt: 100 } }
                     ] // finished before current week but still incomplete
                 },
                 {
                     $and: [
-                        { start: { $gte: startDateString, $lte: endDateString } },
+                        { start: { $gte: startDate, $lte: endDate } },
                         { taskCompletePercent: { $eq: 100 } }
                     ] // completed tasks that started within the week
                 },
                 {
                     $and: [
-                        { Finish: { $gte: startDateString, $lte: endDateString } },
+                        { Finish: { $gte: startDate, $lte: endDate } },
                         { taskCompletePercent: { $eq: 100 } }
                     ] // completed tasks that finished within the week
                 },
                 {
                   $and: [
-                      { Finish: { $lt: startDateString } },
+                      { Finish: { $lt: startDate } },
                       { taskCompletePercent: { $lt: 100 } },
                       { submitted: { $ne: 2 } }
                   ] // finished before current week, its completes but still not approved by manager
@@ -418,11 +405,6 @@ const endDateString = formatDateToLocalISOString(endDate);
     ]
 }).sort({start: 1});
 
-
-  // console.log('userTasks length is: ', userTasks.length);
-  //  const incompleteTasks = userTasks.filter((task) => {
-  //   return task.taskCompletePercent < 100;
-  //  });
    let msg = "";
     if (req.query.msg === "successadd") {
       msg = "New task added successfully.";
@@ -439,57 +421,7 @@ const endDateString = formatDateToLocalISOString(endDate);
     }
 
    res.render('profile', {user, incompleteTasks, resourceDetails, startDate, endDate, msg});  //  Actual data to be passed to view for usrs view.
-  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // console.log(`UserDetails are: ${resourceDetails}`);
-
-  // try {
-  //   // console.log('user account json is: ', user);
-  //   // console.log('the access token is: ', accessToken);
-  //   const projectapiresponse = await axios.get(
-  //     "https://chrysalishrd.sharepoint.com/pwa/_api/ProjectData/Projects",
-  //     {
-  //       headers: {
-  //         Authorization: `Bearer ${accessToken}`,
-  //         Accept: "application/json",
-  //         "User-Agent": "MyNodeApp",
-  //       },
-  //     }
-  //   );
-  //   const projects = projectapiresponse.data.value;
-  //   const ongoingProjects = projects.filter(
-  //     (project) => project.ProjectPercentCompleted < 100
-  //   );
-  //   console.log("number of ongoing Projects is: ", ongoingProjects.length);
-
-  //   // Fetch assignments for each project
-  //   const assignmentsPromises = ongoingProjects.map(async (project) => {
-  //     const projectId = project.ProjectId;
-  //     const assignmentsResponse = await axios.get(
-  //       `https://chrysalishrd.sharepoint.com/pwa/_api/ProjectData/Projects(guid'${projectId}')/Assignments?$filter=ResourceName %20eq%20'${encodedName}'`,
-  //       {
-  //         headers: {
-  //           Authorization: `Bearer ${accessToken}`,
-  //           Accept: "application/json",
-  //           "User-Agent": "MyNodeApp",
-  //         },
-  //       }
-  //     );
-
-  //     return assignmentsResponse.data.value;
-  //   });
-  //   const assignments = await Promise.all(assignmentsPromises);
-  //   const allAssignments = assignments.flat();
-
-  //   console.log(
-  //     `Total assignments from ongoing projects for ${user.name} are: ${allAssignments.length}`
-  //   );
-  //   const incompleteAssignments = allAssignments.filter(
-  //     (assignment) => assignment.AssignmentPercentWorkCompleted < 100
-  //   );
-  //   console.log(
-  //     `The total number of incomplete Assignements for ${user.name} are: ${incompleteAssignments.length}`
-  //   );
-  //   res.render("profile", { user, incompleteAssignments, resourceDetails });
+  
   } catch (error) {
     console.log(error.message);
     next(error);
@@ -510,14 +442,13 @@ router.post("/profile", isAuthenticated, async (req, res) => {
     const resource = await resourceModel.findOne({resourceName: resourceName });
     const resourceId = resource.resourceId;
     const {projectName, taskName, actualStart, actualFinish, actualWork, userComment, completed} = req.body;
-    const start = actualStart + "T00:00:00";
+    const start = new Date(actualStart);
    
-    let Finish;
+    let Finish = new Date(actualFinish);
     if(completed === '100'){
-       Finish = new Date().toLocaleDateString('en-IN').split("/").reverse().map(part => part.padStart(2, '0')).join("-") + "T00:00:00";
-    } else {
-      Finish = actualFinish + "T00:00:00";
-    }
+      console.log('the type of completed in the add a task form is', typeof completed);
+       Finish = new Date();
+    } 
     // const completePercent = 100;
     const source = "MTE";
     const LEAPApplicationSync = "No";
@@ -543,14 +474,10 @@ router.post("/profile", isAuthenticated, async (req, res) => {
       resourceName: resourceName,
       resourceId: resourceId,
       clientName: clientName,
-
     });
     try {
       const savedTask = await task.save();
       if(savedTask){
-        // console.log("saved the task successfully: ", taskName);
-        // console.log(savedTask);
-        // res.render('profile', {msg: "Task added successfully. Awaiting for Manager Approval."});
         res.redirect("/profile?msg=successadd");
       } else{
         console.log("error saving the task:", taskName);
@@ -573,28 +500,20 @@ router.get("/pwaactivities", isAuthenticated, async(req, res, next) => {
     getWeekNumber(new Date()),
     new Date().getFullYear()
   );
-  function formatDateToLocalISOString(date) {
-    const offset = date.getTimezoneOffset();
-    const localDate = new Date(date.getTime() - (offset * 60 * 1000));
-    return localDate.toISOString().split('T')[0] + 'T00:00:00';
-  }
-
-const startDateString = formatDateToLocalISOString(startDate);
-const endDateString = formatDateToLocalISOString(endDate);
 
 const activities = await taskModel.find({
   $and: [
     {
       $or: [
-        { start: { $gte: startDateString, $lte: endDateString } }, // starts within current week
-        { Finish: { $gte: startDateString, $lte: endDateString } },  //Finishes within current week
+        { start: { $gte: startDate, $lte: endDate } }, // starts within current week
+        { Finish: { $gte: startDate, $lte: endDate } },  //Finishes within current week
         {
           $and: [
-            { start: { $lt: startDateString } },
-            { Finish: { $gt: endDateString } }
+            { start: { $lt: startDate } },
+            { Finish: { $gt: endDate } }
           ]  // such task start before current week and will finish after current week.
         },
-        {       $and: [{Finish: { $lt: startDateString }, taskCompletePercent: {$lt: 100}}]         }  // Task has finish date in past week but its still incomplete
+        {       $and: [{Finish: { $lt: startDate }, taskCompletePercent: {$lt: 100}}]         }  // Task has finish date in past week but its still incomplete
       ]
     },
     { source: "PWA" }
@@ -615,36 +534,22 @@ const activities = await taskModel.find({
 
 // route to render monthly plan for viewers
 router.get("/monthlyplan", isAuthenticated, async(req, res) => {
-  const { startDate, endDate } = getDateRangeForWeek(
-    getWeekNumber(new Date()),
-    new Date().getFullYear()
-  );
   const {monthStart, monthEnd} = getDateRangeForMonth();
 
-  function formatDateToLocalISOString(date) {
-    const offset = date.getTimezoneOffset();
-    const localDate = new Date(date.getTime() - (offset * 60 * 1000));
-    return localDate.toISOString().split('T')[0] + 'T00:00:00';
-  }
 
-const startDateString = formatDateToLocalISOString(monthStart);
-const endDateString = formatDateToLocalISOString(monthEnd);
-
-// console.log('startDateString is: ', startDateString);
-// console.log("enddateStrin is:",endDateString );
 const activities = await taskModel.find({
   $and: [
     {
       $or: [
-        { start: { $gte: startDateString, $lte: endDateString } }, // starts within current week
-        { Finish: { $gte: startDateString, $lte: endDateString } },  //Finishes within current week
+        { start: { $gte: startDate, $lte: endDate } }, // starts within current week
+        { Finish: { $gte: startDate, $lte: endDate } },  //Finishes within current week
         {
           $and: [
-            { start: { $lt: startDateString } },
-            { Finish: { $gt: endDateString } }
+            { start: { $lt: startDate } },
+            { Finish: { $gt: endDate } }
           ]  // such task start before current week and will finish after current week.
         },
-        {       $and: [{Finish: { $lt: startDateString }, taskCompletePercent: {$lt: 100}}]         }  // Task has finish date in past week but its still incomplete
+        {       $and: [{Finish: { $lt: startDate }, taskCompletePercent: {$lt: 100}}]         }  // Task has finish date in past week but its still incomplete
       ]
     },
     { source: "PWA" }
@@ -758,7 +663,6 @@ router.get('/refreshresourcelist', isAdmin, async (req, res) => {
                 headers: {
                   Authorization: `Bearer ${accessToken}`,
                   Accept: "application/json",
-                  "User-Agent": "MyNodeApp",
                 },
               }
             );
@@ -825,7 +729,6 @@ router.get("/refreshdatabase", isAdmin, async (req, res) => {
         headers: {
           Authorization: `Bearer ${accessToken}`,
           Accept: "application/json",
-          "User-Agent": "MyNodeApp",
         },
       }
     );
@@ -846,7 +749,6 @@ router.get("/refreshdatabase", isAdmin, async (req, res) => {
           headers: {
             Authorization: `Bearer ${accessToken}`,
             Accept: "application/json",
-            "User-Agent": "MyNodeApp",
           },
         }
       );      
@@ -875,7 +777,6 @@ router.get("/refreshdatabase", isAdmin, async (req, res) => {
             headers: {
               Authorization: `Bearer ${accessToken}`,
               Accept: "application/json",
-              "User-Agent": "MyNodeApp",
             },
           }
         );
@@ -1028,7 +929,6 @@ router.get("/alltasks", isAdmin, async (req, res) => {
                 headers: {
                   Authorization: `Bearer ${accessToken}`,
                   Accept: "application/json",
-                  "User-Agent": "MyNodeApp",
                 },
               }
             );
@@ -1054,7 +954,6 @@ router.get("/alltasks", isAdmin, async (req, res) => {
                                   headers: {
                                     Authorization: `Bearer ${accessToken}`,
                                     Accept: "application/json",
-                                    "User-Agent": "MyNodeApp",
                                   },
                                 }
                               );
@@ -1075,7 +974,6 @@ router.get("/alltasks", isAdmin, async (req, res) => {
                   headers: {
                     Authorization: `Bearer ${accessToken}`,
                     Accept: "application/json",
-                    "User-Agent": "MyNodeApp",
                   },
                 }
               );
@@ -1189,12 +1087,12 @@ router.post('/savetask', isAuthenticated, async (req, res) => {
   const datedComment = "(" + new Date().toLocaleDateString('en-in') + ": " + actualWork + " Hrs)" + comment;
   // console.log('dated comment is: ', datedComment);
   if(completed === '100'){
-    actualFinish = new Date().toLocaleDateString('en-IN').split("/").reverse().map(part => part.padStart(2, '0')).join("-") + "T00:00:00";
+    actualFinish = new Date();
   }
   // save the activity in the database
   const save = await taskModel.findByIdAndUpdate(activityId, {
-      actualStart: actualStart + "T00:00:00",
-      actualFinish: actualFinish,
+      actualStart: new Date(actualStart),
+      actualFinish: new Date(actualFinish),
       actualWork: actualWork,
       userComment: datedComment,
       saved: 1,
@@ -1221,14 +1119,15 @@ router.post('/updatetask', isAuthenticated, async (req, res) => {
   let actualFinish = existingTask.actualFinish;
   console.log(typeof completed);
   if(completed === '100'){
-     actualFinish = new Date().toLocaleDateString('en-IN').split("/").reverse().map(part => part.padStart(2, '0')).join("-") + "T00:00:00";
+    console.log(`completed value from the update task form has type`, typeof completed);
+     actualFinish = new Date();
   }
   const datedComment = "(" + new Date().toLocaleDateString('en-in') + ": " + actualWork + " Hrs) " + comment; 
   const newComment = previousComment + "; " + datedComment; // Concatenate the previous comment with the new dated comment
 
   try {
       const update = await taskModel.findByIdAndUpdate(activityId, {
-          actualFinish: actualFinish,
+          actualFinish: new Date(actualFinish),
           actualWork: Number(existingWorkDone) + Number(actualWork),
           userComment: newComment,
           leapComplete: completed,

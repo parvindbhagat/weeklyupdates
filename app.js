@@ -5,14 +5,19 @@ var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 const session = require('express-session');
 const favicon = require('serve-favicon');
+const mongoose = require('mongoose');
 
 
 var indexRouter = require('./routes/index');
-var activityRouter = require('./routes/activity');
 var resourceRouter = require('./routes/resource');
 var taskRouter = require('./routes/task');
 var app = express();
 
+mongoose.connect(process.env.MONGO_URI, {}).then(() => {
+  console.log('Connected to MongoDB');
+}).catch(err => {
+  console.error('Error connecting to MongoDB', err);
+});
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -32,12 +37,11 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
-app.use('/activity', activityRouter);
 app.use('/resource', resourceRouter);
 app.use('/task', taskRouter);
 
 app.use((req, res, next) => {
-  console.log(`Instance: ${process.env.APP_NAME}, User: ${req.ip}, User-Agent: ${req.headers['user-agent']}`);
+  console.log(`Instance: ${process.env.APP_NAME}, User: ${req.ip}`);
   next();
 }); 
 
