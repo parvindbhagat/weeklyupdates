@@ -500,6 +500,7 @@ router.get("/pwaactivities", isAuthenticated, async(req, res, next) => {
     getWeekNumber(new Date()),
     new Date().getFullYear()
   );
+  // console.log('startdate of week is of type', typeof startDate);
 
 const activities = await taskModel.find({
   $and: [
@@ -535,7 +536,8 @@ const activities = await taskModel.find({
 // route to render monthly plan for viewers
 router.get("/monthlyplan", isAuthenticated, async(req, res) => {
   const {monthStart, monthEnd} = getDateRangeForMonth();
-
+const startDate = new Date(monthStart);
+const endDate = new Date(monthEnd);
 
 const activities = await taskModel.find({
   $and: [

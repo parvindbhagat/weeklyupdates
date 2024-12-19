@@ -28,6 +28,24 @@
       margin: 0;
       box-sizing: border-box;
     }
+    .parent {
+  position: relative;
+  height: 80vh; /* Full viewport height */
+}
+
+.centered-div {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 80%; /* Adjust width for mobile screens */
+  max-width: 450px; /* Optional: limit the maximum width */
+  padding: 10px; /* Optional: add some padding */
+  box-sizing: border-box; /* Include padding in the element's total width and height */
+  /* background-color: #f0f0f0; Optional: add a background color */
+  text-align: center; /* Center text inside the div */
+}
+
     h1, h4, p{
       color: white;
     }
@@ -45,21 +63,13 @@
           </a>          
         </div>
     </nav>
-    <!-- <a class="d-flex justify-content-center" href="/home">
-      <img style="height: inherit; width: auto;" src="/images/LEAPbyChrysalis.png" alt="LEAP logo" >
-    </a> -->
-    <!-- <h1 style="text-align: center; margin: 5rem;" >Welcome to Leap!</h1> -->
-     <div class="d-flex flex-column justify-content-center align-items-center">
-       <div class="main_heading d-flex flex-column justify-content-center align-items-center my-3">
-         <h1>LEAP</h1>
-         <h4>Leading Effective Agile Projects</h4>
-        </div>
-        <div class="d-flex flex-column justify-content-between align-items-center mx-3 my-3">
-          <!-- <p>One stop solution for Chrysalis team. Just log in with your microsoft account i.e. chrysalishrd.com email provided by Chrysalis IT team.</p>
-          <p>* if you don't know your Chrysalishrd email id or password, please contact our it team.</p> -->
-          <button class=" btn btn-warning btn-lg" style="width: 8rem;"><a href="/home">Log in</a></button>
-        </div>     
-      </div>
+<div class="parent">
+  <div  class="main_heading centered-div d-flex flex-column justify-content-center align-items-center my-3 py-3">
+    <h1>LEAP</h1>
+    <h4>Leading Effective Agile Projects</h4>
+    <button class=" btn btn-warning btn-lg" style="width: 8rem;"><a href="/home">Log in</a></button>
+  </div>
+</div>
   <script src="/javascripts/bootstrap.bundle.min.js"></script>
 </body>
 </html>

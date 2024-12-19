@@ -12,7 +12,7 @@ const config = {
         console.log(message);
       },
       piiLoggingEnabled: false,
-      logLevel: msal.LogLevel.Info,
+      logLevel: msal.LogLevel.Verbose,
     }
   }
 };
