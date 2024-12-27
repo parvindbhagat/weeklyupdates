@@ -85,6 +85,10 @@ router.get("/", async (req, res) => {
   res.render("index", { msg });
 });
 
+router.get("/test", async (req, res) => {
+res.render("test");
+});
+
 router.get("/home", async (req, res) => {  
   let msg = "";
 res.render("home", { msg });
