@@ -139,21 +139,39 @@ function getWeekNumber(date) {
   return weekNumber;
 }
 
-function getDateRangeForWeek(weekNumber, year) {
-  const firstDayOfYear = new Date(year, 0, 1);
-  const firstMonday = new Date(
-    firstDayOfYear.setDate(
-      firstDayOfYear.getDate() + ((8 - firstDayOfYear.getDay()) % 7)
-    )
-  );
-  const startDate = new Date(
-    firstMonday.setDate(firstMonday.getDate() + (weekNumber - 1) * 7)
-  );
-  const endDate = new Date(startDate);
-  endDate.setDate(startDate.getDate() + 5); // Saturday of the same week
-    // Normalize to 00:00:00 hours
-    startDate.setHours(0, 0, 0, 0);
-    endDate.setHours(0, 0, 0, 0);
+// function getDateRangeForWeek(weekNumber, year) {
+//   const firstDayOfYear = new Date(year, 0, 1);
+//   const firstMonday = new Date(
+//     firstDayOfYear.setDate(
+//       firstDayOfYear.getDate() + ((8 - firstDayOfYear.getDay()) % 7)
+//     )
+//   );
+//   const startDate = new Date(
+//     firstMonday.setDate(firstMonday.getDate() + (weekNumber - 1) * 7)
+//   );
+//   const endDate = new Date(startDate);
+//   endDate.setDate(startDate.getDate() + 5); // Saturday of the same week
+//     // Normalize to 00:00:00 hours
+//     startDate.setHours(0, 0, 0, 0);
+//     endDate.setHours(0, 0, 0, 0);
+//   return { startDate, endDate };
+// }
+
+function getCurrentWeekDateRange() {
+  const today = new Date();
+  const dayOfWeek = today.getDay();
+  const startDate = new Date(today);
+  const endDate = new Date(today);
+
+  // Adjust to Monday (0 is Sunday, so 1 is Monday)
+  startDate.setDate(today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1));
+  // Adjust to Saturday
+  endDate.setDate(startDate.getDate() + 5);
+
+  // Normalize to 00:00:00 hours
+  startDate.setHours(0, 0, 0, 0);
+  endDate.setHours(0, 0, 0, 0);
+
   return { startDate, endDate };
 }
 
@@ -360,10 +378,7 @@ router.get("/profile", isAuthenticated, async (req, res, next) => {
   const resourceDetails = await resourceModel.findOne({
     resourceName: resourceName,
   });
-  const { startDate, endDate } = getDateRangeForWeek(
-    getWeekNumber(new Date()),
-    new Date().getFullYear()
-  );
+  const { startDate, endDate } = getCurrentWeekDateRange();
  
   // const userTasks = await taskModel.find({resourceName: resourceName});
   const incompleteTasks = await taskModel.find({
@@ -500,10 +515,7 @@ router.post("/profile", isAuthenticated, async (req, res) => {
 
 // route to show activites for users from the pwa data stored in the database. //////////////////////////////////////////////////////////////////////////////////////
 router.get("/pwaactivities", isAuthenticated, async(req, res, next) => {
-  const { startDate, endDate } = getDateRangeForWeek(
-    getWeekNumber(new Date()),
-    new Date().getFullYear()
-  );
+  const { startDate, endDate } = getCurrentWeekDateRange();
   // console.log('startdate of week is of type', typeof startDate);
 
 const activities = await taskModel.find({
