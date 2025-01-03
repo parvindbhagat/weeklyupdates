@@ -8,6 +8,7 @@ const mongoose = require("mongoose");
 const axios = require("axios");
 const msal = require("../authconfig");
 const qs = require("qs");
+const moment = require("moment");
 
 
 // function to check user is logged in with MSAL Auth flow
@@ -139,41 +140,14 @@ function getWeekNumber(date) {
   return weekNumber;
 }
 
-// function getDateRangeForWeek(weekNumber, year) {
-//   const firstDayOfYear = new Date(year, 0, 1);
-//   const firstMonday = new Date(
-//     firstDayOfYear.setDate(
-//       firstDayOfYear.getDate() + ((8 - firstDayOfYear.getDay()) % 7)
-//     )
-//   );
-//   const startDate = new Date(
-//     firstMonday.setDate(firstMonday.getDate() + (weekNumber - 1) * 7)
-//   );
-//   const endDate = new Date(startDate);
-//   endDate.setDate(startDate.getDate() + 5); // Saturday of the same week
-//     // Normalize to 00:00:00 hours
-//     startDate.setHours(0, 0, 0, 0);
-//     endDate.setHours(0, 0, 0, 0);
-//   return { startDate, endDate };
-// }
-
 function getCurrentWeekDateRange() {
-  const today = new Date();
-  const dayOfWeek = today.getDay();
-  const startDate = new Date(today);
-  const endDate = new Date(today);
-
-  // Adjust to Monday (0 is Sunday, so 1 is Monday)
-  startDate.setDate(today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1));
-  // Adjust to Saturday
-  endDate.setDate(startDate.getDate() + 5);
-
-  // Normalize to 00:00:00 hours
-  startDate.setHours(0, 0, 0, 0);
-  endDate.setHours(0, 0, 0, 0);
-
-  return { startDate, endDate };
+  const today = moment();
+  const startDate = today.clone().startOf('week').add(1, 'days').startOf('day'); // Adjust to Monday and normalize time
+  const endDate = startDate.clone().add(5, 'days').startOf('day'); // Adjust to Saturday and normalize time
+  // console.log(startDate, endDate);
+  return { startDate: startDate.toDate(), endDate: endDate.toDate() };
 }
+
 
 function getDateRangeForMonth() {
   const today = new Date();
