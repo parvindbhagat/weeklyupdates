@@ -9,6 +9,7 @@ const axios = require("axios");
 const msal = require("../authconfig");
 const qs = require("qs");
 const moment = require("moment");
+const { InteractionRequiredAuthErrorCodes } = require("@azure/msal-node");
 
 
 // function to check user is logged in with MSAL Auth flow
@@ -86,11 +87,12 @@ router.get("/", async (req, res) => {
   res.render("index", { msg });
 });
 
-router.get("/test", async (req, res) => {
-res.render("test");
+router.get("/leap", isAuthenticated, async (req, res) => {
+  let msg = "";
+res.render("leap", { msg });
 });
 
-router.get("/home", async (req, res) => {  
+router.get("/home", isAuthenticated, async (req, res) => {  
   let msg = "";
 res.render("home", { msg });
 });
@@ -123,7 +125,6 @@ router.get("/admin", isAdmin, async (req, res) => {
   res.render("admin", { projectNames, taskCounts, taskCompleteCounts, taskIncompleteCounts });
 });
 
-
 function getWeekNumber(date) {
   const target = new Date(date.valueOf());
   const dayNumber = (date.getUTCDay() + 6) % 7; // Get day number (Monday = 0, Sunday = 6)
@@ -147,7 +148,6 @@ function getCurrentWeekDateRange() {
   // console.log(startDate, endDate);
   return { startDate: startDate.toDate(), endDate: endDate.toDate() };
 }
-
 
 function getDateRangeForMonth() {
   const today = new Date();
