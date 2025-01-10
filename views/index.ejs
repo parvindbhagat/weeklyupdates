@@ -17,7 +17,7 @@
             justify-content: center;
             height: 100vh;
             /* padding-top: 60px; Adjust for navbar height */
-            background-image: url("/images/bg-login.png");
+            background-image: url("/images/bg-login2.jpg");
       /* image path */
       background-size: cover;
       /* Ensures the image covers the entire background */
@@ -29,7 +29,9 @@
       /* Keeps
        the background fixed during scroll */
         }
-
+      img{
+        height: 4rem;
+      }
       .main{
       height: calc(100vh - 140px);
       }
@@ -37,14 +39,14 @@
   </head>
   <body>    
       <div class="logo">        
-        <img src="/images/logo.png" alt="Chrysalis" />        
+        <img src="/images/logo-red.png" alt="Chrysalis" />        
       </div>
     <div class="main d-flex flex-column justify-content-center align-items-center">
-      <h3 class="display-block text-white">Please log in with your Chrysalis email.</h3>
-      <button class="btn  mt-3" type="button" onclick="window.location.href='/home'">Log in</button>
+      <h3 class="display-block">Please log in with your Chrysalis email.</h3>
+      <button class="btn btn-lg  mt-3" type="button" onclick="window.location.href='/home'">Log in</button>
     </div>
     <div class="note">
-      <p class="text-white">Note: Username & Password will be prompted if the device is not in compliance.</p>
+      <p>Note: Username & Password will be prompted if the device is not in compliance.</p>
     </div>
     <script src="/javascripts/bootstrap.bundle.min.js"></script>
 </body>
