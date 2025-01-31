@@ -181,15 +181,15 @@ document.addEventListener('DOMContentLoaded', function() {
     </a>
   </nav>
   <h1 style=" margin: 3rem; text-align: center;">Welcome, <%= user.name %> </h1>
-  <div class="d-flex flex-row-reverse gap-3 mb-3">
+  <div class="d-flex flex-wrap flex-row-reverse gap-3 mb-3">
     <form style="display: inline-block; margin-right: 3rem;" action="/logout" method="POST">
-      <button type="submit" class="btn btn-primary rounded">Logout</button>
+      <button type="submit" class="btn rounded">Logout</button>
     </form>
     <button><a class="me-3" href="/home">Home</a></button> 
     <button><a class="me-3" id="adminBtn" href="/admin">Admin Console</a></button>
     <button><a class="me-3" id="myTeamBtn" href="/manager">My Team</a></button>
     <!-- HOW IT WORKS Button trigger modal -->
-  <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#staticBackdropHow">
+  <button type="button" class="btn " data-bs-toggle="modal" data-bs-target="#staticBackdropHow">
     How it works?
   </button>
     <!-- <details class="me-3">
@@ -227,9 +227,9 @@ document.addEventListener('DOMContentLoaded', function() {
   </div>
   
   
-  <div class="tablediv mb-50 m-2 ">
+  <div class="tablediv mb-50 p-2 ">
     <h3 style="text-align: center; margin: 2rem;">My Tasks this week (<%= startDate.toLocaleDateString('en-in') %> To <%= endDate.toLocaleDateString('en-in') %>)</h3>
-      <table class="table-striped full-width bg-white border border-gray-300" >
+      <table class="table-striped table-auto m-2 border border-gray-300" >
         <thead >
           <tr>
               <th  class="bg-warning">Project Name</th>
@@ -260,41 +260,17 @@ document.addEventListener('DOMContentLoaded', function() {
               <td class="border border-gray-300 px-1 py-1 "><%= (activity.leapComplete < 100) ? "No" : "Yes" %></td>
               <td class="border border-gray-300 px-1 py-1 "><%= activity.userComment %></td>
               <td class="border border-gray-300 px-1 py-1 "><%= activity.approvalStatus %></td>
-              <td class="text-center px-2"><button class="btn btn-primary update-btn border border-gray-300" data-id="<%= activity._id %>">Update</button><button class="btn btn-primary save-btn border border-gray-300 hidden" data-id="<%= activity._id %>">Edit</button></td>
+              <td class="text-center px-2"><button class="btn update-btn border border-gray-300" data-id="<%= activity._id %>">Update</button><button class="btn  save-btn border border-gray-300 hidden" data-id="<%= activity._id %>">Edit</button></td>
             </tr>
           <% }); %>
           <tr>
             <td colspan="6" class="border border-gray-300 px-1 py-1 "> Total work hours: <span id="totalWork"></span></td>
-            <td colspan="6" class="border border-gray-300 px-1 py-1 "><button class="btn btn-primary" id="submitToManager">Submit To Manager</button></td>
+            <td colspan="6" class="border border-gray-300 px-1 py-1 "><button class="btn" id="submitToManager">Submit To Manager</button></td>
           </tr>
         </tbody>
       </table>
   </div>
   
-  
-  <!-- <div class="container">
-    <div class="row">
-      <% incompleteTasks.forEach(activity => { %>
-        <div class="col-md-4 mb-4">
-          <div class="card">
-            <div class="card-body">
-              <div class="card-header text-center"><strong><%= activity.projectName %></strong></div>
-              <p class="card-text"><strong>Task Name:</strong> <%= activity.taskName %></p>
-              <p class="card-text"><strong>Scheduled Start:</strong> <%= new Date(activity.start).toLocaleDateString() %></p>
-              <p class="card-text"><strong>Scheduled Finish:</strong> <%= new Date(activity.Finish).toLocaleDateString() %></p>
-              <p class="card-text"><strong>Actual Start:</strong> <%= activity.actualStart %></p>
-              <p class="card-text"><strong>Actual Finish:</strong> <%= activity.actualFinish %></p>
-              <p class="card-text"><strong>Scheduled Work:</strong> <%= Math.floor(Number(activity.taskWork)) %></p>
-              <p class="card-text"><strong>Actual Work:</strong> <%= activity.actualWork %></p>
-              <p class="card-text"><strong>Is Submitted:</strong> <%= activity.submitted %></p>
-              <p class="card-text"><strong>Complete %:</strong> <%= activity.TaskPercentWorkCompleted %></p>
-              <p class="card-text"><strong>Status:</strong> <%= activity.Status %></p>
-            </div>
-          </div>
-        </div>
-      <% }); %>
-    </div>
-  </div> -->
   
   <!-- Modal for static backdrop HOW IT WORKS -->
   <div class="modal fade" id="staticBackdropHow" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
@@ -375,7 +351,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                     <input type="hidden" id="activityId" name="activityId">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-primary" id="submitSave">Save Task</button>
+                    <button type="submit" class="btn" id="submitSave">Save Task</button>
                 </form>
             </div>
             <div class="modal-footer">
@@ -387,7 +363,7 @@ document.addEventListener('DOMContentLoaded', function() {
   
   <!-- Button trigger NEW Task modal -->
    <p class="ms-5">Don't see the task you want to save, add a new one!</p>
-  <button type="button" class="btn btn-primary ms-5 " style="width: 9rem;" data-bs-toggle="modal" data-bs-target="#staticBackdropNew">
+  <button type="button" class="btn ms-5 " style="width: 9rem;" data-bs-toggle="modal" data-bs-target="#staticBackdropNew">
     Add NEW Task
   </button>
   
