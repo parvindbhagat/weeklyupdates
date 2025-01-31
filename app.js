@@ -6,6 +6,8 @@ var logger = require('morgan');
 const session = require('express-session');
 const favicon = require('serve-favicon');
 const mongoose = require('mongoose');
+// const cors = require('cors');
+// const MongoStore = require('connect-mongo');
 
 
 var indexRouter = require('./routes/index');
@@ -19,16 +21,44 @@ mongoose.connect(process.env.MONGO_URI, {}).then(() => {
   console.error('Error connecting to MongoDB', err);
 });
 
+// app.use(cors({
+//   origin: ['https://app.chrysalistechnologies.in/',  '/\.chrysalistechnologies\.in$/'],
+//   credentials: true
+// }));
+
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
+
+if (!process.env.EXPRESS_SESSION_SECRET) {
+  throw new Error('EXPRESS_SESSION_SECRET is not defined');
+}
 
 app.use(session({
   secret: process.env.EXPRESS_SESSION_SECRET,
   resave: false,
   saveUninitialized: true,
-  cookie: { maxAge: 60 * 60 * 1000 } // 60 minutes
+  // store: new MongoStore({
+  //   mongoUrl: process.env.MONGO_URI,
+  //   collectionName: 'sessions',
+  //   ttl: 8 * 60 * 60 * 1000// Session expiration time in seconds
+  // }),
+  cookie: { 
+    maxAge: 60 * 60 * 1000, // 60 minutes
+    // domain: '.chrysalistechnologies.in', // Makes the cookie accessible to all subdomains
+    // path: '/',
+    // httpOnly: true,
+    // secure: true,
+    // sameSite: 'None', // Allows cross-site cookie sharing
+   } 
 }));
+
+// app.use((req, res, next) => {
+//   res.header('Access-Control-Allow-Origin', 'https://fac.chrysalistechnologies.in/test');
+//   res.header('Access-Control-Allow-Credentials', 'true');
+//   next();
+// });
+
 app.use(favicon(path.join(__dirname, 'favicon.png')));
 app.use(logger('dev'));
 app.use(express.json());
