@@ -139,6 +139,17 @@
 </head>
 
 <body>
+  <!-- script to show escalations button for user with role Admin/Manager and its hidden for other roles -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      window.resourceDetails = <%- JSON.stringify(resourceDetails) %>;
+      const role = "<%= resourceDetails.resourceRole %>";
+      const escalationsbox = document.getElementById('escalations'); // target escalation div
+      if(role === 'Admin'|| role === 'Manager'){ 
+        escalationsbox.classList.remove('hidden');
+      }
+    });      
+  </script>
 
   <nav class="navbar">
     <div class="">
@@ -170,7 +181,7 @@
           </p>
         </div>
       </a>
-      <a href="/escalation" style="text-decoration: none; color: inherit" id="escalations" class="box">
+      <a href="/escalation" style="text-decoration: none; color: inherit" id="escalations" class="box hidden">
         <div class="contentSection">
           <h4>Chrysalis Projects Escalations</h4>
           <p style="font-size: 1.2rem">
