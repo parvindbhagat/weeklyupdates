@@ -4,6 +4,8 @@ const mongoose = require('mongoose');
 const taskSchema = new mongoose.Schema({
     projectId: {type: String, },
     projectName: {type: String,  },
+    ProjectStatus: {type: String, },
+    ProjectPercentWorkCompleted: {type: Number, default: 0 },
     taskId: {    type: String,     },  
     taskName: {    type: String,  },
     parentTaskName: {    type: String, default: "Internal Work" },  

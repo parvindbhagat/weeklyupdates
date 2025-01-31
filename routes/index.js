@@ -6,23 +6,25 @@ const resourceModel = require("./resource");
 require("dotenv").config();
 const mongoose = require("mongoose");
 const axios = require("axios");
-const msal = require("../authconfig");
+const {getAccessToken, cca: msal } = require("../authconfig");
 const qs = require("qs");
 const moment = require("moment");
-const { InteractionRequiredAuthErrorCodes } = require("@azure/msal-node");
+// const { InteractionRequiredAuthErrorCodes } = require("@azure/msal-node");
+// const { getAccessToken, cca } = require("../authgraph");
 
 
 // function to check user is logged in with MSAL Auth flow
 function isAuthenticated(req, res, next) {
-  if (req.session && req.session.user) {
-    // console.log("User is logged in, calling next");
+  console.log("isAuthenticated function called");
+  if (req.session.user) {
+    // console.log('Session data:', req.session);
+    // console.log('isAuthenticated-if user: Session user data:', req.session.user);
+    console.log("User is logged in, calling next");
     return next();
   } else {
-    req.session.originalUrl = req.originalUrl; // Store the original URL
-    // console.log(
-    //   "User Not logged in, stored url and redirecting to /login, stored usl is: ",
-    //   req.session.originalUrl
-    // );
+    req.session.originalUrl = req.originalUrl; // Store the original URL.
+    // console.log('isAuthenticated-else: session user data is :', req.session.user);
+    // console.log("User Not logged in, stored url and redirecting to /login, stored url is: ", req.session.originalUrl );
     res.redirect("/login");
   }
 }
@@ -80,6 +82,124 @@ async function isManager(req, res, next) {
   }
 }
 
+async function redirectBasedOnGroup(req, res, next) {
+  console.log("redirectBasedOnGroup function called");
+    const user = req.session.user;
+    // console.log('user data  is: ', { user });
+    const userId = user.localAccountId;
+    const FTEGroupID = process.env.FTE_ID;
+    const PTEGroupID = process.env.PTE_ID;
+
+    try {
+        const accessToken = await getAccessToken(process.env.G_SCOPE);
+        req.session.gToken = accessToken;
+        // console.log({ accessToken });
+
+        const fteUrl = `https://graph.microsoft.com/v1.0/users/${userId}/memberOf?$filter=id eq '${FTEGroupID}'`;
+        const pteUrl = `https://graph.microsoft.com/v1.0/users/${userId}/memberOf?$filter=id eq '${PTEGroupID}'`;
+
+        const [fteResponse, pteResponse] = await Promise.all([
+            fetch(fteUrl, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json'
+                }
+            }),
+            fetch(pteUrl, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+        ]);
+
+        // if (!fteResponse.ok || !pteResponse.ok) {
+        //     throw new Error(`HTTP error! status: ${fteResponse.status} or ${pteResponse.status}`);
+        // }
+
+        const fteData = await fteResponse.json();
+        const pteData = await pteResponse.json();
+
+        // Check if the user is a member of either group
+        const isFTE = fteData.value && fteData.value.length > 0;
+        const isPTE = pteData.value && pteData.value.length > 0;
+
+        if (isFTE) {
+            return next();
+        } else if (isPTE) {
+            res.redirect(process.env.PTE_URL);
+        } else {
+            res.status(403).send('User is not a member of the FTE or PTE group');
+        }
+    } catch (error) {
+        console.error('Error checking group membership:', error);
+        res.status(500).send('Internal Server Error');
+    }
+}
+
+//is member of the PTE group .
+async function isFTE(req, res, next) {
+  console.log("isFTE function called");
+    const user = req.session.user;
+    let accessToken;
+    // console.log('isFTE got user from session', {user});
+    const userId = user.localAccountId;
+    const groupId = process.env.FTE_ID; //process.env.PTE_ID; depends on group id to be checked
+    // const url = `https://graph.microsoft.com/v1.0/me/memberOf?$filter=id eq '${groupId}'`;
+    const url = `https://graph.microsoft.com/v1.0/users/${userId}/memberOf?$filter=id eq '${groupId}'`;
+
+    try {
+      if (req.session.gToken) {
+        accessToken = req.session.gToken;
+      } else {
+        accessToken = await getAccessToken(process.env.G_SCOPE);
+        // console.log({ accessToken });
+      }
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        // console.log({ response });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        // Check if the user is a member of the group
+        const isMember = data.value && data.value.length > 0;
+
+        if (isMember) {
+            return next();
+        } else {
+            res.status(403).send('You are not a member of the valid group. Please visit the correct link:', process.env.PTE_URL);
+        }
+    } catch (error) {
+        console.error('Error checking group membership:', error);
+        res.status(500).send('Failed to verify group membership.  You can log in then try again. If you are a member of Xtended team, please visit : ', process.env.PTE_URL);
+    }
+}
+//check referrer to allow only from the chrd site
+function checkReferrer(req, res, next) {
+  const referrer = req.get('Referrer') || req.get('Referer'); // Some browsers use 'Referer' instead of 'Referrer'
+  const allowedDomains = [
+      /\.example\.com\/.*/,
+      /\.anotherexample\.com\/.*/,
+      /\.yetanotherexample\.com\/.*/
+  ];
+
+  if (referrer && allowedDomains.some(domain => domain.test(referrer))) {
+      return next();
+  } else {
+      res.status(403).send('Invalid access, please visit example.com to log in');
+  }
+}
 
 //GET APP HOME
 router.get("/", async (req, res) => {  
@@ -87,12 +207,17 @@ router.get("/", async (req, res) => {
   res.render("index", { msg });
 });
 
-router.get("/leap", isAuthenticated, async (req, res) => {
+router.get("/leap", isAuthenticated, isFTE, async (req, res) => {
+  const user = req.session.user;
+  const resourceName = user.name;
+  const resourceDetails = await resourceModel.findOne({
+    resourceName: resourceName,
+  });
   let msg = "";
-res.render("leap", { msg });
+res.render("leap", { msg, resourceDetails });
 });
 
-router.get("/home", isAuthenticated, async (req, res) => {  
+router.get("/home", isAuthenticated, redirectBasedOnGroup, async (req, res) => {  
   let msg = "";
 res.render("home", { msg });
 });
@@ -188,12 +313,12 @@ async function findRecordsByFields(searchTerm) {
 
 ///////////////////////////////////////////////////MSAL and PWA routes here ////////////////////////////////////////////////////////
 
-//start MSAL auth process to get auth code with pwa scope
+//start MSAL auth process to get auth code with pwa scope /////////////////////////////////////////////////////////////////////////
 router.get("/login", async (req, res) => {
   try {
     const scopes = [process.env.S_SCOPE];
     // console.log(scopes);
-    const authUrl = await msal.getAuthCodeUrl({
+      const authUrl = await msal.getAuthCodeUrl({
       scopes: scopes,
       redirectUri: process.env.REDIRECT_URI,
     });
@@ -206,7 +331,7 @@ router.get("/login", async (req, res) => {
   }
 });
 
-//use auth code to get access Token
+//use auth code to get access Token  /////////////////////////////////////////////////////////////////////////////////////////////////
 router.get("/oauth/redirect", async (req, res) => {
   const tokenRequest = {
     code: req.query.code,
@@ -216,11 +341,11 @@ router.get("/oauth/redirect", async (req, res) => {
 
   try {
     const response = await msal.acquireTokenByCode(tokenRequest);
-    // console.log('API response JSON is: ', JSON.stringify(response, null, 2));
+    // console.log('oauth/redirect: API response JSON is: ', JSON.stringify(response, null, 2));
     req.session.user = response.account;
     req.session.token = response.accessToken;
-    // console.log('session data req.session is: ', req.session);
-    const redirectUrl = req.session.originalUrl || "/profile";
+    // console.log('session data req.session.user after log in is: ', req.session.user);
+    const redirectUrl = req.session.originalUrl || "/leap";
     delete req.session.originalUrl; // Clear the stored URL
     res.redirect(redirectUrl);
   } catch (error) {
@@ -229,8 +354,8 @@ router.get("/oauth/redirect", async (req, res) => {
   }
 });
 
-//profile page to land after access token authenticated also initialize resource MOdel if empty  /////////////////////////////////////////////////////////////////////////////////////////////////////////////
-router.get("/profile", isAuthenticated, async (req, res, next) => {
+//profile page to land after access token authenticated also initialize resource MOdel if empty  /////////////////////////////////////////////////////////////////////
+router.get("/profile", isAuthenticated, isFTE, async (req, res, next) => {
   if (!req.session.user) {
     return res.redirect("/home");
   }
@@ -488,7 +613,7 @@ router.post("/profile", isAuthenticated, async (req, res) => {
 });
 
 // route to show activites for users from the pwa data stored in the database. //////////////////////////////////////////////////////////////////////////////////////
-router.get("/pwaactivities", isAuthenticated, async(req, res, next) => {
+router.get("/pwaactivities", isAuthenticated, isFTE, async(req, res, next) => {
   const { startDate, endDate } = getCurrentWeekDateRange();
   // console.log('startdate of week is of type', typeof startDate);
 
@@ -509,7 +634,7 @@ const activities = await taskModel.find({
     },
     { source: "PWA" }
   ]  
-}).sort({ typeofActivity: -1 });  //returns activities with start/finish between current weekor activity that either starts or finish in current week.
+}).sort({ typeofActivity: -1 });  //returns activities with start/finish between current week or activity that either starts or finish in current week.
 
   // Group activities by typeofActivity
   const groupedActivities = activities.reduce((acc, activity) => {
@@ -524,7 +649,7 @@ const activities = await taskModel.find({
 });
 
 // route to render monthly plan for viewers
-router.get("/monthlyplan", isAuthenticated, async(req, res) => {
+router.get("/monthlyplan", isAuthenticated, isFTE, async(req, res) => {
   const {monthStart, monthEnd} = getDateRangeForMonth();
 const startDate = new Date(monthStart);
 const endDate = new Date(monthEnd);
@@ -796,6 +921,8 @@ router.get("/refreshdatabase", isAdmin, async (req, res) => {
         if (project) {
           task.ClientName = project.ClientName;
           task.InterventionName = project.InterventionName;
+          task.ProjectStatus = project.ProjectStatus;
+          task.ProjectPercentWorkCompleted = project.ProjectPercentWorkCompleted;
         }
   
         const resource = resources.find(res => res.TaskId === task.TaskId);
@@ -818,13 +945,19 @@ router.get("/refreshdatabase", isAdmin, async (req, res) => {
           existingTask.resourceName = task.ResourceName;
           existingTask.parentTaskName = task.ParentTaskName;
           existingTask.typeofActivity = task.TypeofActivity;
-          existingTask.taskIsActive = task.TaskIsActive
+          existingTask.taskIsActive = task.TaskIsActive;
+          existingTask.taskName = task.TaskName;
+          existingTask.taskWork = task.TaskWork;
+          existingTask.ProjectPercentWorkCompleted = task.ProjectPercentWorkCompleted;
+          existingTask.ProjectStatus = task.ProjectStatus;
           await existingTask.save();
         } else {
           // Insert new task
           const newTask = new taskModel({
             projectId: task.ProjectId,
             projectName: task.ProjectName,
+            ProjectPercentWorkCompleted: task.ProjectPercentWorkCompleted,
+            ProjectStatus: task.ProjectStatus,
             taskId: task.TaskId,
             taskName: task.TaskName,
             parentTaskName: task.ParentTaskName,
@@ -861,13 +994,15 @@ router.get("/alltasks", isAdmin, async (req, res) => {
     async function updateTaskClients(projects) {
       try {
         for (const project of projects) {
-          const { ProjectId, ClientName, InterventionName } = project;
+          const { ProjectId, ClientName, InterventionName, ProjectPercentWorkCompleted, ProjectStatus } = project;
           await taskModel.updateMany(
             { projectId: ProjectId },
             {
               $set: {
                 clientName: ClientName,
                 interventionName: InterventionName,
+                ProjectStatus: ProjectStatus,
+                ProjectPercentWorkCompleted: ProjectPercentWorkCompleted,
               },
             }
           );
@@ -930,7 +1065,7 @@ router.get("/alltasks", isAdmin, async (req, res) => {
             // );
             // console.log('All Projects  that is projectapiresponse.data.value is: ', allprojects);
             const ongoingProjects = allprojects.filter(
-              (project) => project.ProjectPercentCompleted < 100
+              (project) => project.ProjectPercentWorkCompleted < 100
             );
             // console.log(
             //   "The length of ongoing projects list is: ",
@@ -1017,6 +1152,8 @@ router.get("/alltasks", isAdmin, async (req, res) => {
               const task = new taskModel({
                 projectId: ProjectId,
                 projectName: ProjectName,
+                ProjectPercentWorkCompleted: ProjectPercentWorkCompleted,
+                ProjectStatus: ProjectStatus,
                 taskId: TaskId,
                 taskName: TaskName,
                 parentTaskName: ParentTaskName,
@@ -1248,13 +1385,14 @@ router.post('/reassign', isManager, async (req, res) => {
 });
 
 // Route to render Escalation for delayed tasks.
-router.get('/escalation', isManager, async (req, res, next) => {
+router.get('/escalation', isManager, isFTE, async (req, res, next) => {
   try {
     const user = req.session.user;
     const today = new Date().toISOString().split('T')[0] + "T00:00:00";
     const tasks = await taskModel.find({
       Finish: { $lt: today },
       taskCompletePercent: { $lt: 100 },
+      ProjectStatus: { $ne: "On Hold" },
       source: "PWA"
     });
     tasks.forEach(task => {
