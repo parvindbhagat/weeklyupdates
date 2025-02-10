@@ -43,7 +43,7 @@
         <canvas id="taskChart" width="400" height="200"></canvas>
     </div>
     <script>
-        const projectNames = <%- JSON.stringify(projectNames) %>;
+        const projectLables = <%- JSON.stringify(projectLabels) %>;
         const taskCounts = <%- JSON.stringify(taskCounts) %>;
         const taskCompleteCounts = <%- JSON.stringify(taskCompleteCounts) %>;
         const taskIncompleteCounts = <%- JSON.stringify(taskIncompleteCounts) %>;
@@ -52,7 +52,7 @@
         const taskChart = new Chart(ctx, {
           type: 'bar',
           data: {
-            labels: projectNames,
+            labels: projectLables,
     datasets: [{
         label: 'Completed Tasks',
         data: taskCompleteCounts,
