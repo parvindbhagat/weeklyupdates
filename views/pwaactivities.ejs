@@ -135,9 +135,17 @@
   </tbody>
 </table>
 </div> 
-<div class="nothing">
-
+<div class="hold m-5">
+  <h3>Projects on Hold:</h3>
+  <ol>
+    <% projectsOnHold.forEach(function(project) { %>
+      <li><%= project %></li>
+    <% }); %>
+  </ol>
 </div>
+
+<div class="nothing"></div>
+
 <div class="footer" >
   <div class="footerleft">
     <a href="/Admin" style="text-decoration: none; display: block;"><i class="ri-admin-line"></i>Admin Console</a> 
