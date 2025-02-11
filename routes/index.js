@@ -217,7 +217,7 @@ router.get("/leap", isAuthenticated, isFTE, async (req, res) => {
 res.render("leap", { msg, resourceDetails });
 });
 
-router.get("/home", isAuthenticated, redirectBasedOnGroup, async (req, res) => {  
+router.get("/home", isAuthenticated, async (req, res) => {  
   let msg = "";
 res.render("home", { msg });
 });
