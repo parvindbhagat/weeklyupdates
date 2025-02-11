@@ -207,7 +207,7 @@ router.get("/", async (req, res) => {
   res.render("index", { msg });
 });
 
-router.get("/leap", isAuthenticated, isFTE, async (req, res) => {
+router.get("/leap", isAuthenticated,  async (req, res) => {
   const user = req.session.user;
   const resourceName = user.name;
   const resourceDetails = await resourceModel.findOne({
@@ -357,7 +357,7 @@ router.get("/oauth/redirect", async (req, res) => {
 });
 
 //profile page to land after access token authenticated also initialize resource MOdel if empty  /////////////////////////////////////////////////////////////////////
-router.get("/profile", isAuthenticated, isFTE, async (req, res, next) => {
+router.get("/profile", isAuthenticated,  async (req, res, next) => {
   if (!req.session.user) {
     return res.redirect("/home");
   }
@@ -616,7 +616,7 @@ router.post("/profile", isAuthenticated, async (req, res) => {
 });
 
 // route to show activites for users from the pwa data stored in the database. //////////////////////////////////////////////////////////////////////////////////////
-router.get("/pwaactivities", isAuthenticated, isFTE, async(req, res, next) => {
+router.get("/pwaactivities", isAuthenticated,  async(req, res, next) => {
   const { startDate, endDate } = getCurrentWeekDateRange();
   // console.log('startdate of week is of type', typeof startDate);
 
@@ -654,7 +654,7 @@ const projectsOnHold = await taskModel.distinct('projectName', { ProjectStatus: 
 });
 
 // route to render monthly plan for viewers
-router.get("/monthlyplan", isAuthenticated, isFTE, async(req, res) => {
+router.get("/monthlyplan", isAuthenticated,  async(req, res) => {
   const {monthStart, monthEnd} = getDateRangeForMonth();
 const startDate = new Date(monthStart);
 const endDate = new Date(monthEnd);
@@ -1395,7 +1395,7 @@ router.post('/reassign', isManager, async (req, res) => {
 });
 
 // Route to render Escalation for delayed tasks.
-router.get('/escalation', isManager, isFTE, async (req, res, next) => {
+router.get('/escalation', isManager,  async (req, res, next) => {
   try {
     const user = req.session.user;
     const today = new Date().toISOString().split('T')[0] + "T00:00:00";
