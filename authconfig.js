@@ -26,9 +26,9 @@ const config = {
 const cca = new msal.ConfidentialClientApplication(config);
 
 // Function to get access token for a given scope .
-async function getAccessToken(scope) {
+async function getAccessToken() {
     const tokenRequest = {
-        scopes: [scope],
+        scopes: [process.env.G_SCOPE],
     };
 
     try {

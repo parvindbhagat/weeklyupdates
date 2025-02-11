@@ -91,7 +91,7 @@ async function redirectBasedOnGroup(req, res, next) {
     const PTEGroupID = process.env.PTE_ID;
 
     try {
-        const accessToken = await getAccessToken(process.env.G_SCOPE);
+        const accessToken = await getAccessToken();
         req.session.gToken = accessToken;
         // console.log({ accessToken });
 
@@ -154,7 +154,7 @@ async function isFTE(req, res, next) {
       if (req.session.gToken) {
         accessToken = req.session.gToken;
       } else {
-        accessToken = await getAccessToken(process.env.G_SCOPE);
+        accessToken = await getAccessToken();
         // console.log({ accessToken });
       }
         const response = await fetch(url, {
@@ -207,7 +207,7 @@ router.get("/", async (req, res) => {
   res.render("index", { msg });
 });
 
-router.get("/leap", isAuthenticated,  async (req, res) => {
+router.get("/leap", isAuthenticated, isFTE, async (req, res) => {
   const user = req.session.user;
   const resourceName = user.name;
   const resourceDetails = await resourceModel.findOne({
@@ -217,7 +217,7 @@ router.get("/leap", isAuthenticated,  async (req, res) => {
 res.render("leap", { msg, resourceDetails });
 });
 
-router.get("/home", isAuthenticated, async (req, res) => {  
+router.get("/home", isAuthenticated, redirectBasedOnGroup, async (req, res) => {  
   let msg = "";
 res.render("home", { msg });
 });
@@ -616,7 +616,7 @@ router.post("/profile", isAuthenticated, async (req, res) => {
 });
 
 // route to show activites for users from the pwa data stored in the database. //////////////////////////////////////////////////////////////////////////////////////
-router.get("/pwaactivities", isAuthenticated,  async(req, res, next) => {
+router.get("/pwaactivities", isAuthenticated, isFTE,  async (req, res, next) => {
   const { startDate, endDate } = getCurrentWeekDateRange();
   // console.log('startdate of week is of type', typeof startDate);
 
@@ -654,7 +654,7 @@ const projectsOnHold = await taskModel.distinct('projectName', { ProjectStatus: 
 });
 
 // route to render monthly plan for viewers
-router.get("/monthlyplan", isAuthenticated,  async(req, res) => {
+router.get("/monthlyplan", isAuthenticated, isFTE,  async(req, res) => {
   const {monthStart, monthEnd} = getDateRangeForMonth();
 const startDate = new Date(monthStart);
 const endDate = new Date(monthEnd);
