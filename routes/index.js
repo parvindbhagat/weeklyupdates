@@ -178,11 +178,11 @@ async function isFTE(req, res, next) {
         if (isMember) {
             return next();
         } else {
-            res.status(403).send('You are not a member of the valid group. Please visit the correct link:', process.env.PTE_URL);
+            res.status(403).send(`You are not a member of the valid group. Please visit the correct link: ${process.env.PTE_URL}`);
         }
     } catch (error) {
         console.error('Error checking group membership:', error);
-        res.status(500).send('Failed to verify group membership.  You can log in then try again. If you are a member of Xtended team, please visit : ', process.env.PTE_URL);
+        res.status(500).send(`Failed to verify group membership.  You can log in then try again. If you are a member of Xtended team, please visit :  ${process.env.PTE_URL}`);
     }
 }
 //check referrer to allow only from the chrd site
@@ -231,7 +231,7 @@ router.get("/admin", isAdmin, async (req, res) => {
   // Process data to get the count of tasks per projectName and their completion status
   const taskData = tasks.reduce((acc, task) => {
     if (!acc[task.projectName]) {
-      acc[task.projectName] = { count: 0, complete: 0, incomplete: 0 };
+      acc[task.projectName] = { count: 0, complete: 0, incomplete: 0, ProjectStatus: task.ProjectStatus };
     }
     acc[task.projectName].count += 1;
     if (task.taskCompletePercent === 100) {
@@ -246,8 +246,10 @@ router.get("/admin", isAdmin, async (req, res) => {
   const taskCounts = projectNames.map(name => taskData[name].count);
   const taskCompleteCounts = projectNames.map(name => taskData[name].complete);
   const taskIncompleteCounts = projectNames.map(name => taskData[name].incomplete);
+  // const ProjectStatuses = projectNames.map(name => taskData[name].ProjectStatus);
+  const projectLabels = projectNames.map(name => `${name} (${taskData[name].ProjectStatus})`);
 
-  res.render("admin", { projectNames, taskCounts, taskCompleteCounts, taskIncompleteCounts });
+  res.render("admin", { projectLabels, taskCounts, taskCompleteCounts, taskIncompleteCounts });
 });
 
 function getWeekNumber(date) {
@@ -519,7 +521,8 @@ router.get("/profile", isAuthenticated, isFTE, async (req, res, next) => {
               }
             ]
         },
-        { resourceName: resourceName }
+        { resourceName: resourceName },
+        {ProjectStatus: { $ne: "On Hold" }},
     ]
 }).sort({start: 1});
 
@@ -563,10 +566,10 @@ router.post("/profile", isAuthenticated, async (req, res) => {
     const start = new Date(actualStart);
    
     let Finish = new Date(actualFinish);
-    if(completed === '100'){
-      console.log('the type of completed in the add a task form is', typeof completed);
-       Finish = new Date();
-    } 
+    // if(completed === '100'){
+    //   console.log('the type of completed in the add a task form is', typeof completed);
+    //    Finish = new Date();
+    // } //Allow the user to enter any date for finish date.
     // const completePercent = 100;
     const source = "MTE";
     const LEAPApplicationSync = "No";
@@ -632,10 +635,12 @@ const activities = await taskModel.find({
         {       $and: [{Finish: { $lt: startDate }, taskCompletePercent: {$lt: 100}}]         }  // Task has finish date in past week but its still incomplete
       ]
     },
-    { source: "PWA" }
+    { source: "PWA" },
+    {ProjectStatus: { $ne: "On Hold" }}
   ]  
 }).sort({ typeofActivity: -1 });  //returns activities with start/finish between current week or activity that either starts or finish in current week.
 
+const projectsOnHold = await taskModel.distinct('projectName', { ProjectStatus: "On Hold" });
   // Group activities by typeofActivity
   const groupedActivities = activities.reduce((acc, activity) => {
     if (!acc[activity.typeofActivity]) {
@@ -645,7 +650,7 @@ const activities = await taskModel.find({
     return acc;
   }, {});
   console.log("length of activities is: ", activities.length);
-  res.render('pwaactivities', {groupedActivities, startDate, endDate} );
+  res.render('pwaactivities', {groupedActivities, projectsOnHold, startDate, endDate} );
 });
 
 // route to render monthly plan for viewers
@@ -669,7 +674,8 @@ const activities = await taskModel.find({
         {       $and: [{Finish: { $lt: startDate }, taskCompletePercent: {$lt: 100}}]         }  // Task has finish date in past week but its still incomplete
       ]
     },
-    { source: "PWA" }
+    { source: "PWA" },
+    {ProjectStatus: { $ne: "On Hold" }}
   ]  
 }).sort({ typeofActivity: 1 });  //returns activities with start/finish between current weekor activity that either starts or finish in current week.
 
@@ -681,8 +687,9 @@ const activities = await taskModel.find({
     acc[activity.typeofActivity].push(activity);
     return acc;
   }, {});
+  const projectsOnHold = await taskModel.distinct('projectName', { ProjectStatus: "On Hold" });
   // console.log("length of activities is: ", activities.length);
-  res.render('monthlyplan', {groupedActivities, monthStart, monthEnd} );
+  res.render('monthlyplan', {groupedActivities, monthStart, monthEnd, projectsOnHold} );
 });
 // LOGOUT route  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 router.post("/logout", isAuthenticated, (req, res) => {
@@ -950,6 +957,7 @@ router.get("/refreshdatabase", isAdmin, async (req, res) => {
           existingTask.taskWork = task.TaskWork;
           existingTask.ProjectPercentWorkCompleted = task.ProjectPercentWorkCompleted;
           existingTask.ProjectStatus = task.ProjectStatus;
+          existingTask.projectName = task.ProjectName;
           await existingTask.save();
         } else {
           // Insert new task
@@ -1215,9 +1223,9 @@ router.post('/savetask', isAuthenticated, async (req, res) => {
   let { activityId, actualStart, actualFinish, actualWork, comment, completed } = req.body;
   const datedComment = "(" + new Date().toLocaleDateString('en-in') + ": " + actualWork + " Hrs)" + comment;
   // console.log('dated comment is: ', datedComment);
-  if(completed === '100'){
-    actualFinish = new Date();
-  }
+  // if(completed === '100'){
+  //   actualFinish = new Date();
+  // } //Allow the user to enter any date for finish date.
   // save the activity in the database
   const save = await taskModel.findByIdAndUpdate(activityId, {
       actualStart: new Date(actualStart),
@@ -1239,18 +1247,20 @@ router.post('/savetask', isAuthenticated, async (req, res) => {
 
 //UPDATE saved tasks by member before submission. 
 router.post('/updatetask', isAuthenticated, async (req, res) => {
-  const {  actualWork, comment, completed, activityId } = req.body;
+  let { actualFinish, actualWork, comment, completed, activityId } = req.body;
   
 
   const existingTask = await taskModel.findById(activityId);
   const existingWorkDone = existingTask.actualWork;
   const previousComment = existingTask.userComment || ""; // Get the existing comment or an empty string if none exists
-  let actualFinish = existingTask.actualFinish;
-  console.log(typeof completed);
-  if(completed === '100'){
-    console.log(`completed value from the update task form has type`, typeof completed);
-     actualFinish = new Date();
+  if(!actualFinish){
+    actualFinish = existingTask.actualFinish;
   }
+  // console.log(typeof completed);
+  // if(completed === '100'){
+  //   console.log(`completed value from the update task form has type`, typeof completed);
+  //    actualFinish = new Date();
+  // } //Allow the user to enter any date for finish date.
   const datedComment = "(" + new Date().toLocaleDateString('en-in') + ": " + actualWork + " Hrs) " + comment; 
   const newComment = previousComment + "; " + datedComment; // Concatenate the previous comment with the new dated comment
 
@@ -1403,7 +1413,8 @@ router.get('/escalation', isManager, isFTE, async (req, res, next) => {
       const delayInDays = Math.floor((today - finishDate) / (1000 * 60 * 60 * 24));
       task.delayInDays = delayInDays;
     });
-      res.render('escalation', {plainTasks: tasks});
+    const projectsOnHold = await taskModel.distinct('projectName', { ProjectStatus: "On Hold" });
+      res.render('escalation', {plainTasks: tasks, projectsOnHold});
   } catch (error) {
     console.log(error.message);
     next(error);
