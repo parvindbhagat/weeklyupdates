@@ -131,7 +131,7 @@ async function redirectBasedOnGroup(req, res, next) {
         } else if (isPTE) {
             res.redirect(process.env.PTE_URL);
         } else {
-            res.status(403).send('User is not a member of the FTE or PTE group');
+            res.status(403).send('User is not a member of the Chrysalis group');
         }
     } catch (error) {
         console.error('Error checking group membership:', error);
@@ -182,22 +182,22 @@ async function isFTE(req, res, next) {
         }
     } catch (error) {
         console.error('Error checking group membership:', error);
-        res.status(500).send(`Failed to verify group membership.  You can log in then try again. If you are a member of Xtended team, please visit :  ${process.env.PTE_URL}`);
+        res.status(500).send(`Failed to verify group membership.  You can log in then try again. If you are a member of X team, please visit :  ${process.env.PTE_URL}`);
     }
 }
 //check referrer to allow only from the chrd site
 function checkReferrer(req, res, next) {
   const referrer = req.get('Referrer') || req.get('Referer'); // Some browsers use 'Referer' instead of 'Referrer'
   const allowedDomains = [
-      /\.example\.com\/.*/,
-      /\.anotherexample\.com\/.*/,
-      /\.yetanotherexample\.com\/.*/
+      /\.chrysalis\.in\/.*/,
+      /\.chrysalisonline\.in\/.*/,
+      /\.chrysalistechnologies\.in\/.*/
   ];
 
   if (referrer && allowedDomains.some(domain => domain.test(referrer))) {
       return next();
   } else {
-      res.status(403).send('Invalid access, please visit example.com to log in');
+      res.status(403).send('Invalid access, please visit chrysalis.in to log in');
   }
 }
 
@@ -523,6 +523,7 @@ router.get("/profile", isAuthenticated,  async (req, res, next) => {
         },
         { resourceName: resourceName },
         {ProjectStatus: { $ne: "On Hold" }},
+        {approvalStatus: { $ne: "Approved" }}
     ]
 }).sort({start: 1});
 
