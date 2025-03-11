@@ -17,7 +17,8 @@ const config = {
         console.log(message);
       },
       piiLoggingEnabled: false,
-      logLevel: msal.LogLevel.Verbose,
+      // logLevel: msal.LogLevel.Verbose,  //high log level with verbose
+      logLevel: msal.LogLevel.Warning,  //low log level with wanring and errors
     }
   }
 };
