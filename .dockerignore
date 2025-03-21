@@ -2,3 +2,5 @@ node_modules
 nginx
 .env
 .gitignore
+Dockerfile
+docker-compose.yaml
