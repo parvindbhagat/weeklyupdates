@@ -59,7 +59,7 @@ app.use(session({
 //   next();
 // });
 
-app.use(favicon(path.join(__dirname, 'favicon.png')));
+app.use(favicon(path.join(__dirname, 'favicon.ico')));
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
