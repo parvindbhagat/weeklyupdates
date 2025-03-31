@@ -1,3 +1,5 @@
 node_modules
+nginx
 todo.txt
+docker-compose.yaml
 .env
