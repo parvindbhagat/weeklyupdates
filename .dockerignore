@@ -4,3 +4,4 @@ nginx
 .gitignore
 Dockerfile
 docker-compose.yaml
+todo.txt
