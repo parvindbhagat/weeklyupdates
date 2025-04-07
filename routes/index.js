@@ -286,7 +286,7 @@ function getDateRangeForMonth() {
 // combine date and Time  to return DateTime object for mathematical operations
 function convertToDateTime(dateValue, timeValue) {
   const dateTimeString =
-    dateValue.split("/").reverse().join("-") + "T" + timeValue + ":00";
+    dateValue.split("/").reverse().join("-") + "T" + timeValue + "00:00:00";
   return new Date(dateTimeString);
 }
 
@@ -420,7 +420,8 @@ router.get("/profile", isAuthenticated,  async (req, res, next) => {
 
         const accessToken = req.session.token;
         if (!accessToken) {
-          console.log("access token mission. could not fetch resource data.");
+          console.log("access token mission. could not fetch resource data. redirecting to login page.");
+          res.redirect("/login");
         } else {
           const resourceAPIresponse = await axios.get(
             "https://chrysalishrd.sharepoint.com/pwa/_api/ProjectData/Resources",
@@ -959,6 +960,8 @@ router.get("/refreshdatabase", isAdmin, async (req, res) => {
           existingTask.ProjectPercentWorkCompleted = task.ProjectPercentWorkCompleted;
           existingTask.ProjectStatus = task.ProjectStatus;
           existingTask.projectName = task.ProjectName;
+          existingTask.consultingDay = task.ConsultingDay;
+          existingTask.taskIndex = task.TaskIndex;
           await existingTask.save();
         } else {
           // Insert new task
@@ -979,7 +982,10 @@ router.get("/refreshdatabase", isAdmin, async (req, res) => {
             resourceId: task.ResourceId,
             resourceName: task.ResourceName,
             clientName: task.ClientName,
-            interventionName: task.InterventionName
+            interventionName: task.InterventionName,
+            consultingDay: task.ConsultingDay,
+            taskIndex: task.TaskIndex,
+            taskIsActive: task.TaskIsActive,
           });
           await newTask.save();
         }
@@ -989,9 +995,36 @@ router.get("/refreshdatabase", isAdmin, async (req, res) => {
       console.error('Error updating or inserting tasks:', error);
     }
   }
+
+  async function MTEtasks() {
+    try {
+      const mtetasks = await taskModel.find({ $and: [{ source: "MTE" }, { consultingDay: { $exists: false } }] });
+      if (mtetasks.length > 0) {
+        const bulkOps = mtetasks.map((task) => ({
+          updateOne: {
+            filter: { _id: task._id },
+            update: { $set: { consultingDay: "Yes" } },
+          },
+        }));
+        await taskModel.bulkWrite(bulkOps);
+        console.log(`${mtetasks.length} MTE tasks updated successfully.`);
+      }
+      }
+     catch (error) {
+      console.error('Error updating consultingDay for MTE tasks:', error);
+    }
+  }
+
+
   
   // Call the function to update or insert tasks
   await updateOrInsertTasks();
+
+    const count = await taskModel.countDocuments({ consultingDay: { $exists: false } });
+        if (count > 0) {
+            await MTEtasks();
+        }
+
   res.redirect('/alltasks');
 
 });
@@ -1057,7 +1090,8 @@ router.get("/alltasks", isAdmin, async (req, res) => {
 
           const accessToken = req.session.token;
           if (!accessToken) {
-            console.log("access token mission. could not fetch tasks data.");
+            console.log("access token mission. could not fetch tasks data. redirecting to login page.");
+            res.redirect("/login");
           } else {
             const projectAPIresponse = await axios.get(
               "https://chrysalishrd.sharepoint.com/pwa/_api/ProjectData/Projects",
@@ -1204,7 +1238,7 @@ router.get("/alltasks", isAdmin, async (req, res) => {
         console.log("Admin logged in", userName);
         initializeTasks();
         const tasks = await taskModel.find().sort({projectName: 1});
-        console.log("rendering incomplete tasks from DB and length is: ", tasks.length);
+        console.log("rendering all tasks from DB and length is: ", tasks.length);
         res.render("alltasks", { tasks });
       } else {
         console.log("Member logged in: ", userName);
@@ -1219,7 +1253,7 @@ router.get("/alltasks", isAdmin, async (req, res) => {
   }
 });
 
-// Save task in the database and then it can be updated or submitted to manager for approval
+// Save PWA task details for first time in the database and then it can be updated or submitted to manager for approval
 router.post('/savetask', isAuthenticated, async (req, res) => {
   let { activityId, actualStart, actualFinish, actualWork, comment, completed } = req.body;
   const datedComment = "(" + new Date().toLocaleDateString('en-in') + ": " + actualWork + " Hrs)" + comment;
