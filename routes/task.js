@@ -28,7 +28,9 @@ const taskSchema = new mongoose.Schema({
     approvalStatus: {type: String, default: "Pending" },
     source:{type: String, default: "PWA"},
     saved: {type: Number, default: 0 },
-    submitted: {type: Number, default: 0}
+    submitted: {type: Number, default: 0},
+    consultingDay: {type: String, default: "Yes"},
+    taskIndex: {type: Number, default: 0},
   });
   const task = mongoose.model("task", taskSchema);
   module.exports = task;
