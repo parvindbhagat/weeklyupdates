@@ -52,8 +52,8 @@ app.use(session({
     // domain: '.chrysalistechnologies.in', // Makes the cookie accessible to all subdomains
     // path: '/',
     httpOnly: true,
-    secure: true,
-    sameSite: 'None', // Allows cross-site cookie sharing
+    // secure: true,
+    // sameSite: 'None', // Allows cross-site cookie sharing
    } 
 }));
 
