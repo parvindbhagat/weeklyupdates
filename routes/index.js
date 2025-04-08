@@ -1,7 +1,7 @@
 var express = require("express");
 var router = express.Router();
 const session = require("express-session");
-const taskModel = require("./task");
+const {task: taskModel, taskArchive: taskArchiveModel }= require("./task");
 const resourceModel = require("./resource");
 require("dotenv").config();
 const mongoose = require("mongoose");
@@ -717,7 +717,7 @@ router.get('/refreshresourcelist', isAdmin, async (req, res) => {
   let sessions;
   if(!user || !accessToken){
     // console.log("Either User or Access Token is missing.");
-    res.render('/', {sessions, msg: "Please login to proceed with the action."});
+    res.render('home', {sessions, msg: "Please login to proceed with the action."});
   }
   try {
     const result = await resourceModel.deleteMany({});
@@ -853,10 +853,9 @@ router.get('/refreshresourcelist', isAdmin, async (req, res) => {
 router.get("/refreshdatabase", isAdmin, async (req, res) => {
   const accessToken = req.session.token;
   const user = req.session.user;
-  let sessions = [];
   if(!user || !accessToken){
     console.log("Either User or Access Token is missing.");
-    res.render('/', {sessions, msg: "Please login to proceed with the action."});
+    res.render('index', { msg: "Please login to proceed with the action."});
   }
   // Function to fetch Data from all 3 APIs required for the data sync
   async function fetchDataFromAPIs() {
@@ -1465,6 +1464,60 @@ router.get('/escalation', isManager,  async (req, res, next) => {
   } catch (error) {
     console.log(error.message);
     next(error);
+  }
+});
+
+// Route to refresh the task archive
+router.get("/refresharchive", isAdmin, async (req, res) => {
+  try {
+    // Find all tasks with ProjectStatus = 'Completed'
+    const completedTasks = await taskModel.find({ ProjectStatus: "Completed" });
+
+    if (completedTasks.length === 0) {
+      // return res.status(200).send("No completed tasks found to archive.");
+      return res.redirect('/archivedtasks?msg=archive up to date');
+    }
+
+    // Insert completed tasks into the archive collection
+    await taskArchiveModel.insertMany(completedTasks);
+
+    // Remove the completed tasks from the tasks collection
+    await taskModel.deleteMany({ ProjectStatus: "Completed" });
+
+    // res.status(200).send(`${completedTasks.length} tasks archived successfully.`);
+    res.redirect('/archivedtasks?msg=success');
+  } catch (error) {
+    console.error("Error refreshing archive:", error);
+    // res.status(500).send("An error occurred while refreshing the archive.");
+    res.redirect('/archivedtasks?msg=fail');
+  }
+});
+
+// Route to view grouped and sorted archived tasks
+router.get("/archivedtasks", isAdmin, async (req, res) => {
+  try {
+    // Fetch all archived tasks and sort by projectName and taskIndex
+    const archivedTasks = await taskArchiveModel.find().sort({ projectName: 1, taskIndex: 1 });
+
+    if (archivedTasks.length === 0) {
+      // return res.status(200).send("No archived tasks found.");
+      return res.redirect('/admin?msg=archive empty');
+    }
+
+    // Group tasks by projectName
+    const groupedTasks = archivedTasks.reduce((acc, task) => {
+      if (!acc[task.projectName]) {
+        acc[task.projectName] = [];
+      }
+      acc[task.projectName].push(task);
+      return acc;
+    }, {});
+
+    // Render the grouped and sorted tasks
+    res.render("archivedtasks", { groupedTasks });
+  } catch (error) {
+    console.error("Error fetching archived tasks:", error);
+    res.status(500).send("An error occurred while fetching archived tasks.");
   }
 });
 

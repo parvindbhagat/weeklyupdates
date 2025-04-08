@@ -6,14 +6,18 @@ var logger = require('morgan');
 const session = require('express-session');
 const favicon = require('serve-favicon');
 const mongoose = require('mongoose');
+const mongoSanitize = require('express-mongo-sanitize');
 // const cors = require('cors');
 // const MongoStore = require('connect-mongo');
-
-
-var indexRouter = require('./routes/index');
-var resourceRouter = require('./routes/resource');
-var taskRouter = require('./routes/task');
+const indexRouter = require('./routes/index');
+// var resourceRouter = require('./routes/resource');
+// var taskRouter = require('./routes/task');
 var app = express();
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+
+app.use(mongoSanitize()); // Sanitize user input to prevent NoSQL injection
 
 mongoose.connect(process.env.MONGO_URI, {}).then(() => {
   console.log('Connected to MongoDB');
@@ -47,9 +51,9 @@ app.use(session({
     maxAge: 60 * 60 * 1000, // 60 minutes
     // domain: '.chrysalistechnologies.in', // Makes the cookie accessible to all subdomains
     // path: '/',
-    // httpOnly: true,
-    // secure: true,
-    // sameSite: 'None', // Allows cross-site cookie sharing
+    httpOnly: true,
+    secure: true,
+    sameSite: 'None', // Allows cross-site cookie sharing
    } 
 }));
 
@@ -61,14 +65,12 @@ app.use(session({
 
 app.use(favicon(path.join(__dirname, 'favicon.ico')));
 app.use(logger('dev'));
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
-app.use('/resource', resourceRouter);
-app.use('/task', taskRouter);
+// app.use('/resource', resourceRouter);
+// app.use('/task', taskRouter);
 
 app.use((req, res, next) => {
   console.log(`Instance: ${process.env.APP_NAME}, User: ${req.ip}`);

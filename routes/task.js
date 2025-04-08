@@ -33,4 +33,7 @@ const taskSchema = new mongoose.Schema({
     taskIndex: {type: Number, default: 0},
   });
   const task = mongoose.model("task", taskSchema);
-  module.exports = task;
+  const taskArchive = mongoose.model('taskArchive', taskSchema); // Reuse the same schema for the archive collection
+
+  module.exports = {task, taskArchive};
+  // module.exports = task; // Export the task model only, as the archive model is not needed in this file
