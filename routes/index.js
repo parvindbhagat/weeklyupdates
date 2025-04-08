@@ -726,19 +726,31 @@ router.get('/refreshresourcelist', isAdmin, async (req, res) => {
     console.error('Error deleting documents:', error);
   }
     // Function to determine the resource role
-    function determineResourceRole(resourceData) {
+    async function determineResourceRole(resourceData) {
+      // Check if the resource is an Admin
       if (
         resourceData.ResourceName === "Anish Thomas" ||
         resourceData.ResourceName === "Parvind Kumar Bhagat"
       ) {
         return "Admin";
-      } else if (
-        resourceData.ResourceId === resourceData.ResourceTimesheetManageId
-      ) {
-        return "Manager";
-      } else {
-        return "Member";
       }
+    
+      // Check if the resource is their own manager
+      if (resourceData.ResourceId === resourceData.ResourceTimesheetManageId) {
+        return "Manager";
+      }
+    
+      // Check if the resource is a manager for any other resource
+      const isManagerForOthers = await resourceModel.exists({
+        resourceManagerId: resourceData.ResourceId,
+      });
+    
+      if (isManagerForOthers) {
+        return "Manager";
+      }
+    
+      // Default to Member if no other conditions are met
+      return "Member";
     }
   
     // function to fill manager Name from Manager id of each resource
@@ -803,7 +815,7 @@ router.get('/refreshresourcelist', isAdmin, async (req, res) => {
                 ResourceName,
                 ResourceTimesheetManageId,
               } = resourceData;
-              const resourceRole = determineResourceRole(resourceData);
+              const resourceRole = await determineResourceRole(resourceData);
               const resource = new resourceModel({
                 resourceId: ResourceId,
                 resourceName: ResourceName,
