@@ -1264,6 +1264,24 @@ router.get("/alltasks", isAdmin, async (req, res) => {
   }
 });
 
+// route to filter TasksToUpdate
+router.get('/taskstoupdate', isAuthenticated, async (req, res) => {
+  try {
+    // Query the database for tasks that match the criteria
+    const filteredTasks = await taskModel.find({
+      source: 'PWA',
+      approvalStatus: 'Approved',
+      taskCompletePercent: { $lt: 100 } // Incomplete tasks
+    }).sort({ projectName: 1, taskIndex: 1 }); // Sort by projectName and taskIndex
+
+    // Render the filtered tasks
+    res.render('taskstoupdate', { tasks: filteredTasks });
+  } catch (error) {
+    console.error('Error filtering PWA tasks:', error);
+    res.status(500).send('An error occurred while filtering tasks.');
+  }
+});
+
 // Save PWA task details for first time in the database and then it can be updated or submitted to manager for approval
 router.post('/savetask', isAuthenticated, async (req, res) => {
   let { activityId, actualStart, actualFinish, actualWork, comment, completed } = req.body;
@@ -1337,7 +1355,7 @@ router.get('/manager', isManager, async (req, res) => {
   const teamMembers = await resourceModel.find({resourceManagerName : managerName});
   const tasksForAllMembers = await Promise.all(
     teamMembers.map(async (member) => {
-      const tasks = await taskModel.find({ resourceName: member.resourceName, submitted: 1 });
+      const tasks = await taskModel.find({ resourceName: member.resourceName, submitted: 1, consultingDay: 'Yes' });
       return tasks;
     })
   );
@@ -1361,20 +1379,33 @@ router.get('/manager', isManager, async (req, res) => {
   }
 });
 
-// Submit to Manager route to submit user tasks to manager for approval////////////////////////////////////////////////////////////////////////////////////////////////
+// Submit tasks with consulting day YES to manager for approval and tasks with consulting day NO to be approved or reassigned immediately.
 router.post('/submitToManager', isAuthenticated, async (req, res) => {
   try {
-    const user = req.session.user; //Athentication check and can get the logged-in user's ID
-    const update = { submitted: 1,
-                    approvalStatus: "Submitted. Awaiting Approval"
-     };
+    const user = req.session.user; // Authentication check and can get the logged-in user's ID
 
-    // Update all objects for the logged-in user
-    const result = await taskModel.updateMany({ resourceName: user.name, saved: 1, submitted: 0 }, update);
+    // Update tasks with consultingDay = Yes
+    const updateYes = {
+      submitted: 1,
+      approvalStatus: "Submitted. Awaiting Approval"
+    };
+    await taskModel.updateMany({ resourceName: user.name, saved: 1, submitted: 0, consultingDay: "Yes" }, updateYes);
 
-    res.json({ success: true, message: 'All items submitted successfully!' });
+    // Handle tasks with consultingDay = No
+    const tasksNo = await taskModel.find({ resourceName: user.name, saved: 1, submitted: 0, consultingDay: "No" });
+    const updatePromises = tasksNo.map(async (task) => {
+      if (task.leapComplete === 100) {
+        return taskModel.findByIdAndUpdate(task._id, { submitted: 2, approvalStatus: "Approved" });
+      } else {
+        return taskModel.findByIdAndUpdate(task._id, { submitted: 0, approvalStatus: "Reassigned" });
+      }
+    });
+    await Promise.all(updatePromises);
+
+    res.json({ success: true, message: 'Tasks processed successfully!' });
   } catch (err) {
-    res.json({ success: false, message: 'Failed to submit items.' });
+    console.error("Error in /submitToManager route:", err);
+    res.json({ success: false, message: 'Failed to process tasks.' });
   }
 });
 
@@ -1387,7 +1418,7 @@ router.post('/approve', isManager, async (req, res) => {
     const { resourceName } = req.body;
     // console.log("/approve is running. Resource name is: ", resourceName);
 
-    const tasks = await taskModel.find({ resourceName: resourceName, submitted: 1 });
+    const tasks = await taskModel.find({ resourceName: resourceName, submitted: 1, consultingDay: "Yes" });
     // console.log("Result of db find: ", tasks);
 
     const updatePromises = tasks.map(async (task) => {
@@ -1520,5 +1551,49 @@ router.get("/archivedtasks", isAdmin, async (req, res) => {
     res.status(500).send("An error occurred while fetching archived tasks.");
   }
 });
+
+
+const checkPendingSubmissions = async (loggedInUserName) => {
+  try {
+    // Find the logged-in user's resource details
+    const userResource = await resourceModel.findOne({ resourceName: loggedInUserName });
+
+    if (!userResource) {
+      console.log("User not found in resourceModel.");
+      return "no"; // No tasks to notify
+    }
+
+    // Check if the user is a Member
+    if (userResource.resourceRole === "Member") {
+      console.log("User is a Member. No tasks to notify.");
+      return "no"; // No tasks to notify
+    }
+
+    // If the user is a Manager or Admin, check for tasks
+    const pendingTasksCount = await taskModel.countDocuments({
+      submitted: 1,
+      approvalStatus: "Submitted. Awaiting Approval",
+      consultingDay: "Yes",
+      resourceManagerId: userResource.resourceId, // Check if the user is the manager of the resource
+    });
+
+    // Return "yes" if tasks exist, otherwise "no"
+    return pendingTasksCount > 0 ? "yes" : "no";
+  } catch (error) {
+    console.error("Error checking pending submissions:", error);
+    return "no"; // Default to "no" in case of an error
+  }
+};
+//example usage
+// const loggedInUserName = req.session.user.name; // Get the logged-in user's name from the session
+
+// checkPendingSubmissions(loggedInUserName).then((result) => {
+//   if (result === "yes") {
+//     console.log("You have pending submissions to review.");
+//     // Notify the user in the app
+//   } else {
+//     console.log("No pending submissions.");
+//   }
+// });
 
 module.exports = router;
