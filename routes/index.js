@@ -1341,7 +1341,12 @@ router.get('/escalation', isManager,  async (req, res, next) => {
 router.get("/refresharchive", isAdmin, async (req, res) => {
   try {
     // Find all tasks with ProjectStatus = 'Completed'
-    const completedTasks = await taskModel.find({ ProjectStatus: "Completed" });
+    const completedTasks = await taskModel.find({
+      $or: [
+        { ProjectStatus: "Completed" },
+        { source: "MTE", approvalStatus: "Approved" }
+      ]
+    });
 
     if (completedTasks.length === 0) {
       // return res.status(200).send("No completed tasks found to archive.");
@@ -1352,7 +1357,12 @@ router.get("/refresharchive", isAdmin, async (req, res) => {
     await taskArchiveModel.insertMany(completedTasks);
 
     // Remove the completed tasks from the tasks collection
-    await taskModel.deleteMany({ ProjectStatus: "Completed" });
+    await taskModel.deleteMany({ 
+      $or: [
+        { ProjectStatus: "Completed" },
+        { source: "MTE", approvalStatus: "Approved" }  
+      ] 
+     });
 
     // res.status(200).send(`${completedTasks.length} tasks archived successfully.`);
     res.redirect('/archivedtasks?msg=success');
