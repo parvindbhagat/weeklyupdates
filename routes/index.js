@@ -1078,226 +1078,27 @@ router.get("/refreshdatabase", isAdmin, async (req, res) => {
 });
 
 // all tasks for admin  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-router.get("/alltasks", isAdmin, async (req, res) => {
+router.get("/alltasks", isAuthenticated, async (req, res) => {
   try {
-    //fuction to add clientName and InterventionName to each task with matching projectId
-    async function updateTaskClients(projects) {
-      try {
-        for (const project of projects) {
-          const { ProjectId, ClientName, InterventionName, ProjectPercentWorkCompleted, ProjectStatus } = project;
-          await taskModel.updateMany(
-            { projectId: ProjectId },
-            {
-              $set: {
-                clientName: ClientName,
-                interventionName: InterventionName,
-                ProjectStatus: ProjectStatus,
-                ProjectPercentWorkCompleted: ProjectPercentWorkCompleted,
-              },
-            }
-          );
-          // console.log(`Updated tasks for project: ${ProjectName}`);
-        }
-      } catch (error) {
-        console.error("Error updating tasks:", error);
-      }
+    const { projectName, resourceName } = req.query; // Get filters from query parameters
+
+    // Build the query object dynamically
+    const query = {};
+    if (projectName) {
+      query.projectName = projectName;
+    }
+    if (resourceName) {
+      query.resourceName = resourceName;
     }
 
-    //function to add assigned resourceName and resourceId to each task with matching taskId in the assignment API response.
-    async function updateTaskResources(assignments) {
-      try {
-        const tasks = await taskModel.find({});
+    // Fetch filtered tasks from the database
+    const tasks = await taskModel.find(query).sort({ projectName: 1, resourceName: 1 });
 
-        for (const task of tasks) {
-          const assignment = assignments.find((a) => a.TaskId === task.taskId);
-          if (assignment) {
-            await taskModel.updateOne(
-              { taskId: task.taskId },
-              {
-                $set: {
-                  resourceId: assignment.ResourceId,
-                  resourceName: assignment.ResourceName,
-                },
-              }
-            );
-            // console.log(
-            //   `Updated taskId: ${task.taskId} with resourceId: ${assignment.ResourceId} and resourceName: ${assignment.ResourceName}`
-            // );
-          }
-        }
-      } catch (error) {
-        console.error("Error updating tasks:", error);
-      }
-    }
-    //function to initialize tasks data if task collection is empty
-    async function initializeTasks() {
-      try {
-        const count = await taskModel.countDocuments();
-        if (count === 0) {
-          console.log("Task collection is empty. Adding Tasks...");
-
-          const accessToken = req.session.token;
-          if (!accessToken) {
-            console.log("access token mission. could not fetch tasks data. redirecting to login page.");
-            res.redirect("/login");
-          } else {
-            const projectAPIresponse = await axios.get(
-              "https://chrysalishrd.sharepoint.com/pwa/_api/ProjectData/Projects",
-              {
-                headers: {
-                  Authorization: `Bearer ${accessToken}`,
-                  Accept: "application/json",
-                },
-              }
-            );
-            const allprojects = projectAPIresponse.data.value;
-            // console.log(
-            //   `The number of Projects in the total, from projects api response are: ${allprojects.length}`
-            // );
-            // console.log('All Projects  that is projectapiresponse.data.value is: ', allprojects);
-            const ongoingProjects = allprojects.filter(
-              (project) => project.ProjectPercentWorkCompleted < 100
-            );
-            // console.log(
-            //   "The length of ongoing projects list is: ",
-            //   ongoingProjects.length
-            // );
-                          // Fetch assignments for each project ===================================
-                          const assignmentsPromises = ongoingProjects.map(
-                            async (project) => {
-                              const projectId = project.ProjectId;
-                              const assignmentsResponse = await axios.get(
-                                `https://chrysalishrd.sharepoint.com/pwa/_api/ProjectData/Projects(guid'${projectId}')/Assignments`,
-                                {
-                                  headers: {
-                                    Authorization: `Bearer ${accessToken}`,
-                                    Accept: "application/json",
-                                  },
-                                }
-                              );
-            
-                              return assignmentsResponse.data.value;
-                            }
-                          );
-                          const assignments = await Promise.all(assignmentsPromises);
-                          const allAssignments = assignments.flat();
-                          console.log('Length of all Assignements is : ', allAssignments.length);
-
-            // get tasks from all the ongoing projects ========================
-            const tasksPromises = ongoingProjects.map(async (project) => {
-              const projectId = project.ProjectId;
-              const tasksResponse = await axios.get(
-                `https://chrysalishrd.sharepoint.com/pwa/_api/ProjectData/Projects(guid'${projectId}')/Tasks`,
-                {
-                  headers: {
-                    Authorization: `Bearer ${accessToken}`,
-                    Accept: "application/json",
-                  },
-                }
-              );
-              // console.log(
-              //   "Length of response.data.value for all tasks from Ongoing projects is: ",
-              //   tasksResponse.data.value.length
-              // );
-              return tasksResponse.data.value;
-            });
-            const taskarray = await Promise.all(tasksPromises);
-            const alltasks = taskarray.flat();
-            console.log(
-              "taskarray after promise.all length is: ",
-              alltasks.length
-            );
-            const activeTasks = alltasks.filter(
-              (task) => task.TaskIsActive === true
-            );
-            const leapTasks = activeTasks.filter(
-              (task) =>
-                (task.LEAPApplicationSync === "Yes" ||
-                  task.LEAPApplicationSync === "yes") &&
-                task.TaskPercentWorkCompleted < 100
-            );
-            console.log("the length of leap tasks is: ", leapTasks.length);
-            /////////////////// return tasks to check nesting
-            // return leapTasks;
-            // const alltasks = tasks[0].task;
-            // console.log("length of alltasks array is: ", alltasks.length);
-            // console.log("fist task in the list is: ", alltasks[0]);
-            //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-            for (const taskData of leapTasks) {
-              const {
-                ProjectId,
-                ProjectName,
-                TaskId,
-                TaskName,
-                ParentTaskName,
-                TaskStartDate,
-                TaskFinishDate,
-                TaskWork,
-                TypeofActivity,
-                TaskPercentWorkCompleted,
-                LEAPApplicationSync,
-                TaskIsActive
-              } = taskData;
-              
-              const source = "PWA";
-              const task = new taskModel({
-                projectId: ProjectId,
-                projectName: ProjectName,
-                ProjectPercentWorkCompleted: ProjectPercentWorkCompleted,
-                ProjectStatus: ProjectStatus,
-                taskId: TaskId,
-                taskName: TaskName,
-                parentTaskName: ParentTaskName,
-                start: TaskStartDate,
-                Finish: TaskFinishDate,
-                taskWork: TaskWork,
-                typeofActivity: TypeofActivity,
-                taskCompletePercent: TaskPercentWorkCompleted,
-                LeapSync: LEAPApplicationSync,
-                source: source,
-                taskIsActive: TaskIsActive
-              });
-              // console.log(`The task data is: ${task} `);
-              try {
-                await task.save();
-                // console.log(`saved task: ${TaskName}`);
-              } catch (error) {
-                console.error(`Error saving task: ${TaskName}`, error);
-              }
-            }
-            updateTaskClients(ongoingProjects);
-            updateTaskResources(allAssignments);
-          }
-          //Once the colection is initialized fill resource details from resource api
-          //setResource();  //// SetResource function should add resource name and id from the assignement api for task id.
-        } else {
-          console.log("Resource collection is not empty. No action taken.");
-        }
-      } catch (err) {
-        console.error("Error checking resource collection", err);
-      }
-    }
-    const user = req.session.user;
-    // console.log('user details are: ', user);
-    const userName = user.name;
-    const resource = await resourceModel.findOne({ resourceName: userName });
-    if (resource) {
-      if (resource.resourceRole === "Admin") {
-        console.log("Admin logged in", userName);
-        initializeTasks();
-        const tasks = await taskModel.find().sort({projectName: 1});
-        console.log("rendering all tasks from DB and length is: ", tasks.length);
-        res.render("alltasks", { tasks });
-      } else {
-        console.log("Member logged in: ", userName);
-        res.redirect("/profile");
-      }
-    } else {
-      res.redirect("/profile");
-    }
+    // Render the page with filtered tasks and selected filters
+    res.render("alltasks", { tasks, selectedProject: projectName || "", selectedResource: resourceName || "" });
   } catch (error) {
-    console.error("Error fetching resource:", error);
-    res.status(500).send("Internal Server Error");
+    console.error("Error fetching tasks:", error);
+    res.status(500).send("An error occurred while fetching tasks.");
   }
 });
 

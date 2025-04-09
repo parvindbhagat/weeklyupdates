@@ -12,55 +12,79 @@
       <a class="navbar-brand" href="/home">
         <img src="/images/logo.png" alt="Chrysalis" >
       </a>
-</nav>
-<div class="d-flex flex-row-reverse gap-3 me-5 mt-2">
-  <button> <a href="/home">Home</a> </button>  <br>
-  <button><a  id="adminBtn" href="/admin">Admin Console</a></button>
-  <button><a href="/taskstoupdate">Tasks to Update</a></button>
+    </nav>
+    <div class="d-flex flex-row-reverse gap-3 me-5 mt-2">
+      <button> <a href="/home">Home</a> </button>  <br>
+      <button><a id="adminBtn" href="/admin">Admin Console</a></button>
+      <button><a href="/taskstoupdate">Tasks to Update</a></button>
+    </div>
 
-</div>
     <h1 class="text-center">All tasks in Database!</h1>
 
+    <!-- Filter Section -->
+    <div class="d-flex justify-content-center gap-3 my-3">
+      <!-- Dropdown for Project Name -->
+      <select id="projectFilter" class="form-select w-auto">
+        <option value="">Filter by Project</option>
+        <% const uniqueProjects = [...new Set(tasks.map(task => task.projectName))]; %>
+        <% uniqueProjects.forEach(project => { %>
+          <option value="<%= project %>" <%= project === selectedProject ? "selected" : "" %>><%= project %></option>
+        <% }); %>
+      </select>
+
+      <!-- Dropdown for Resource Name -->
+      <select id="resourceFilter" class="form-select w-auto">
+        <option value="">Filter by Resource</option>
+        <% const uniqueResources = [...new Set(tasks.map(task => task.resourceName))]; %>
+        <% uniqueResources.forEach(resource => { %>
+          <option value="<%= resource %>" <%= resource === selectedResource ? "selected" : "" %>><%= resource %></option>
+        <% }); %>
+      </select>
+
+      <!-- Reset Filters Button -->
+      <button id="resetFilters" class="btn btn-secondary">Reset Filters</button>
+    </div>
+
+    <!-- Task Table -->
     <div class="task_table">
-        <table class="table-striped table-auto w-100 bg-white border border-gray-300" >
-            <thead >
-              <tr>
-                  <th class="bg-warning px-2">Project</th>
-                  <th class="bg-warning px-2">Parent Task Name - Task Name</th>
-                  <th class="bg-warning px-2">Type Of Activity</th>
-                  <th class="bg-warning px-2">Source</th>
-                  <th class="bg-warning px-2">Resource</th>
-                  <th class="bg-warning px-2">Start</th>
-                  <th class="bg-warning px-2">Finish</th>
-                  <th class="bg-warning px-2">Actual Start</th>
-                  <th class="bg-warning px-2">Actual Finish</th>
-                  <th class="bg-warning px-2">Work (in Hours)</th>
-                  <th class="bg-warning px-2">Comments</th>
-                  <th class="bg-warning px-2">Status</th> 
-                  <th class="bg-warning px-2">Completed in PWA?</th>                
-              </tr>
-            </thead>
-            <tbody>
-              <% tasks.forEach((ta) => { %>
-                <tr class="tableData">
-                  <td class="border border-gray-300 px-2 py-2 "><%= ta.projectName %></td>
-                  <td class="border border-gray-300 px-2 py-2 "><%= ta.parentTaskName + " - " + ta.taskName %></td>
-                  <td class="border border-gray-300 px-2 py-2 "><%= ta.typeofActivity %></td>
-                  <td class="border border-gray-300 px-2 py-2 "><%= ta.source %></td>
-                  <td class="border border-gray-300 px-2 py-2 "><%= ta.resourceName %></td>
-                  <td class="border border-gray-300 px-2 py-2 "><%= new Date(ta.start).toLocaleDateString('en-in') %></td>
-                  <td class="border border-gray-300 px-2 py-2 "><%= new Date(ta.Finish).toLocaleDateString('en-in') %></td>
-                  <td class="border border-gray-300 px-2 py-2 "><%= ta.actualStart ? new Date(ta.actualStart).toLocaleDateString('en-in') : " " %></td>
-                  <td class="border border-gray-300 px-2 py-2 "><%= ta.actualFinish ? new Date(ta.actualFinish).toLocaleDateString('en-in') : " " %></td>
-                  <td class="border border-gray-300 px-2 py-2 "><%= ta.actualWork %></td>
-                  <td class="border border-gray-300 px-2 py-2 "><%= ta.userComment %></td>
-                  <td class="border border-gray-300 px-2 py-2 "><%= ta.approvalStatus %></td>
-                  <td class="border border-gray-300 px-2 py-2 "><%= ta.taskCompletePercent === 100 ? "Yes" : "No" %></td>
-                  
-                </tr>
-              <% }); %>
-            </tbody>
-          </table>
+      <table class="table-striped table-auto w-100 bg-white border border-gray-300">
+        <thead>
+          <tr>
+            <th class="bg-warning px-2">Project</th>
+            <th class="bg-warning px-2">Parent Task Name - Task Name</th>
+            <th class="bg-warning px-2">Type Of Activity</th>
+            <th class="bg-warning px-2">Source</th>
+            <th class="bg-warning px-2">Resource</th>
+            <th class="bg-warning px-2">Start</th>
+            <th class="bg-warning px-2">Finish</th>
+            <th class="bg-warning px-2">Actual Start</th>
+            <th class="bg-warning px-2">Actual Finish</th>
+            <th class="bg-warning px-2">Work (in Hours)</th>
+            <th class="bg-warning px-2">Comments</th>
+            <th class="bg-warning px-2">Status</th>
+            <th class="bg-warning px-2">Completed in PWA?</th>
+          </tr>
+        </thead>
+        <tbody id="taskTableBody">
+          <% tasks.forEach((ta) => { %>
+            <tr class="tableData">
+              <td class="border border-gray-300 px-2 py-2"><%= ta.projectName %></td>
+              <td class="border border-gray-300 px-2 py-2"><%= ta.parentTaskName + " - " + ta.taskName %></td>
+              <td class="border border-gray-300 px-2 py-2"><%= ta.typeofActivity %></td>
+              <td class="border border-gray-300 px-2 py-2"><%= ta.source %></td>
+              <td class="border border-gray-300 px-2 py-2"><%= ta.resourceName %></td>
+              <td class="border border-gray-300 px-2 py-2"><%= new Date(ta.start).toLocaleDateString('en-in') %></td>
+              <td class="border border-gray-300 px-2 py-2"><%= new Date(ta.Finish).toLocaleDateString('en-in') %></td>
+              <td class="border border-gray-300 px-2 py-2"><%= ta.actualStart ? new Date(ta.actualStart).toLocaleDateString('en-in') : " " %></td>
+              <td class="border border-gray-300 px-2 py-2"><%= ta.actualFinish ? new Date(ta.actualFinish).toLocaleDateString('en-in') : " " %></td>
+              <td class="border border-gray-300 px-2 py-2"><%= ta.actualWork %></td>
+              <td class="border border-gray-300 px-2 py-2"><%= ta.userComment %></td>
+              <td class="border border-gray-300 px-2 py-2"><%= ta.approvalStatus %></td>
+              <td class="border border-gray-300 px-2 py-2"><%= ta.taskCompletePercent === 100 ? "Yes" : "No" %></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
     </div>
 
     <div class="footer" >
@@ -69,42 +93,76 @@
     </div>
     <button id="topButton" onclick="scrollToTop()">TOP</button>
 
-<script>
-    // Show the button when the user scrolls down 20px from the top of the document
-    window.onscroll = function() {scrollFunction()};
+    <script>
+      // Show the button when the user scrolls down 20px from the top of the document
+      window.onscroll = function() {scrollFunction()};
 
-    function scrollFunction() {
-        if (document.body.scrollTop > 50 || document.documentElement.scrollTop > 50) {
-            document.getElementById("topButton").style.display = "block";
-        } else {
-            document.getElementById("topButton").style.display = "none";
-        }
-    }
+      function scrollFunction() {
+          if (document.body.scrollTop > 50 || document.documentElement.scrollTop > 50) {
+              document.getElementById("topButton").style.display = "block";
+          } else {
+              document.getElementById("topButton").style.display = "none";
+          }
+      }
 
-    // Scroll to the top of the document
-    function scrollToTop() {
-        document.body.scrollTop = 0;
-        document.documentElement.scrollTop = 0;
-    }
-</script>
+      // Scroll to the top of the document
+      function scrollToTop() {
+          document.body.scrollTop = 0;
+          document.documentElement.scrollTop = 0;
+      }
+    </script>
 
- <!-- script to sort table data based on the selected table header -->
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const getCellValue = (tr, idx) => tr.children[idx].innerText || tr.children[idx].textContent;
-    
-        const comparer = (idx, asc) => (a, b) => ((v1, v2) => 
-            v1 !== '' && v2 !== '' && !isNaN(v1) && !isNaN(v2) ? v1 - v2 : v1.toString().localeCompare(v2)
-        )(getCellValue(asc ? a : b, idx), getCellValue(asc ? b : a, idx));
-    
-        document.querySelectorAll('th').forEach(th => th.addEventListener('click', (() => {
-            const table = th.closest('table');
-            const tbody = table.querySelector('tbody');
-            Array.from(tbody.querySelectorAll('tr'))
-                .sort(comparer(Array.from(th.parentNode.children).indexOf(th), this.asc = !this.asc))
-                .forEach(tr => tbody.appendChild(tr) );
-        })));
-    });
+    <!-- script to sort table data based on the selected table header -->
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+          const getCellValue = (tr, idx) => tr.children[idx].innerText || tr.children[idx].textContent;
+      
+          const comparer = (idx, asc) => (a, b) => ((v1, v2) => 
+              v1 !== '' && v2 !== '' && !isNaN(v1) && !isNaN(v2) ? v1 - v2 : v1.toString().localeCompare(v2)
+          )(getCellValue(asc ? a : b, idx), getCellValue(asc ? b : a, idx));
+      
+          document.querySelectorAll('th').forEach(th => th.addEventListener('click', (() => {
+              const table = th.closest('table');
+              const tbody = table.querySelector('tbody');
+              Array.from(tbody.querySelectorAll('tr'))
+                  .sort(comparer(Array.from(th.parentNode.children).indexOf(th), this.asc = !this.asc))
+                  .forEach(tr => tbody.appendChild(tr) );
+          })));
+      });
+    </script>
+
+    <!-- JavaScript for Filtering -->
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const projectFilter = document.getElementById("projectFilter");
+        const resourceFilter = document.getElementById("resourceFilter");
+        const resetFilters = document.getElementById("resetFilters");
+
+        // Function to apply filters
+        const applyFilters = () => {
+          const projectValue = projectFilter.value;
+          const resourceValue = resourceFilter.value;
+
+          // Build the query string
+          const queryParams = new URLSearchParams();
+          if (projectValue) queryParams.append("projectName", projectValue);
+          if (resourceValue) queryParams.append("resourceName", resourceValue);
+
+          // Redirect to the backend route with query parameters
+          window.location.href = `/alltasks?${queryParams.toString()}`;
+        };
+
+        // Event Listeners for Filters
+        projectFilter.addEventListener("change", applyFilters);
+        resourceFilter.addEventListener("change", applyFilters);
+
+        // Reset Filters
+        resetFilters.addEventListener("click", () => {
+          projectFilter.value = "";
+          resourceFilter.value = "";
+          window.location.href = "/alltasks"; // Redirect to the route without filters
+        });
+      });
     </script>
     
   </body>
