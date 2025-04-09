@@ -187,6 +187,17 @@ document.addEventListener('DOMContentLoaded', function() {
       <img src="/images/logo.png" alt="Chrysalis" >
     </a>
   </nav>
+
+  <% if (msg2) { %>
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        <%= msg2 %>
+        
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close">
+            
+    </div>
+    
+  <% } %>
+
   <h1 style=" margin: 3rem; text-align: center;">Welcome, <%= user.name %> </h1>
   <div class="d-flex flex-wrap flex-row-reverse gap-3 mb-3">
     <form style="display: inline-block; margin-right: 3rem;" action="/logout" method="POST">

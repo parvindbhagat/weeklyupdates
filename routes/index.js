@@ -528,6 +528,23 @@ router.get("/profile", isAuthenticated,  async (req, res, next) => {
     ]
 }).sort({start: 1});
 
+const loggedInUserName = req.session.user.name; // Get the logged-in user's name from the session
+let msg2;
+
+try {
+  msg2 = await checkPendingSubmissions(loggedInUserName); // Wait for the function to resolve
+  if (msg2 === "Yes") {
+    console.log("You have pending submissions to review.");
+    msg2 = "You have pending submissions by team members to review.";
+  } else {
+    console.log("No pending submissions.");
+    msg2 = "";
+  }
+} catch (error) {
+  console.error("Error checking pending submissions:", error);
+  msg2 = "Error checking pending submissions.";
+}
+
    let msg = "";
     if (req.query.msg === "successadd") {
       msg = "New task added successfully.";
@@ -543,7 +560,7 @@ router.get("/profile", isAuthenticated,  async (req, res, next) => {
       msg = "Failed to update task data. Please try again.";
     }
 
-   res.render('profile', {user, incompleteTasks, resourceDetails, startDate, endDate, msg});  //  Actual data to be passed to view for usrs view.
+   res.render('profile', {user, incompleteTasks, resourceDetails, startDate, endDate, msg, msg2});  //  Actual data to be passed to view for usrs view.
   
   } catch (error) {
     console.log(error.message);
@@ -618,31 +635,33 @@ router.post("/profile", isAuthenticated, async (req, res) => {
 });
 
 // route to show activites for users from the pwa data stored in the database. //////////////////////////////////////////////////////////////////////////////////////
-router.get("/pwaactivities", isAuthenticated, isFTE,  async (req, res, next) => {
+router.get("/pwaactivities", isAuthenticated, isFTE, async (req, res, next) => {
   const { startDate, endDate } = getCurrentWeekDateRange();
-  // console.log('startdate of week is of type', typeof startDate);
 
-const activities = await taskModel.find({
-  $and: [
-    {
-      $or: [
-        { start: { $gte: startDate, $lte: endDate } }, // starts within current week
-        { Finish: { $gte: startDate, $lte: endDate } },  //Finishes within current week
-        {
-          $and: [
-            { start: { $lt: startDate } },
-            { Finish: { $gt: endDate } }
-          ]  // such task start before current week and will finish after current week.
-        },
-        {       $and: [{Finish: { $lt: startDate }, taskCompletePercent: {$lt: 100}}]         }  // Task has finish date in past week but its still incomplete
-      ]
-    },
-    { source: "PWA" },
-    {ProjectStatus: { $ne: "On Hold" }}
-  ]  
-}).sort({ typeofActivity: -1 });  //returns activities with start/finish between current week or activity that either starts or finish in current week.
+  const activities = await taskModel.find({
+    $and: [
+      {
+        $or: [
+          { start: { $gte: startDate, $lte: endDate } }, // starts within current week
+          { Finish: { $gte: startDate, $lte: endDate } }, // finishes within current week
+          {
+            $and: [
+              { start: { $lt: startDate } },
+              { Finish: { $gt: endDate } },
+            ], // starts before current week and finishes after current week
+          },
+          {
+            $and: [{ Finish: { $lt: startDate }, taskCompletePercent: { $lt: 100 } }],
+          }, // Task has finish date in past week but is still incomplete
+        ],
+      },
+      { source: "PWA" },
+      { ProjectStatus: { $ne: "On Hold" } },
+    ],
+  }).sort({ typeofActivity: -1 }); // returns activities with start/finish between current week or activity that either starts or finishes in current week.
 
-const projectsOnHold = await taskModel.distinct('projectName', { ProjectStatus: "On Hold" });
+  const projectsOnHold = await taskModel.distinct("projectName", { ProjectStatus: "On Hold" });
+
   // Group activities by typeofActivity
   const groupedActivities = activities.reduce((acc, activity) => {
     if (!acc[activity.typeofActivity]) {
@@ -651,8 +670,26 @@ const projectsOnHold = await taskModel.distinct('projectName', { ProjectStatus: 
     acc[activity.typeofActivity].push(activity);
     return acc;
   }, {});
+
+  const loggedInUserName = req.session.user.name; // Get the logged-in user's name from the session
+  let msg;
+
+  try {
+    msg = await checkPendingSubmissions(loggedInUserName); // Wait for the function to resolve
+    if (msg === "Yes") {
+      console.log("You have pending submissions to review.");
+      msg = "You have pending submissions by team members to review.";
+    } else {
+      console.log("No pending submissions.");
+      msg = "";
+    }
+  } catch (error) {
+    console.error("Error checking pending submissions:", error);
+    msg = "Error checking pending submissions.";
+  }
+
   console.log("length of activities is: ", activities.length);
-  res.render('pwaactivities', {groupedActivities, projectsOnHold, startDate, endDate} );
+  res.render("pwaactivities", { groupedActivities, projectsOnHold, startDate, endDate, msg });
 });
 
 // route to render monthly plan for viewers
@@ -1265,7 +1302,7 @@ router.get("/alltasks", isAdmin, async (req, res) => {
 });
 
 // route to filter TasksToUpdate
-router.get('/taskstoupdate', isAuthenticated, async (req, res) => {
+router.get('/taskstoupdate', isAdmin, async (req, res, next) => {
   try {
     // Query the database for tasks that match the criteria
     const filteredTasks = await taskModel.find({
@@ -1278,7 +1315,8 @@ router.get('/taskstoupdate', isAuthenticated, async (req, res) => {
     res.render('taskstoupdate', { tasks: filteredTasks });
   } catch (error) {
     console.error('Error filtering PWA tasks:', error);
-    res.status(500).send('An error occurred while filtering tasks.');
+    next(error); // Pass the error to the next middleware
+    // res.status(500).send('An error occurred while filtering tasks.');
   }
 });
 
@@ -1555,45 +1593,43 @@ router.get("/archivedtasks", isAdmin, async (req, res) => {
 
 const checkPendingSubmissions = async (loggedInUserName) => {
   try {
-    // Find the logged-in user's resource details
-    const userResource = await resourceModel.findOne({ resourceName: loggedInUserName });
-
-    if (!userResource) {
+    // Step 1: Find the logged-in user's resource details
+    const manager = await resourceModel.findOne({ resourceName: loggedInUserName });
+    if (!manager) {
       console.log("User not found in resourceModel.");
-      return "no"; // No tasks to notify
+      return "No"; // No tasks to notify
     }
 
-    // Check if the user is a Member
-    if (userResource.resourceRole === "Member") {
+    // Step 2: Check if the user is a Member
+    if (manager.resourceRole === "Member") {
       console.log("User is a Member. No tasks to notify.");
-      return "no"; // No tasks to notify
+      return "No"; // No tasks to notify
     }
 
-    // If the user is a Manager or Admin, check for tasks
+    // Step 3: Find all resources managed by the logged-in user
+    const managedResources = await resourceModel.find({ resourceManagerId: manager.resourceId });
+    const managedResourceIds = managedResources.map(resource => resource.resourceId);
+
+    if (managedResourceIds.length === 0) {
+      console.log("No resources managed by the user.");
+      return "No"; // No tasks to notify
+    }
+
+    // Step 4: Query the taskModel for tasks that meet the conditions
     const pendingTasksCount = await taskModel.countDocuments({
       submitted: 1,
       approvalStatus: "Submitted. Awaiting Approval",
       consultingDay: "Yes",
-      resourceManagerId: userResource.resourceId, // Check if the user is the manager of the resource
+      resourceId: { $in: managedResourceIds }, // Check if the task's resourceId is in the list of managed resources
     });
 
-    // Return "yes" if tasks exist, otherwise "no"
-    return pendingTasksCount > 0 ? "yes" : "no";
+    // Return "Yes" if tasks exist, otherwise "No"
+    return pendingTasksCount > 0 ? "Yes" : "No";
   } catch (error) {
     console.error("Error checking pending submissions:", error);
-    return "no"; // Default to "no" in case of an error
+    return "No"; // Default to "No" in case of an error
   }
 };
-//example usage
-// const loggedInUserName = req.session.user.name; // Get the logged-in user's name from the session
 
-// checkPendingSubmissions(loggedInUserName).then((result) => {
-//   if (result === "yes") {
-//     console.log("You have pending submissions to review.");
-//     // Notify the user in the app
-//   } else {
-//     console.log("No pending submissions.");
-//   }
-// });
 
 module.exports = router;
