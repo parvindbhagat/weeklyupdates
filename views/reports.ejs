@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reports</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <h1 class="text-center">Billable vs Non-Billable Hours</h1>
+  <canvas id="lineChart" width="800" height="400"></canvas>
+
+  <script>
+    // Data passed from the backend
+    const projectNames = <%- JSON.stringify(projectNames) %>;
+    const billableHours = <%- JSON.stringify(billableHours) %>;
+    const nonBillableHours = <%- JSON.stringify(nonBillableHours) %>;
+
+    // Create the line chart
+    const ctx = document.getElementById('lineChart').getContext('2d');
+    const lineChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: projectNames, // Project names for the x-axis
+        datasets: [
+          {
+            label: 'Billable Hours',
+            data: billableHours,
+            borderColor: 'rgba(54, 162, 235, 1)',
+            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+            fill: true,
+          },
+          {
+            label: 'Non-Billable Hours',
+            data: nonBillableHours,
+            borderColor: 'rgba(255, 99, 132, 1)',
+            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+            fill: true,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            position: 'top',
+          },
+        },
+        scales: {
+          x: {
+            title: {
+              display: true,
+              text: 'Projects',
+            },
+          },
+          y: {
+            title: {
+              display: true,
+              text: 'Hours',
+            },
+          },
+        },
+      },
+    });
+  </script>
+</body>
+</html>

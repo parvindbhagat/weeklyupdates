@@ -185,6 +185,54 @@ async function isFTE(req, res, next) {
         res.status(500).send(`Failed to verify group membership.  You can log in then try again. If you are a member of X team, please visit :  ${process.env.PTE_URL}`);
     }
 }
+
+const checkPendingSubmissions = async (loggedInUserName) => {
+  try {
+    // Step 1: Find the logged-in user's resource details
+    const manager = await resourceModel.findOne({ resourceName: loggedInUserName });
+    if (!manager) {
+      console.log("User not found in resourceModel.");
+      return "No"; // No tasks to notify
+    }
+
+    // Step 2: Check if the user is a Member
+    if (manager.resourceRole === "Member") {
+      console.log("User is a Member. No tasks to notify.");
+      return "No"; // No tasks to notify
+    }
+
+    // Step 3: Find all resources managed by the logged-in user
+    const managedResources = await resourceModel.find({ resourceManagerId: manager.resourceId });
+    const managedResourceIds = managedResources.map(resource => resource.resourceId);
+
+    if (managedResourceIds.length === 0) {
+      console.log("No resources managed by the user.");
+      return "No"; // No tasks to notify
+    }
+
+    // Step 4: Query the taskModel for tasks that meet the conditions
+    const pendingTasksCount = await taskModel.countDocuments({
+      submitted: 1,
+      approvalStatus: "Submitted. Awaiting Approval",
+      consultingDay: "Yes",
+      resourceId: { $in: managedResourceIds }, // Check if the task's resourceId is in the list of managed resources
+    });
+
+    // Return "Yes" if tasks exist, otherwise "No"
+    return pendingTasksCount > 0 ? "Yes" : "No";
+  } catch (error) {
+    console.error("Error checking pending submissions:", error);
+    return "No"; // Default to "No" in case of an error
+  }
+};
+
+function sanitizeUserComment(userComment) {
+  if (typeof userComment !== 'string') {
+    return userComment; // Return as is if it's not a string
+  }
+  return userComment.replace(/;/g, ','); // Replace all ";" with ","
+}
+
 //check referrer to allow only from the chrd site
 function checkReferrer(req, res, next) {
   const referrer = req.get('Referrer') || req.get('Referer'); // Some browsers use 'Referer' instead of 'Referrer'
@@ -581,7 +629,8 @@ router.post("/profile", isAuthenticated, async (req, res) => {
     const resourceName = user.name
     const resource = await resourceModel.findOne({resourceName: resourceName });
     const resourceId = resource.resourceId;
-    const {projectName, taskName, actualStart, actualFinish, actualWork, userComment, completed} = req.body;
+    let {projectName, taskName, actualStart, actualFinish, actualWork, userComment, completed} = req.body;
+    userComment = sanitizeUserComment(userComment);
     const start = new Date(actualStart);
    
     let Finish = new Date(actualFinish);
@@ -1124,6 +1173,7 @@ router.get('/taskstoupdate', isAdmin, async (req, res, next) => {
 // Save PWA task details for first time in the database and then it can be updated or submitted to manager for approval
 router.post('/savetask', isAuthenticated, async (req, res) => {
   let { activityId, actualStart, actualFinish, actualWork, comment, completed } = req.body;
+  comment = sanitizeUserComment(comment);
   const datedComment = "(" + new Date().toLocaleDateString('en-in') + ": " + actualWork + " Hrs)" + comment;
   // console.log('dated comment is: ', datedComment);
   // if(completed === '100'){
@@ -1151,8 +1201,7 @@ router.post('/savetask', isAuthenticated, async (req, res) => {
 //UPDATE saved tasks by member before submission. 
 router.post('/updatetask', isAuthenticated, async (req, res) => {
   let { actualFinish, actualWork, comment, completed, activityId } = req.body;
-  
-
+  comment = sanitizeUserComment(comment);
   const existingTask = await taskModel.findById(activityId);
   const existingWorkDone = existingTask.actualWork;
   const previousComment = existingTask.userComment || ""; // Get the existing comment or an empty string if none exists
@@ -1401,46 +1450,53 @@ router.get("/archivedtasks", isAdmin, async (req, res) => {
   }
 });
 
-
-const checkPendingSubmissions = async (loggedInUserName) => {
+// Route to show reports for Members
+router.get('/reports', isAuthenticated, async (req, res) => {
   try {
-    // Step 1: Find the logged-in user's resource details
-    const manager = await resourceModel.findOne({ resourceName: loggedInUserName });
-    if (!manager) {
-      console.log("User not found in resourceModel.");
-      return "No"; // No tasks to notify
+    const user = req.session.user;
+    const resourceName = user.name;
+
+    // Check if the user is a Member
+    const resource = await resourceModel.findOne({ resourceName });
+    if (!resource || resource.resourceRole !== 'Member') {
+      return res.status(403).send('Access denied. Only Members can view this report.');
     }
 
-    // Step 2: Check if the user is a Member
-    if (manager.resourceRole === "Member") {
-      console.log("User is a Member. No tasks to notify.");
-      return "No"; // No tasks to notify
-    }
+    // Query for tasks grouped by projectName
+    const tasks = await taskModel.find({ resourceName });
 
-    // Step 3: Find all resources managed by the logged-in user
-    const managedResources = await resourceModel.find({ resourceManagerId: manager.resourceId });
-    const managedResourceIds = managedResources.map(resource => resource.resourceId);
+    // Group tasks by projectName and calculate billable and non-billable hours
+    const groupedData = tasks.reduce((acc, task) => {
+      if (!acc[task.projectName]) {
+        acc[task.projectName] = { billable: 0, nonBillable: 0 };
+      }
 
-    if (managedResourceIds.length === 0) {
-      console.log("No resources managed by the user.");
-      return "No"; // No tasks to notify
-    }
+      if (task.consultingDay === 'Yes' && task.source === 'PWA') {
+        acc[task.projectName].billable += task.actualWork || 0;
+      } else if (task.consultingDay === 'No' || task.source === 'MTE') {
+        acc[task.projectName].nonBillable += task.actualWork || 0;
+      }
 
-    // Step 4: Query the taskModel for tasks that meet the conditions
-    const pendingTasksCount = await taskModel.countDocuments({
-      submitted: 1,
-      approvalStatus: "Submitted. Awaiting Approval",
-      consultingDay: "Yes",
-      resourceId: { $in: managedResourceIds }, // Check if the task's resourceId is in the list of managed resources
+      return acc;
+    }, {});
+
+    // Prepare data for the chart
+    const projectNames = Object.keys(groupedData);
+    const billableHours = projectNames.map(project => groupedData[project].billable);
+    const nonBillableHours = projectNames.map(project => groupedData[project].nonBillable);
+
+    // Render the chart view
+    res.render('reports', {
+      projectNames,
+      billableHours,
+      nonBillableHours,
     });
-
-    // Return "Yes" if tasks exist, otherwise "No"
-    return pendingTasksCount > 0 ? "Yes" : "No";
   } catch (error) {
-    console.error("Error checking pending submissions:", error);
-    return "No"; // Default to "No" in case of an error
+    console.error('Error generating report:', error);
+    res.status(500).send('An error occurred while generating the report.');
   }
-};
+});
+
 
 
 module.exports = router;
