@@ -10,6 +10,7 @@ const mongoSanitize = require('express-mongo-sanitize');
 // const cors = require('cors');
 // const MongoStore = require('connect-mongo');
 const indexRouter = require('./routes/index');
+const { title } = require('process');
 // var resourceRouter = require('./routes/resource');
 // var taskRouter = require('./routes/task');
 var app = express();
@@ -78,24 +79,27 @@ app.use((req, res, next) => {
 }); 
 
 // catch 404 and forward to error handler
-app.use(function(req, res, next) {
-  res.render('404');
-  // next(createError(404));
+app.use((req, res, next) => {
+  res.status(404).render('404', {
+    title: 'Page Not Found',
+    message: 'The page you are looking for does not exist.',
+  });
 });
 
 // error handler
-app.use(function(err, req, res, next) {
-  // set locals, only providing error in development
-  // res.locals.message = err.message;
-  // res.locals.error = req.app.get('env') === 'development' ? err : {};
+app.use((err, req, res, next) => {
+  // Log the error for debugging
+  console.error(`Error occurred: ${err.message}`);
+  console.error(err.stack);
 
-  // render the error page
-  // res.status(err.status || 500);
-  // res.render('error');
-  res.status(err.status || 500).render('error', {
-    errorCode: 500,
-    errorMessage: err.message
-  });
+  // Set locals, only providing error details in development
+  const isDevelopment = req.app.get('env') === 'development';
+  const errorDetails = isDevelopment
+    ? { errorCode: err.status || 500, errorName: err.name, errorMessage: err.message }
+    : { errorCode: err.status || 500, errorName: 'Internal Server Error', errorMessage: 'Something went wrong!' };
+
+  // Render the error page
+  res.status(err.status || 500).render('error', errorDetails);
 });
 
 module.exports = app;
