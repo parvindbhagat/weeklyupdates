@@ -72,6 +72,7 @@
               <th class="table-header text-white">Resource Name</th>
               <th class="table-header text-white">Start Date</th>
               <th class="table-header text-white">Finish Date</th>
+              <th class="table-header text-white">Actual Work</th>
               <th class="table-header text-white">Status</th>
             </tr>
         </thead>
@@ -87,6 +88,7 @@
                         <td><%= task.resourceName %></td>
                         <td><%= task.start ? task.start.toDateString() : "N/A" %></td>
                         <td><%= task.Finish ? task.Finish.toDateString() : "N/A" %></td>
+                        <td><%= task.actualWork %></td>
                         <td><%= task.ProjectStatus %></td>
                     </tr>
                 <% }) %>
