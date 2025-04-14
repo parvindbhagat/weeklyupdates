@@ -686,8 +686,8 @@ router.post("/profile", isAuthenticated, async (req, res) => {
 // route to show activites for users from the pwa data stored in the database. //////////////////////////////////////////////////////////////////////////////////////
 router.get("/pwaactivities", isAuthenticated, isFTE, async (req, res, next) => {
   const { startDate, endDate } = getCurrentWeekDateRange();
-
-  const activities = await taskModel.find({
+  const { projectName } = req.query; // Get the selected projectName from the query parameters
+  let activities = await taskModel.find({
     $and: [
       {
         $or: [
@@ -708,6 +708,12 @@ router.get("/pwaactivities", isAuthenticated, isFTE, async (req, res, next) => {
       { ProjectStatus: { $ne: "On Hold" } },
     ],
   }).sort({ typeofActivity: -1 }); // returns activities with start/finish between current week or activity that either starts or finishes in current week.
+
+  if(projectName){
+    activities = activities.filter(activity => activity.projectName === projectName); // Filter activities based on selected projectName
+  }
+
+  const projectNames = [...new Set(activities.map(activity =>activity.projectName))]; // Get unique project names from the tasks
 
   const projectsOnHold = await taskModel.distinct("projectName", { ProjectStatus: "On Hold" });
 
@@ -738,7 +744,7 @@ router.get("/pwaactivities", isAuthenticated, isFTE, async (req, res, next) => {
   }
 
   console.log("length of activities is: ", activities.length);
-  res.render("pwaactivities", { groupedActivities, projectsOnHold, startDate, endDate, msg });
+  res.render("pwaactivities", { groupedActivities, projectNames, selectedProjectName: projectName , projectsOnHold, startDate, endDate, msg });
 });
 
 // route to render monthly plan for viewers

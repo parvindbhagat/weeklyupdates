@@ -102,6 +102,21 @@
 </a>
 </div>
 
+<div class="filter d-flex justify-content-center align-items-center gap-3 my-3">
+  <form method="GET" action="/pwaactivities">
+    <!-- <label for="projectFilter">Filter by Project:</label> -->
+    <select class="form-select" id="projectFilter" name="projectName" onchange="this.form.submit()">
+      <option value="">-- Filter by Project --</option>
+      <% projectNames.forEach(project => { %>
+        <option value="<%= project %>" <%= project === selectedProjectName ? 'selected' : '' %>><%= project %></option>
+      <% }); %>
+    </select>
+  </form>
+  <form method="GET" action="/pwaactivities" style="display: inline-block; margin-left: 10px;">
+    <button type="submit" class="btn btn-secondary">Clear Filter</button>
+  </form>
+</div>
+
 
 <div class="actlist">
 <table class="activity-table">
