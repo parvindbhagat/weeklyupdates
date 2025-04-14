@@ -1217,6 +1217,19 @@ router.post('/updatetask', isAuthenticated, async (req, res) => {
   const newComment = previousComment + "; " + datedComment; // Concatenate the previous comment with the new dated comment
 
   try {
+      //update consulting day if the task does not have that attribute.
+      const updateConsultingDay = await taskModel.findOneAndUpdate(
+        {
+          _id: activityId, // Match the document by ID
+          consultingDay: { $exists: false }, // Only update if consultingDay does not exist
+        },
+        {
+          $set: { consultingDay: "Yes" }, // Set consultingDay to "Yes"
+        },
+        {
+          new: true, // Return the updated document
+        }
+      );
       const update = await taskModel.findByIdAndUpdate(activityId, {
           actualFinish: new Date(actualFinish),
           actualWork: Number(existingWorkDone) + Number(actualWork),
@@ -1430,7 +1443,7 @@ router.get("/archivedtasks", isAdmin, async (req, res) => {
 
     if (archivedTasks.length === 0) {
       // return res.status(200).send("No archived tasks found.");
-      return res.redirect('/admin?msg=archive empty');
+      return res.redirect('/admin?msg=archive_empty');
     }
 
     // Group tasks by projectName
@@ -1450,46 +1463,127 @@ router.get("/archivedtasks", isAdmin, async (req, res) => {
   }
 });
 
-// Route to show reports for Members
-router.get('/reports', isAuthenticated, async (req, res) => {
+// Route to show reports for resources hours for projects.
+router.get('/resourcereport', isAuthenticated, isAdmin, async (req, res) => {
   try {
     const user = req.session.user;
-    const resourceName = user.name;
 
-    // Check if the user is a Member
-    const resource = await resourceModel.findOne({ resourceName });
-    if (!resource || resource.resourceRole !== 'Member') {
-      return res.status(403).send('Access denied. Only Members can view this report.');
+    // Check if the user is an Admin
+    const resource = await resourceModel.findOne({ resourceName: user.name });
+    const isAdmin = resource && resource.resourceRole === 'Admin';
+
+    // Get the search term, selected resource name, and time period from the query parameters
+    const searchTerm = req.query.search || '';
+    const selectedResourceName = req.query.resourceName || '';
+    const timePeriod = req.query.timePeriod || 'currentMonth'; // Default to current month
+
+    // If no search term or resource name is provided, render the search form
+    if (!searchTerm && !selectedResourceName) {
+      return res.render('reports', {
+        projectNames: [],
+        billableHours: [],
+        nonBillableHours: [],
+        searchResults: [],
+        isAdmin,
+        searchTerm,
+        selectedResourceName,
+        timePeriod,
+      });
     }
 
-    // Query for tasks grouped by projectName
-    const tasks = await taskModel.find({ resourceName });
+    // If a search term is provided, search for matching resources
+    let searchResults = [];
+    if (searchTerm) {
+      searchResults = await resourceModel.find({
+        resourceName: { $regex: searchTerm, $options: 'i' }, // Case-insensitive partial match
+      });
 
-    // Group tasks by projectName and calculate billable and non-billable hours
-    const groupedData = tasks.reduce((acc, task) => {
-      if (!acc[task.projectName]) {
-        acc[task.projectName] = { billable: 0, nonBillable: 0 };
+      // If search results are found, display them
+      if (searchResults.length > 0) {
+        return res.render('reports', {
+          projectNames: [],
+          billableHours: [],
+          nonBillableHours: [],
+          searchResults,
+          isAdmin,
+          searchTerm,
+          selectedResourceName: '', // Clear selectedResourceName when showing search results
+          timePeriod,
+        });
+      }
+    }
+
+    // If a resource is selected, fetch tasks for that resource within the selected time period
+    let projectNames = [];
+    let billableHours = [];
+    let nonBillableHours = [];
+    if (selectedResourceName) {
+      // Determine the date range based on the selected time period
+      let startDate, endDate;
+      const today = new Date();
+      switch (timePeriod) {
+        case 'lastMonth':
+          startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+          endDate = new Date(today.getFullYear(), today.getMonth(), 0);
+          break;
+        case 'lastQuarter':
+          const currentQuarter = Math.floor(today.getMonth() / 3);
+          startDate = new Date(today.getFullYear(), (currentQuarter - 1) * 3, 1);
+          endDate = new Date(today.getFullYear(), currentQuarter * 3, 0);
+          break;
+        case 'lastYear':
+          startDate = new Date(today.getFullYear() - 1, 0, 1);
+          endDate = new Date(today.getFullYear() - 1, 11, 31);
+          break;
+        case 'allTime':
+          startDate = new Date(0); // Earliest possible date
+          endDate = new Date(); // Current date
+          break;
+        case 'currentMonth':
+        default:
+          startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+          endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+          break;
       }
 
-      if (task.consultingDay === 'Yes' && task.source === 'PWA') {
-        acc[task.projectName].billable += task.actualWork || 0;
-      } else if (task.consultingDay === 'No' || task.source === 'MTE') {
-        acc[task.projectName].nonBillable += task.actualWork || 0;
-      }
+      // Fetch tasks for the selected resource within the date range
+      const tasks = await taskModel.find({
+        resourceName: selectedResourceName,
+        start: { $gte: startDate },
+        Finish: { $lte: endDate },
+      });
 
-      return acc;
-    }, {});
+      // Group tasks by projectName and calculate billable and non-billable hours
+      const groupedData = tasks.reduce((acc, task) => {
+        if (!acc[task.projectName]) {
+          acc[task.projectName] = { billable: 0, nonBillable: 0 };
+        }
 
-    // Prepare data for the chart
-    const projectNames = Object.keys(groupedData);
-    const billableHours = projectNames.map(project => groupedData[project].billable);
-    const nonBillableHours = projectNames.map(project => groupedData[project].nonBillable);
+        if (task.consultingDay === 'Yes' && task.source === 'PWA') {
+          acc[task.projectName].billable += task.actualWork || 0;
+        } else if (task.consultingDay === 'No' || task.source === 'MTE') {
+          acc[task.projectName].nonBillable += task.actualWork || 0;
+        }
+
+        return acc;
+      }, {});
+
+      // Prepare data for the chart
+      projectNames = Object.keys(groupedData);
+      billableHours = projectNames.map(project => groupedData[project].billable);
+      nonBillableHours = projectNames.map(project => groupedData[project].nonBillable);
+    }
 
     // Render the chart view
     res.render('reports', {
       projectNames,
       billableHours,
       nonBillableHours,
+      searchResults: [],
+      isAdmin,
+      searchTerm,
+      selectedResourceName,
+      timePeriod,
     });
   } catch (error) {
     console.error('Error generating report:', error);

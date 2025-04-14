@@ -7,61 +7,107 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <h1 class="text-center">Billable vs Non-Billable Hours</h1>
-  <canvas id="lineChart" width="800" height="400"></canvas>
+  <h1 class="text-center">Billable vs Non-Billable Hours <%= selectedResourceName %></h1>
 
-  <script>
-    // Data passed from the backend
-    const projectNames = <%- JSON.stringify(projectNames) %>;
-    const billableHours = <%- JSON.stringify(billableHours) %>;
-    const nonBillableHours = <%- JSON.stringify(nonBillableHours) %>;
+  <% if (isAdmin) { %>
+    <!-- Search Form -->
+    <form method="GET" action="/resourcereport">
+      <label for="search">Search Resource Name:</label>
+      <input
+        type="text"
+        id="search"
+        name="search"
+        placeholder="Enter resource name"
+        value="<%= searchTerm || '' %>"
+      >
+      <button type="submit">Search</button>
+    </form>
 
-    // Create the line chart
-    const ctx = document.getElementById('lineChart').getContext('2d');
-    const lineChart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: projectNames, // Project names for the x-axis
-        datasets: [
-          {
-            label: 'Billable Hours',
-            data: billableHours,
-            borderColor: 'rgba(54, 162, 235, 1)',
-            backgroundColor: 'rgba(54, 162, 235, 0.2)',
-            fill: true,
-          },
-          {
-            label: 'Non-Billable Hours',
-            data: nonBillableHours,
-            borderColor: 'rgba(255, 99, 132, 1)',
-            backgroundColor: 'rgba(255, 99, 132, 0.2)',
-            fill: true,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: {
-            position: 'top',
-          },
+    <!-- Display Search Results -->
+    <% if (searchResults.length > 0) { %>
+      <h3>Search Results:</h3>
+      <ul>
+        <% searchResults.forEach(result => { %>
+          <li>
+            <a href="/resourcereport?resourceName=<%= result.resourceName %>"><%= result.resourceName %></a>
+          </li>
+        <% }); %>
+      </ul>
+    <% } %>
+
+    <!-- Time Period Selection -->
+    <% if (selectedResourceName) { %>
+      <form method="GET" action="/resourcereport">
+        <input type="hidden" name="resourceName" value="<%= selectedResourceName || '' %>">
+        <label for="timePeriod">Select Time Period:</label>
+        <select id="timePeriod" name="timePeriod">
+          <option value="currentMonth" <%= timePeriod === 'currentMonth' ? 'selected' : '' %>>Current Month</option>
+          <option value="lastMonth" <%= timePeriod === 'lastMonth' ? 'selected' : '' %>>Last Month</option>
+          <option value="lastQuarter" <%= timePeriod === 'lastQuarter' ? 'selected' : '' %>>Last Quarter</option>
+          <option value="lastYear" <%= timePeriod === 'lastYear' ? 'selected' : '' %>>Last Year</option>
+          <option value="allTime" <%= timePeriod === 'allTime' ? 'selected' : '' %>>All Time</option>
+        </select>
+        <button type="submit">Generate Report</button>
+      </form>
+    <% } %>
+  <% } %>
+
+  <!-- Chart -->
+  <% if (projectNames.length > 0) { %>
+    <canvas id="lineChart" width="800" height="400"></canvas>
+    <script>
+      const projectNames = <%- JSON.stringify(projectNames) %>;
+      const billableHours = <%- JSON.stringify(billableHours) %>;
+      const nonBillableHours = <%- JSON.stringify(nonBillableHours) %>;
+
+      const ctx = document.getElementById('lineChart').getContext('2d');
+      const lineChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: projectNames,
+          datasets: [
+            {
+              label: 'Billable Hours',
+              data: billableHours,
+              borderColor: 'rgba(54, 162, 235, 1)',
+              backgroundColor: 'rgba(54, 162, 235, 0.2)',
+              fill: true,
+            },
+            {
+              label: 'Non-Billable Hours',
+              data: nonBillableHours,
+              borderColor: 'rgba(255, 99, 132, 1)',
+              backgroundColor: 'rgba(255, 99, 132, 0.2)',
+              fill: true,
+            },
+          ],
         },
-        scales: {
-          x: {
-            title: {
-              display: true,
-              text: 'Projects',
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              position: 'top',
             },
           },
-          y: {
-            title: {
-              display: true,
-              text: 'Hours',
+          scales: {
+            x: {
+              title: {
+                display: true,
+                text: 'Projects',
+              },
+            },
+            y: {
+              title: {
+                display: true,
+                text: 'Hours',
+              },
             },
           },
         },
-      },
-    });
-  </script>
+      });
+    </script>
+  <% } else if (!searchResults.length && !projectNames.length) { %>
+    <p>No data to display. Please search for a resource.</p>
+  <% } %>
 </body>
 </html>
