@@ -962,15 +962,13 @@ router.get("/refreshdatabase", isAdmin, async (req, res) => {
       }
     );
     const allprojects = projectAPIresponse.data.value;
-    if (!Array.isArray(allprojects)) {
-      // console.log("allproject is not an array, converting it to array.");
-      allprojects = [allprojects];
-    } else{
-      // console.log("allprojects is  an array.");
-    }
-    // console.log("type of allprojects is: ", allprojects);
+
+    // Filter out completed projects
+    const nonCompleteProjects = allprojects.filter(
+          (project) => project.ProjectStatus !== "Completed"
+        );
     //get data from Tasks API
-    const tasksPromises = allprojects.map(async (project) => {
+    const tasksPromises = nonCompleteProjects.map(async (project) => {
       const projectId = project.ProjectId;
       const tasksResponse = await axios.get(
         `https://chrysalishrd.sharepoint.com/pwa/_api/ProjectData/Projects(guid'${projectId}')/Tasks`,
@@ -997,7 +995,7 @@ router.get("/refreshdatabase", isAdmin, async (req, res) => {
         
     // get data from Assignments API
   
-    const assignmentsPromises = allprojects.map(
+    const assignmentsPromises = nonCompleteProjects.map(
       async (project) => {
         const projectId = project.ProjectId;
         const assignmentsResponse = await axios.get(
@@ -1016,7 +1014,7 @@ router.get("/refreshdatabase", isAdmin, async (req, res) => {
     const assignments = await Promise.all(assignmentsPromises);
     const allassignments = assignments.flat();
   
-    return { projects: allprojects, tasks: leapTasks, resources: allassignments  }; 
+    return { projects: nonCompleteProjects, tasks: leapTasks, resources: allassignments  }; 
   }
   
 
