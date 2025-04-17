@@ -29,7 +29,7 @@ const taskSchema = new mongoose.Schema({
     source:{type: String, default: "PWA"},
     saved: {type: Number, default: 0 },
     submitted: {type: Number, default: 0},
-    consultingDay: {type: String, default: "Yes"},
+    consultingDay: {type: String, default: "NA"},
     taskIndex: {type: Number, default: 0},
   });
   const task = mongoose.model("task", taskSchema);
