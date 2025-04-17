@@ -102,20 +102,30 @@
 </a>
 </div>
 
-<div class="filter d-flex justify-content-center align-items-center gap-3 my-3">
-  <form method="GET" action="/pwaactivities">
-    <!-- <label for="projectFilter">Filter by Project:</label> -->
-    <select class="form-select" id="projectFilter" name="projectName" onchange="this.form.submit()">
-      <option value="">-- Filter by Project --</option>
-      <% projectNames.forEach(project => { %>
-        <option value="<%= project %>" <%= project === selectedProjectName ? 'selected' : '' %>><%= project %></option>
-      <% }); %>
-    </select>
-  </form>
-  <form method="GET" action="/pwaactivities" style="display: inline-block; margin-left: 10px;">
-    <button type="submit" class="btn btn-secondary">Clear Filter</button>
-  </form>
-</div>
+    <!-- Filter Section -->
+    <div class="filter d-flex justify-content-center align-items-center gap-3 my-3">
+      <form method="GET" action="/pwaactivities" class="d-flex gap-3">
+        <!-- Filter by Resource -->
+        <select class="form-select" id="resourceFilter" name="resourceName">
+          <option value="" <%= !selectedResourceName ? 'selected' : '' %>>-- Filter by Resource --</option>
+          <% resourceNames.forEach(resource => { %>
+            <option value="<%= resource %>" <%= resource === selectedResourceName ? 'selected' : '' %>><%= resource %></option>
+          <% }); %>
+        </select>
+
+        <!-- Filter by Project -->
+        <select class="form-select" id="projectFilter" name="projectName">
+          <option value="" <%= !selectedProjectName ? 'selected' : '' %>>-- Filter by Project --</option>
+          <% projectNames.forEach(project => { %>
+            <option value="<%= project %>" <%= project === selectedProjectName ? 'selected' : '' %>><%= project %></option>
+          <% }); %>
+        </select>
+
+        <!-- Submit and Clear Buttons -->
+        <button type="submit" class="btn">Filter</button>
+        <a href="/pwaactivities" class="btn">Reset</a>
+      </form>
+    </div>
 
 
 <div class="actlist">
@@ -176,7 +186,7 @@
   </div>
 </div>
 <button id="topButton" onclick="scrollToTop()">TOP</button>
-
+</div>  
 <script>
     // Show the button when the user scrolls down 20px from the top of the document
     window.onscroll = function() {scrollFunction()};
@@ -234,6 +244,5 @@ table.insertBefore(row, nextSibling);
 });
 }
 </script>
-</div>
 </body>
 </html>

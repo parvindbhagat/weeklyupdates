@@ -105,6 +105,31 @@
     
     <h1 style="text-align: center; " >Chrysalis Monthly Plan</h1>
     <p style="text-align: center; margin: 0.5rem;">(<%= monthStart.toDateString() %> to <%= monthEnd.toDateString() %>)</p>
+
+    <div class="filter d-flex justify-content-center align-items-center gap-3 my-3">
+      <form method="GET" action="/monthlyplan" class="d-flex gap-3">
+        <!-- Filter by Project -->
+        <select class="form-select" id="projectFilter" name="projectName">
+          <option value="" <%= !selectedProjectName ? 'selected' : '' %>>-- Filter by Project --</option>
+          <% projectNames.forEach(project => { %>
+            <option value="<%= project %>" <%= project === selectedProjectName ? 'selected' : '' %>><%= project %></option>
+          <% }); %>
+        </select>
+
+        <!-- Filter by Resource -->
+        <select class="form-select" id="resourceFilter" name="resourceName">
+          <option value="" <%= !selectedResourceName ? 'selected' : '' %>>-- Filter by Resource --</option>
+          <% resourceNames.forEach(resource => { %>
+            <option value="<%= resource %>" <%= resource === selectedResourceName ? 'selected' : '' %>><%= resource %></option>
+          <% }); %>
+        </select>
+
+        <!-- Submit and Clear Buttons -->
+        <button type="submit" class="btn btn-primary">Filter</button>
+        <a href="/monthlyplan" class="btn btn-secondary">Clear</a>
+      </form>
+    </div>
+
     <div class="actlist">
       <table class="activity-table">
         <thead>
