@@ -10,7 +10,6 @@ const {getAccessToken, cca: msal } = require("../authconfig");
 const qs = require("qs");
 const moment = require("moment");
 // const { InteractionRequiredAuthErrorCodes } = require("@azure/msal-node");
-// const { getAccessToken, cca } = require("../authgraph");
 
 
 // function to check user is logged in with MSAL Auth flow
@@ -214,7 +213,7 @@ const checkPendingSubmissions = async (loggedInUserName) => {
     const pendingTasksCount = await taskModel.countDocuments({
       submitted: 1,
       approvalStatus: "Submitted. Awaiting Approval",
-      consultingDay: "Yes",
+      consultingDay: { $ne: "No" }, // Exclude tasks with consultingDay as "No" ie tasks that are CD: yes or MTE with CD: NA
       resourceId: { $in: managedResourceIds }, // Check if the task's resourceId is in the list of managed resources
     });
 
@@ -686,7 +685,8 @@ router.post("/profile", isAuthenticated, async (req, res) => {
 // route to show activites for users from the pwa data stored in the database. //////////////////////////////////////////////////////////////////////////////////////
 router.get("/pwaactivities", isAuthenticated, isFTE, async (req, res, next) => {
   const { startDate, endDate } = getCurrentWeekDateRange();
-  const { projectName } = req.query; // Get the selected projectName from the query parameters
+  let { projectName, resourceName } = req.query; // Get the selected projectName and resourceName from the query parameters
+
   let activities = await taskModel.find({
     $and: [
       {
@@ -709,13 +709,15 @@ router.get("/pwaactivities", isAuthenticated, isFTE, async (req, res, next) => {
     ],
   }).sort({ typeofActivity: -1 }); // returns activities with start/finish between current week or activity that either starts or finishes in current week.
 
-  if(projectName){
-    activities = activities.filter(activity => activity.projectName === projectName); // Filter activities based on selected projectName
+  // Apply projectName filter if provided
+  if (projectName) {
+    activities = activities.filter(activity => activity.projectName === projectName);
   }
 
-  const projectNames = [...new Set(activities.map(activity =>activity.projectName))]; // Get unique project names from the tasks
-
-  const projectsOnHold = await taskModel.distinct("projectName", { ProjectStatus: "On Hold" });
+  // Apply resourceName filter if provided
+  if (resourceName) {
+    activities = activities.filter(activity => activity.resourceName === resourceName);
+  }
 
   // Group activities by typeofActivity
   const groupedActivities = activities.reduce((acc, activity) => {
@@ -725,6 +727,13 @@ router.get("/pwaactivities", isAuthenticated, isFTE, async (req, res, next) => {
     acc[activity.typeofActivity].push(activity);
     return acc;
   }, {});
+
+  // Flatten groupedActivities to extract unique project and resource names
+  const flattenedActivities = Object.values(groupedActivities).flat();
+  const projectNames = [...new Set(flattenedActivities.map(activity => activity.projectName))];
+  const resourceNames = [...new Set(flattenedActivities.map(activity => activity.resourceName))];
+
+  const projectsOnHold = await taskModel.distinct("projectName", { ProjectStatus: "On Hold" });
 
   const loggedInUserName = req.session.user.name; // Get the logged-in user's name from the session
   let msg;
@@ -744,34 +753,59 @@ router.get("/pwaactivities", isAuthenticated, isFTE, async (req, res, next) => {
   }
 
   console.log("length of activities is: ", activities.length);
-  res.render("pwaactivities", { groupedActivities, projectNames, selectedProjectName: projectName , projectsOnHold, startDate, endDate, msg });
+  res.render("pwaactivities", {
+    groupedActivities,
+    projectNames,
+    resourceNames,
+    selectedProjectName: projectName || '', // Pass the selected projectName to the view  
+    selectedResourceName: resourceName || '', // Pass the selected resourceName to the view
+    projectsOnHold,
+    startDate,
+    endDate,
+    msg,
+  });
 });
 
 // route to render monthly plan for viewers
-router.get("/monthlyplan", isAuthenticated, isFTE,  async(req, res) => {
-  const {monthStart, monthEnd} = getDateRangeForMonth();
-const startDate = new Date(monthStart);
-const endDate = new Date(monthEnd);
+router.get("/monthlyplan", isAuthenticated, isFTE, async (req, res) => {
+  const { monthStart, monthEnd } = getDateRangeForMonth();
+  const startDate = new Date(monthStart);
+  const endDate = new Date(monthEnd);
 
-const activities = await taskModel.find({
-  $and: [
-    {
-      $or: [
-        { start: { $gte: startDate, $lte: endDate } }, // starts within current week
-        { Finish: { $gte: startDate, $lte: endDate } },  //Finishes within current week
-        {
-          $and: [
-            { start: { $lt: startDate } },
-            { Finish: { $gt: endDate } }
-          ]  // such task start before current week and will finish after current week.
-        },
-        {       $and: [{Finish: { $lt: startDate }, taskCompletePercent: {$lt: 100}}]         }  // Task has finish date in past week but its still incomplete
-      ]
-    },
-    { source: "PWA" },
-    {ProjectStatus: { $ne: "On Hold" }}
-  ]  
-}).sort({ typeofActivity: 1 });  //returns activities with start/finish between current weekor activity that either starts or finish in current week.
+  const { projectName, resourceName } = req.query; // Get filters from query parameters
+
+  // Fetch activities within the date range
+  let activities = await taskModel.find({
+    $and: [
+      {
+        $or: [
+          { start: { $gte: startDate, $lte: endDate } }, // starts within the month
+          { Finish: { $gte: startDate, $lte: endDate } }, // finishes within the month
+          {
+            $and: [
+              { start: { $lt: startDate } },
+              { Finish: { $gt: endDate } },
+            ], // starts before the month and finishes after the month
+          },
+          {
+            $and: [{ Finish: { $lt: startDate }, taskCompletePercent: { $lt: 100 } }],
+          }, // Task has finish date in past month but is still incomplete
+        ],
+      },
+      { source: "PWA" },
+      { ProjectStatus: { $ne: "On Hold" } },
+    ],
+  }).sort({ typeofActivity: 1 });
+
+  // Apply projectName filter if provided
+  if (projectName) {
+    activities = activities.filter(activity => activity.projectName === projectName);
+  }
+
+  // Apply resourceName filter if provided
+  if (resourceName) {
+    activities = activities.filter(activity => activity.resourceName === resourceName);
+  }
 
   // Group activities by typeofActivity
   const groupedActivities = activities.reduce((acc, activity) => {
@@ -781,10 +815,26 @@ const activities = await taskModel.find({
     acc[activity.typeofActivity].push(activity);
     return acc;
   }, {});
-  const projectsOnHold = await taskModel.distinct('projectName', { ProjectStatus: "On Hold" });
-  // console.log("length of activities is: ", activities.length);
-  res.render('monthlyplan', {groupedActivities, monthStart, monthEnd, projectsOnHold} );
+
+  // Flatten groupedActivities to extract unique project and resource names
+  const flattenedActivities = Object.values(groupedActivities).flat();
+  const projectNames = [...new Set(flattenedActivities.map(activity => activity.projectName))];
+  const resourceNames = [...new Set(flattenedActivities.map(activity => activity.resourceName))];
+
+  const projectsOnHold = await taskModel.distinct("projectName", { ProjectStatus: "On Hold" });
+
+  res.render("monthlyplan", {
+    groupedActivities,
+    projectNames,
+    resourceNames,
+    selectedProjectName: projectName || "",
+    selectedResourceName: resourceName || "",
+    projectsOnHold,
+    monthStart,
+    monthEnd,
+  });
 });
+
 // LOGOUT route  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 router.post("/logout", isAuthenticated, (req, res) => {
   req.session.destroy((err) => {
@@ -1097,34 +1147,8 @@ router.get("/refreshdatabase", isAdmin, async (req, res) => {
     }
   }
 
-  async function MTEtasks() {
-    try {
-      const mtetasks = await taskModel.find({ $and: [{ source: "MTE" }, { consultingDay: { $exists: false } }] });
-      if (mtetasks.length > 0) {
-        const bulkOps = mtetasks.map((task) => ({
-          updateOne: {
-            filter: { _id: task._id },
-            update: { $set: { consultingDay: "Yes" } },
-          },
-        }));
-        await taskModel.bulkWrite(bulkOps);
-        console.log(`${mtetasks.length} MTE tasks updated successfully.`);
-      }
-      }
-     catch (error) {
-      console.error('Error updating consultingDay for MTE tasks:', error);
-    }
-  }
-
-
-  
   // Call the function to update or insert tasks
   await updateOrInsertTasks();
-
-    const count = await taskModel.countDocuments({ consultingDay: { $exists: false } });
-        if (count > 0) {
-            await MTEtasks();
-        }
 
   res.redirect('/alltasks');
 
@@ -1221,19 +1245,7 @@ router.post('/updatetask', isAuthenticated, async (req, res) => {
   const newComment = previousComment + "; " + datedComment; // Concatenate the previous comment with the new dated comment
 
   try {
-      //update consulting day if the task does not have that attribute.
-      const updateConsultingDay = await taskModel.findOneAndUpdate(
-        {
-          _id: activityId, // Match the document by ID
-          consultingDay: { $exists: false }, // Only update if consultingDay does not exist
-        },
-        {
-          $set: { consultingDay: "Yes" }, // Set consultingDay to "Yes"
-        },
-        {
-          new: true, // Return the updated document
-        }
-      );
+
       const update = await taskModel.findByIdAndUpdate(activityId, {
           actualFinish: new Date(actualFinish),
           actualWork: Number(existingWorkDone) + Number(actualWork),
@@ -1260,7 +1272,7 @@ router.get('/manager', isManager, async (req, res) => {
   const teamMembers = await resourceModel.find({resourceManagerName : managerName});
   const tasksForAllMembers = await Promise.all(
     teamMembers.map(async (member) => {
-      const tasks = await taskModel.find({ resourceName: member.resourceName, submitted: 1, consultingDay: 'Yes' });
+      const tasks = await taskModel.find({ resourceName: member.resourceName, submitted: 1, consultingDay: { $ne: 'No'} });
       return tasks;
     })
   );
@@ -1289,12 +1301,12 @@ router.post('/submitToManager', isAuthenticated, async (req, res) => {
   try {
     const user = req.session.user; // Authentication check and can get the logged-in user's ID
 
-    // Update tasks with consultingDay = Yes
+    // Update tasks with consultingDay = Yes or NA
     const updateYes = {
       submitted: 1,
       approvalStatus: "Submitted. Awaiting Approval"
     };
-    await taskModel.updateMany({ resourceName: user.name, saved: 1, submitted: 0, consultingDay: "Yes" }, updateYes);
+    await taskModel.updateMany({ resourceName: user.name, saved: 1, submitted: 0, consultingDay: { $ne: 'No'} }, updateYes);
 
     // Handle tasks with consultingDay = No
     const tasksNo = await taskModel.find({ resourceName: user.name, saved: 1, submitted: 0, consultingDay: "No" });
@@ -1323,7 +1335,7 @@ router.post('/approve', isManager, async (req, res) => {
     const { resourceName } = req.body;
     // console.log("/approve is running. Resource name is: ", resourceName);
 
-    const tasks = await taskModel.find({ resourceName: resourceName, submitted: 1, consultingDay: "Yes" });
+    const tasks = await taskModel.find({ resourceName: resourceName, submitted: 1, consultingDay: { $ne: 'No'} });
     // console.log("Result of db find: ", tasks);
 
     const updatePromises = tasks.map(async (task) => {
@@ -1535,9 +1547,9 @@ router.get('/resourcereport', isAuthenticated, isAdmin, async (req, res) => {
           startDate = new Date(today.getFullYear(), (currentQuarter - 1) * 3, 1);
           endDate = new Date(today.getFullYear(), currentQuarter * 3, 0);
           break;
-        case 'lastYear':
-          startDate = new Date(today.getFullYear() - 1, 0, 1);
-          endDate = new Date(today.getFullYear() - 1, 11, 31);
+        case 'Current Year':
+          startDate = new Date(today.getFullYear() , 0, 1);
+          endDate = new Date(today.getFullYear() , 11, 31);
           break;
         case 'allTime':
           startDate = new Date(0); // Earliest possible date
