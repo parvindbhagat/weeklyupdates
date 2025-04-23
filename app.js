@@ -43,16 +43,11 @@ app.use(session({
   secret: process.env.EXPRESS_SESSION_SECRET,
   resave: false,
   saveUninitialized: true,
-  // store: new MongoStore({
-  //   mongoUrl: process.env.MONGO_URI,
-  //   collectionName: 'sessions',
-  //   ttl: 8 * 60 * 60 * 1000// Session expiration time in seconds
-  // }),
   cookie: { 
     maxAge: 60 * 60 * 1000, // 60 minutes
+    httpOnly: true,
     // domain: '.chrysalistechnologies.in', // Makes the cookie accessible to all subdomains
     // path: '/',
-    httpOnly: true,
     // secure: true,
     // sameSite: 'None', // Allows cross-site cookie sharing
    } 
@@ -72,7 +67,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/', indexRouter);
 // app.use('/resource', resourceRouter);
 // app.use('/task', taskRouter);
-
 app.use((req, res, next) => {
   console.log(`Instance: ${process.env.APP_NAME}, User: ${req.ip}`);
   next();

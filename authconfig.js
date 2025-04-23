@@ -8,9 +8,6 @@ const config = {
     authority: `https://login.microsoftonline.com/${process.env.TENANT_ID}`,
     clientSecret: process.env.CLIENT_SECRET
   },
-  // cache: {
-  //   cacheLocation: "localStorage",
-  //   storeAuthStateInCookie: true},
   system: {
     loggerOptions: {
       loggerCallback(loglevel, message, containsPii) {
@@ -26,18 +23,27 @@ const config = {
 // Create a confidential client application
 const cca = new msal.ConfidentialClientApplication(config);
 
-// Function to get access token for a given scope .
+let cachedToken = null;
+let tokenExpiry = null;
+
+// Function to get access token for a given scope.
 async function getAccessToken() {
+    const now = new Date();
+    if (cachedToken && tokenExpiry && now < tokenExpiry) {
+        return cachedToken; // Return cached token if it's still valid
+    }
+
     const tokenRequest = {
         scopes: [process.env.G_SCOPE],
     };
 
     try {
         const response = await cca.acquireTokenByClientCredential(tokenRequest);
-        // console.log('session.user from graph sso response = ', {response});
-        return response.accessToken;
+        cachedToken = response.accessToken;
+        tokenExpiry = response.expiresOn; // Update token expiry
+        return cachedToken;
     } catch (error) {
-        console.error('Error acquiring access token:', error);
+        console.error("Error acquiring access token:", error);
         throw error;
     }
 }
