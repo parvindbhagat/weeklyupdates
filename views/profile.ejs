@@ -226,9 +226,9 @@ document.addEventListener('DOMContentLoaded', function() {
   <% } %>
   <div class="d-flex flex-wrap justify-content-around mb-4">
     <h3 style=" margin-top: 3rem;"><strong>Email</strong>: <%= resourceDetails.resourceEmail %></h3>
-    <h3 style=" margin-top: 3rem;"><strong>Group</strong>: <%= resourceDetails.resourceGroup %></h3>
+    <h3 style=" margin-top: 3rem;"><strong>Department</strong>: <%= resourceDetails.resourceGroup %></h3>
     <h3 style=" margin-top: 3rem;"><strong>Manager</strong>: <%= resourceDetails.resourceManagerName %></h3>
-    <h3 style=" margin-top: 3rem;"><strong>Role</strong>: <%=resourceDetails.resourceRole %></h3>
+    <h3 style=" margin-top: 3rem;"><strong>Function</strong>: <%=resourceDetails.resourceFunction %></h3>
   </div>
   
   <% if (msg) { %>
@@ -250,7 +250,7 @@ document.addEventListener('DOMContentLoaded', function() {
       <table class="table-striped table-auto m-2 border border-gray-300" >
         <thead >
           <tr>
-              <th  class="bg-warning">Project Name</th>
+              <th  class="bg-warning">Intervention</th>
               <th  class="bg-warning">Task Name</th>
               <th  class="bg-warning">Planned Start</th>
               <th  class="bg-warning">Planned Finish</th>
@@ -267,7 +267,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <tbody>
           <% incompleteTasks.forEach(activity => { %>
             <tr class="tableData" id="row-<%= activity._id %>">
-              <td class="border border-gray-300 px-1 py-1 "><%= activity.projectName %></td>
+              <td class="border border-gray-300 px-1 py-1 "><%= activity.interventionName %></td>
               <td class="border border-gray-300 px-1 py-1 "><%= activity.taskName %></td>
               <td class="border border-gray-300 px-1 py-1 "><%= new Date(activity.start).toLocaleDateString('en-in') %></td>
               <td class="border border-gray-300 px-1 py-1 "><%= new Date(activity.Finish).toLocaleDateString('en-in') %></td>
