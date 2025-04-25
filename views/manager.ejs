@@ -51,10 +51,11 @@
   <h1 style=" margin-right: 3rem; text-align: center;">Welcome, <%= user.name %> </h1>
   <div class="d-flex flex-row-reverse gap-3">
     <form style="display: inline-block; margin-right: 3rem;" action="/logout" method="POST">
-      <button type="submit" class="rounded">Logout</button>
+      <button type="submit" class="btn">Logout</button>
     </form>
-    <a class="me-3" href="/home">Home</a> 
-    <a class="me-3" href="/profile">My Tasks</a>
+    <a class="btn me-3" href="/home">Home</a> 
+    <a class="btn me-3" href="/pwaactivities">Weekly Plan</a>
+    <a class="btn me-3" href="/profile">My Tasks</a>
   </div>
   
   <% if (msg) { %>
