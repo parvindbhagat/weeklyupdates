@@ -91,7 +91,7 @@ function determineResourceFunction(resourceGroup) {
   //function to initialize resource data if resources collection is empty
   async function initializeResources(accessToken) {
     try {
-        console.log("refresh resource controller function called");
+        // console.log("refresh resource controller function called");
       const count = await resourceModel.countDocuments();
       if (count === 0) {
         console.log("Resource collection is empty. Adding resources...");

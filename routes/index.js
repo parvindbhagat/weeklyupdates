@@ -1,24 +1,28 @@
 var express = require("express");
 var router = express.Router();
 const session = require("express-session");
-const {task: taskModel, taskArchive: taskArchiveModel }= require("./task");
-const resourceModel = require("./resource");
+const {task: taskModel, taskArchive: taskArchiveModel }= require("../model/task");
+const resourceModel = require("../model/resource");
+const workModel = require("../model/work");
 require("dotenv").config();
 const mongoose = require("mongoose");
 const axios = require("axios");
 const {getAccessToken, cca: msal } = require("../authconfig");
 const qs = require("qs");
 const moment = require("moment");
+const initializeResources = require("../controller/resourcecontrol");
+const {assignTaskIdsToTaskArchive, assignTaskIdsToTasks, processUserComments} = require("../controller/onetimescript");
+const Counter = require("../model/couter");
 // const { InteractionRequiredAuthErrorCodes } = require("@azure/msal-node");
 
 
 // function to check user is logged in with MSAL Auth flow
 function isAuthenticated(req, res, next) {
-  console.log("isAuthenticated function called");
+  // console.log("isAuthenticated function called");
   if (req.session.user) {
     // console.log('Session data:', req.session);
     // console.log('isAuthenticated-if user: Session user data:', req.session.user);
-    console.log("User is logged in, calling next");
+    console.log("isAuth: User is logged in, calling next use is: ", req.session.user.name);
     return next();
   } else {
     req.session.originalUrl = req.originalUrl; // Store the original URL.
@@ -27,6 +31,7 @@ function isAuthenticated(req, res, next) {
     res.redirect("/login");
   }
 }
+
 async function isAdmin(req, res, next) {
   if (req.session && req.session.user) {
     // console.log("User is logged in, checking user Role in resource model.");
@@ -81,6 +86,7 @@ async function isManager(req, res, next) {
   }
 }
 
+//function to check if user is a MEMBER of the FTE or PTE group and redirect to the correct page
 async function redirectBasedOnGroup(req, res, next) {
   console.log("redirectBasedOnGroup function called");
     const user = req.session.user;
@@ -248,6 +254,73 @@ function checkReferrer(req, res, next) {
   }
 }
 
+// Function to update or add work breakdown entry in work collection
+async function updateWorkBreakdown(taskId, actualWork) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Normalize the date to remove time
+
+  // Find the task details from the taskModel
+  const task = await taskModel.findOne({ taskId });
+  if (!task) {
+    console.error(`Task with taskId ${taskId} not found.`);
+    return;
+  }
+
+  const existingWork = await workModel.findOne({ taskId });
+  if (existingWork) {
+    // Check if today's date already exists in the workBreakdown
+    const existingEntry = existingWork.workBreakdown.find(
+      (entry) => entry.date.getTime() === today.getTime()
+    );
+
+    if (existingEntry) {
+      // If the date exists, add the work hours to the existing entry
+      existingEntry.work += parseFloat(actualWork);
+    } else {
+      // If the date doesn't exist, add a new entry
+      existingWork.workBreakdown.push({
+        date: today,
+        work: parseFloat(actualWork),
+      });
+    }
+
+    // Update the total actualWork
+    existingWork.actualWork = existingWork.workBreakdown.reduce(
+      (sum, entry) => sum + entry.work,
+      0
+    );
+
+    await existingWork.save();
+  } else {
+    // If no work document exists, create a new one with all required fields
+    const newWork = new workModel({
+      taskId: task.taskId,
+      taskName: task.taskName,
+      consultingDay: task.consultingDay || "Unknown",
+      interventionName: task.interventionName || "Unknown",
+      clientName: task.clientName || "Unknown",
+      resourceName: task.resourceName || "Unknown",
+      resourceFunction: task.resourceFunction || "Unknown",
+      start: task.start || null,
+      finish: task.Finish || null,
+      actualStart: task.actualStart || null,
+      actualFinish: task.actualFinish || null,
+      taskWork: task.taskWork || 0, // Planned work
+      actualWork: task.actualWork, // Total work hours
+      leapComplete: task.leapComplete || 0,
+      approvalStatus: task.approvalStatus || "Pending",
+      workBreakdown: [
+        {
+          date: today,
+          work: parseFloat(actualWork),
+        },
+      ],
+    });
+
+    await newWork.save();
+  }
+}
+
 //GET APP HOME
 router.get("/", async (req, res) => {  
     let msg = "";
@@ -265,6 +338,11 @@ res.render("leap", { msg, resourceDetails });
 });
 
 router.get("/home", isAuthenticated, redirectBasedOnGroup, async (req, res) => {  
+  const accessToken = req.session.token;
+  await assignTaskIdsToTaskArchive(); // Assign task IDs to taskArchive collection
+  await assignTaskIdsToTasks(); // Assign task IDs to tasks collection
+  await initializeResources(accessToken); // Initialize resources if needed
+  await processUserComments(); // Process user comments if needed
   let msg = "";
 res.render("home", { msg });
 });
@@ -411,119 +489,15 @@ router.get("/profile", isAuthenticated,  async (req, res, next) => {
   function encodeResourceName(name) {
     return qs.stringify({ name }).split("=")[1];
   }
-  // Function to determine the resource role
-  function determineResourceRole(resourceData) {
-    if (
-      resourceData.ResourceName === "Anish Thomas" ||
-      resourceData.ResourceName === "Parvind Kumar Bhagat"
-    ) {
-      return "Admin";
-    } else if (
-      resourceData.ResourceId === resourceData.ResourceTimesheetManageId
-    ) {
-      return "Manager";
-    } else {
-      return "Member";
-    }
-  }
 
-  // function to fill manager Name from Manager id of each resource
-
-  async function fillManagerNames() {
-    try {
-      // Fetch all resources
-      const resources = await resourceModel.find();
-
-      // Create a map of resourceId to resourceName
-      const resourceMap = resources.reduce((map, resource) => {
-        map[resource.resourceId] = resource.resourceName;
-        return map;
-      }, {});
-      // console.log(resourceMap);
-      // Update each resource with the manager's name
-      for (const resource of resources) {
-        if (
-          resource.resourceManagerId &&
-          resourceMap[resource.resourceManagerId]
-        ) {
-          resource.resourceManagerName =
-            resourceMap[resource.resourceManagerId];
-          await resource.save();
-        }
-      }
-
-      console.log("Manager names updated successfully.");
-    } catch (error) {
-      console.error("Error updating manager names:", error);
-    }
-  }
-
-  //function to initialize resource data if resources collection is empty
-  async function initializeResources() {
-    try {
-      const count = await resourceModel.countDocuments();
-      if (count === 0) {
-        console.log("Resource collection is empty. Adding resources...");
-
-        const accessToken = req.session.token;
-        if (!accessToken) {
-          console.log("access token mission. could not fetch resource data. redirecting to login page.");
-          res.redirect("/login");
-        } else {
-          const resourceAPIresponse = await axios.get(
-            "https://chrysalishrd.sharepoint.com/pwa/_api/ProjectData/Resources",
-            {
-              headers: {
-                Authorization: `Bearer ${accessToken}`,
-                Accept: "application/json",
-              },
-            }
-          );
-          const RL = resourceAPIresponse.data.value;
-          console.log(`The number of resources in the RL are: ${RL.length}`);
-          // console.log(`first resource email`)
-          for (const resourceData of RL) {
-            const {
-              ResourceId,
-              ResourceEmailAddress,
-              ResourceDepartments,
-              ResourceName,
-              ResourceTimesheetManageId,
-            } = resourceData;
-            const resourceRole = determineResourceRole(resourceData);
-            const resource = new resourceModel({
-              resourceId: ResourceId,
-              resourceName: ResourceName,
-              resourceEmail: ResourceEmailAddress,
-              resourceGroup: ResourceDepartments,
-              resourceManagerId: ResourceTimesheetManageId,
-              resourceRole: resourceRole,
-            });
-            // console.log(`The resource data is: ${resource} `);
-            try {
-              await resource.save();
-              // console.log(`saved resource: ${ResourceName}`);
-            } catch (error) {
-              console.error(`Error saving resource: ${ResourceName}`, error);
-            }
-          }
-        }
-        //Once the colection is initialized fill manager details from mananger id
-        fillManagerNames();
-      } else {
-        console.log("Resource collection is not empty. No action taken.");
-      }
-    } catch (err) {
-      console.error("Error checking resource collection", err);
-    }
-  }
   try {
   const user = req.session.user;
+  const accessToken = req.session.token;
   // const accessToken = req.session.token;
   const resourceName = user.name;
   // const encodedName = encodeResourceName(resourceName);
   console.log("LOGGED IN to /profile Name is : ", resourceName);
-  await initializeResources();
+  await initializeResources(accessToken);
   const resourceDetails = await resourceModel.findOne({
     resourceName: resourceName,
   });
@@ -572,25 +546,25 @@ router.get("/profile", isAuthenticated,  async (req, res, next) => {
         { resourceName: resourceName },
         {ProjectStatus: { $ne: "On Hold" }},
         {approvalStatus: { $ne: "Approved" }}
-    ]
-}).sort({start: 1});
+      ]
+  }).sort({start: 1});
 
-const loggedInUserName = req.session.user.name; // Get the logged-in user's name from the session
-let msg2;
+  const loggedInUserName = req.session.user.name; // Get the logged-in user's name from the session
+  let msg2;
 
-try {
-  msg2 = await checkPendingSubmissions(loggedInUserName); // Wait for the function to resolve
-  if (msg2 === "Yes") {
-    console.log("You have pending submissions to review.");
-    msg2 = "You have pending submissions by team members to review.";
-  } else {
-    console.log("No pending submissions.");
-    msg2 = "";
+  try {
+   msg2 = await checkPendingSubmissions(loggedInUserName); // Wait for the function to resolve
+   if (msg2 === "Yes") {
+     console.log("You have pending submissions to review.");
+     msg2 = "You have pending submissions by team members to review.";
+   } else {
+     console.log("No pending submissions.");
+     msg2 = "";
+   }
+  } catch (error) {
+   console.error("Error checking pending submissions:", error);
+   msg2 = "Error checking pending submissions.";
   }
-} catch (error) {
-  console.error("Error checking pending submissions:", error);
-  msg2 = "Error checking pending submissions.";
-}
 
    let msg = "";
     if (req.query.msg === "successadd") {
@@ -618,35 +592,58 @@ try {
 // /profile method post to SAVE Manual Task Entries.  /////////////////////////////////////////////////////////////////////////////////////////////////
 router.post("/profile", isAuthenticated, async (req, res) => {
   try {
-    if(!req.session.user) {
+    if (!req.session.user) {
       let sessions;
-      res.render("home", {sessions, msg: "You need to be logged in to add a task. Please login and try again."})
+      return res.render("home", {
+        sessions,
+        msg: "You need to be logged in to add a task. Please login and try again.",
+      });
     }
 
     const user = req.session.user;
-    // console.log("user details at /post profile is : ", user);  //dev req
-    const resourceName = user.name
-    const resource = await resourceModel.findOne({resourceName: resourceName });
+    const resourceName = user.name;
+    const resource = await resourceModel.findOne({ resourceName: resourceName });
     const resourceId = resource.resourceId;
-    let {projectName, taskName, actualStart, actualFinish, actualWork, userComment, completed} = req.body;
+
+    let {
+      projectName,
+      taskName,
+      actualStart,
+      actualFinish,
+      actualWork,
+      userComment,
+      completed,
+    } = req.body;
+
     userComment = sanitizeUserComment(userComment);
     const start = new Date(actualStart);
-   
-    let Finish = new Date(actualFinish);
-    // if(completed === '100'){
-    //   console.log('the type of completed in the add a task form is', typeof completed);
-    //    Finish = new Date();
-    // } //Allow the user to enter any date for finish date.
-    // const completePercent = 100;
+    const Finish = new Date(actualFinish);
+
     const source = "MTE";
     const LEAPApplicationSync = "No";
     const saved = 1;
-    approvalStatus = "Saved, Awaiting Submission";
+    const approvalStatus = "Saved, Awaiting Submission";
     const clientName = "Chrysalis";
-    const datedComment = "(" + new Date().toLocaleDateString('en-in') + ": " + actualWork + " Hrs)" + userComment;
+    const datedComment =
+      "(" +
+      new Date().toLocaleDateString("en-in") +
+      ": " +
+      actualWork +
+      " Hrs)" +
+      userComment;
 
-    const task = new taskModel({      
-      projectName: projectName,      
+    // Get the next taskId from the counter
+    const counter = await Counter.findByIdAndUpdate(
+      { _id: "taskId" },
+      { $inc: { seq: 1 } },
+      { new: true, upsert: true }
+    );
+
+    const taskId = `MTE-${counter.seq}`; // Generate the unique taskId
+
+    const task = new taskModel({
+      taskId: taskId, // Assign the unique taskId
+      projectName: projectName,
       taskName: taskName,
       actualStart: start,
       start: start,
@@ -663,29 +660,33 @@ router.post("/profile", isAuthenticated, async (req, res) => {
       resourceId: resourceId,
       clientName: clientName,
     });
+
     try {
       const savedTask = await task.save();
-      if(savedTask){
+      if (savedTask) {
+        // Update or create the work breakdown
+        await updateWorkBreakdown(taskId, actualWork);
         res.redirect("/profile?msg=successadd");
-      } else{
-        console.log("error saving the task:", taskName);
-        // res.render('profile', {msg: "Failed to add task. Please make sure you are looged in and try again."});
+      } else {
+        console.log("Error saving the task:", taskName);
         res.redirect("/profile?msg=failadd");
       }
-      
     } catch (error) {
-      console.log(error.message);
+      console.log("Error saving task:", error.message);
+      res.redirect("/profile?msg=failadd");
     }
-    
   } catch (error) {
-    console.log(error.message);
+    console.log("Error in POST /profile:", error.message);
+    res.redirect("/profile?msg=failadd");
   }
 });
+
+
 
 // route to show activites for users from the pwa data stored in the database. //////////////////////////////////////////////////////////////////////////////////////
 router.get("/pwaactivities", isAuthenticated, isFTE, async (req, res, next) => {
   const { startDate, endDate } = getCurrentWeekDateRange();
-  let { projectName, resourceName } = req.query; // Get the selected projectName and resourceName from the query parameters
+  let { interventionName, resourceName } = req.query; // Get the selected interventionName and resourceName from the query parameters
 
   let activities = await taskModel.find({
     $and: [
@@ -710,8 +711,8 @@ router.get("/pwaactivities", isAuthenticated, isFTE, async (req, res, next) => {
   }).sort({ typeofActivity: -1 }); // returns activities with start/finish between current week or activity that either starts or finishes in current week.
 
   // Apply projectName filter if provided
-  if (projectName) {
-    activities = activities.filter(activity => activity.projectName === projectName);
+  if (interventionName) {
+    activities = activities.filter(activity => activity.interventionName === interventionName);
   }
 
   // Apply resourceName filter if provided
@@ -730,7 +731,7 @@ router.get("/pwaactivities", isAuthenticated, isFTE, async (req, res, next) => {
 
   // Flatten groupedActivities to extract unique project and resource names
   const flattenedActivities = Object.values(groupedActivities).flat();
-  const projectNames = [...new Set(flattenedActivities.map(activity => activity.projectName))];
+  const interventionNames = [...new Set(flattenedActivities.map(activity => activity.interventionName))];
   const resourceNames = [...new Set(flattenedActivities.map(activity => activity.resourceName))];
 
   const projectsOnHold = await taskModel.distinct("projectName", { ProjectStatus: "On Hold" });
@@ -755,9 +756,9 @@ router.get("/pwaactivities", isAuthenticated, isFTE, async (req, res, next) => {
   console.log("length of activities is: ", activities.length);
   res.render("pwaactivities", {
     groupedActivities,
-    projectNames,
+    interventionNames,
     resourceNames,
-    selectedProjectName: projectName || '', // Pass the selected projectName to the view  
+    selectedInterventionName: interventionName || '', // Pass the selected projectName to the view  
     selectedResourceName: resourceName || '', // Pass the selected resourceName to the view
     projectsOnHold,
     startDate,
@@ -772,7 +773,7 @@ router.get("/monthlyplan", isAuthenticated, isFTE, async (req, res) => {
   const startDate = new Date(monthStart);
   const endDate = new Date(monthEnd);
 
-  const { projectName, resourceName } = req.query; // Get filters from query parameters
+  const { interventionName, resourceName } = req.query; // Get filters from query parameters
 
   // Fetch activities within the date range
   let activities = await taskModel.find({
@@ -798,8 +799,8 @@ router.get("/monthlyplan", isAuthenticated, isFTE, async (req, res) => {
   }).sort({ typeofActivity: 1 });
 
   // Apply projectName filter if provided
-  if (projectName) {
-    activities = activities.filter(activity => activity.projectName === projectName);
+  if (interventionName) {
+    activities = activities.filter(activity => activity.interventionName === interventionName);
   }
 
   // Apply resourceName filter if provided
@@ -818,16 +819,16 @@ router.get("/monthlyplan", isAuthenticated, isFTE, async (req, res) => {
 
   // Flatten groupedActivities to extract unique project and resource names
   const flattenedActivities = Object.values(groupedActivities).flat();
-  const projectNames = [...new Set(flattenedActivities.map(activity => activity.projectName))];
+  const interventionNames = [...new Set(flattenedActivities.map(activity => activity.interventionName))];
   const resourceNames = [...new Set(flattenedActivities.map(activity => activity.resourceName))];
 
   const projectsOnHold = await taskModel.distinct("projectName", { ProjectStatus: "On Hold" });
 
   res.render("monthlyplan", {
     groupedActivities,
-    projectNames,
+    interventionNames,
     resourceNames,
-    selectedProjectName: projectName || "",
+    selectedInterventionName: interventionName || "",
     selectedResourceName: resourceName || "",
     projectsOnHold,
     monthStart,
@@ -867,125 +868,8 @@ router.get('/refreshresourcelist', isAdmin, async (req, res) => {
   } catch (error) {
     console.error('Error deleting documents:', error);
   }
-    // Function to determine the resource role
-    async function determineResourceRole(resourceData) {
-      // Check if the resource is an Admin
-      if (
-        resourceData.ResourceName === "Anish Thomas" ||
-        resourceData.ResourceName === "Parvind Kumar Bhagat"
-      ) {
-        return "Admin";
-      }
-    
-      // Check if the resource is their own manager
-      if (resourceData.ResourceId === resourceData.ResourceTimesheetManageId) {
-        return "Manager";
-      }
-    
-      // Check if the resource is a manager for any other resource
-      const isManagerForOthers = await resourceModel.exists({
-        resourceManagerId: resourceData.ResourceId,
-      });
-    
-      if (isManagerForOthers) {
-        return "Manager";
-      }
-    
-      // Default to Member if no other conditions are met
-      return "Member";
-    }
-  
-    // function to fill manager Name from Manager id of each resource
-  
-    async function fillManagerNames() {
-      try {
-        // Fetch all resources
-        const resources = await resourceModel.find();
-  
-        // Create a map of resourceId to resourceName
-        const resourceMap = resources.reduce((map, resource) => {
-          map[resource.resourceId] = resource.resourceName;
-          return map;
-        }, {});
-        // console.log(resourceMap);
-        // Update each resource with the manager's name
-        for (const resource of resources) {
-          if (
-            resource.resourceManagerId &&
-            resourceMap[resource.resourceManagerId]
-          ) {
-            resource.resourceManagerName =
-              resourceMap[resource.resourceManagerId];
-            await resource.save();
-          }
-        }
-  
-        console.log("Manager names updated successfully.");
-      } catch (error) {
-        console.error("Error updating manager names:", error);
-      }
-    }
-  
-    //function to initialize resource data if resources collection is empty
-    async function initializeResources() {
-      try {
-        const count = await resourceModel.countDocuments();
-        if (count === 0) {
-          console.log("Resource collection is empty. Adding resources...");
-  
-          const accessToken = req.session.token;
-          if (!accessToken) {
-            console.log("access token mission. could not fetch resource data.");
-          } else {
-            const resourceAPIresponse = await axios.get(
-              "https://chrysalishrd.sharepoint.com/pwa/_api/ProjectData/Resources",
-              {
-                headers: {
-                  Authorization: `Bearer ${accessToken}`,
-                  Accept: "application/json",
-                },
-              }
-            );
-            const RL = resourceAPIresponse.data.value;
-            console.log(`The number of resources in the RL are: ${RL.length}`);
-            // console.log(`first resource email`)
-            for (const resourceData of RL) {
-              const {
-                ResourceId,
-                ResourceEmailAddress,
-                ResourceDepartments,
-                ResourceName,
-                ResourceTimesheetManageId,
-              } = resourceData;
-              const resourceRole = await determineResourceRole(resourceData);
-              const resource = new resourceModel({
-                resourceId: ResourceId,
-                resourceName: ResourceName,
-                resourceEmail: ResourceEmailAddress,
-                resourceGroup: ResourceDepartments,
-                resourceManagerId: ResourceTimesheetManageId,
-                resourceRole: resourceRole,
-              });
-              // console.log(`The resource data is: ${resource} `);
-              try {
-                await resource.save();
-                // console.log(`saved resource: ${ResourceName}`);
-              } catch (error) {
-                console.error(`Error saving resource: ${ResourceName}`, error);
-              }
-            }
-          }
-          //Once the colection is initialized fill manager details from mananger id
-          fillManagerNames();
-        } else {
-          console.log("Resource collection is not empty. No action taken.");
-        }
-      } catch (err) {
-        console.error("Error checking resource collection", err);
-      }
-    }
 
-    await initializeResources();
+    await initializeResources(accessToken);
     res.redirect('/resourcelist');
 
 
@@ -1199,68 +1083,77 @@ router.get('/taskstoupdate', isAdmin, async (req, res, next) => {
 });
 
 // Save PWA task details for first time in the database and then it can be updated or submitted to manager for approval
-router.post('/savetask', isAuthenticated, async (req, res) => {
+router.post("/savetask", isAuthenticated, async (req, res) => {
   let { activityId, actualStart, actualFinish, actualWork, comment, completed } = req.body;
   comment = sanitizeUserComment(comment);
-  const datedComment = "(" + new Date().toLocaleDateString('en-in') + ": " + actualWork + " Hrs)" + comment;
-  // console.log('dated comment is: ', datedComment);
-  // if(completed === '100'){
-  //   actualFinish = new Date();
-  // } //Allow the user to enter any date for finish date.
-  // save the activity in the database
-  const save = await taskModel.findByIdAndUpdate(activityId, {
+  const datedComment = "(" + new Date().toLocaleDateString("en-in") + ": " + actualWork + " Hrs)" + comment;
+
+  try {
+    // Update the task
+    const save = await taskModel.findByIdAndUpdate(activityId, {
       actualStart: new Date(actualStart),
       actualFinish: new Date(actualFinish),
       actualWork: actualWork,
       userComment: datedComment,
       saved: 1,
       leapComplete: completed,
-      approvalStatus: "Saved, Awaiting Submission"
-  });
-  if(!save){
-    console.log("Task data failed to save.");
-    res.redirect('/profile?msg=failsave');
-  } else{
-    console.log("Task data saved successfully");
-    res.redirect('/profile?msg=successsave');
+      approvalStatus: "Saved, Awaiting Submission",
+    });
+
+    if (!save) {
+      console.log("Task data failed to save.");
+      res.redirect("/profile?msg=failsave");
+    } else {
+      console.log("Task data saved successfully");
+
+      // Update the work breakdown
+      await updateWorkBreakdown(save.taskId, actualWork);
+
+      res.redirect("/profile?msg=successsave");
+    }
+  } catch (error) {
+    console.error("Error in /savetask route:", error.message);
+    res.redirect("/profile?msg=failsave");
   }
 });
 
 //UPDATE saved tasks by member before submission. 
-router.post('/updatetask', isAuthenticated, async (req, res) => {
+router.post("/updatetask", isAuthenticated, async (req, res) => {
   let { actualFinish, actualWork, comment, completed, activityId } = req.body;
   comment = sanitizeUserComment(comment);
   const existingTask = await taskModel.findById(activityId);
   const existingWorkDone = existingTask.actualWork;
   const previousComment = existingTask.userComment || ""; // Get the existing comment or an empty string if none exists
-  if(!actualFinish){
+  if (!actualFinish) {
     actualFinish = existingTask.actualFinish;
   }
-  // console.log(typeof completed);
-  // if(completed === '100'){
-  //   console.log(`completed value from the update task form has type`, typeof completed);
-  //    actualFinish = new Date();
-  // } //Allow the user to enter any date for finish date.
-  const datedComment = "(" + new Date().toLocaleDateString('en-in') + ": " + actualWork + " Hrs) " + comment; 
+
+  const datedComment = "(" + new Date().toLocaleDateString("en-in") + ": " + actualWork + " Hrs) " + comment;
   const newComment = previousComment + "; " + datedComment; // Concatenate the previous comment with the new dated comment
 
   try {
+    // Update the task
+    const update = await taskModel.findByIdAndUpdate(activityId, {
+      actualFinish: new Date(actualFinish),
+      actualWork: Number(existingWorkDone) + Number(actualWork),
+      userComment: newComment,
+      leapComplete: completed,
+    });
 
-      const update = await taskModel.findByIdAndUpdate(activityId, {
-          actualFinish: new Date(actualFinish),
-          actualWork: Number(existingWorkDone) + Number(actualWork),
-          userComment: newComment,
-          leapComplete: completed,
-      });
-      if(!update){
-        console.log("Failed to update Task data.");
-        res.redirect('/profile?msg=failupdate');
-      } else{
-        console.log("Task data updated successfully!");
-        res.redirect('/profile?msg=successupdate');
-      }     
+    if (!update) {
+      console.log("Failed to update Task data.");
+      res.redirect("/profile?msg=failupdate");
+    } else {
+      console.log("Task data updated successfully!");
+
+      // Update the work breakdown
+      await updateWorkBreakdown(update.taskId, actualWork);
+
+      res.redirect("/profile?msg=successupdate");
+    }
   } catch (error) {
-      console.log(error.message);
+    console.error("Error in /updatetask route:", error.message);
+    res.redirect("/profile?msg=failupdate");
   }
 });
 
@@ -1495,10 +1388,12 @@ router.get('/resourcereport', isAuthenticated, isAdmin, async (req, res) => {
 
     // If no search term or resource name is provided, render the search form
     if (!searchTerm && !selectedResourceName) {
-      return res.render('reports', {
+      return res.render('resourcereport', {
         projectNames: [],
         billableHours: [],
         nonBillableHours: [],
+        totalBillableHours: 0,
+        totalNonBillableHours: 0,
         searchResults: [],
         isAdmin,
         searchTerm,
@@ -1516,10 +1411,12 @@ router.get('/resourcereport', isAuthenticated, isAdmin, async (req, res) => {
 
       // If search results are found, display them
       if (searchResults.length > 0) {
-        return res.render('reports', {
+        return res.render('resourcereport', {
           projectNames: [],
           billableHours: [],
           nonBillableHours: [],
+          totalBillableHours: 0,
+          totalNonBillableHours: 0,
           searchResults,
           isAdmin,
           searchTerm,
@@ -1533,6 +1430,9 @@ router.get('/resourcereport', isAuthenticated, isAdmin, async (req, res) => {
     let projectNames = [];
     let billableHours = [];
     let nonBillableHours = [];
+    let totalBillableHours = 0;
+    let totalNonBillableHours = 0;
+
     if (selectedResourceName) {
       // Determine the date range based on the selected time period
       let startDate, endDate;
@@ -1547,9 +1447,9 @@ router.get('/resourcereport', isAuthenticated, isAdmin, async (req, res) => {
           startDate = new Date(today.getFullYear(), (currentQuarter - 1) * 3, 1);
           endDate = new Date(today.getFullYear(), currentQuarter * 3, 0);
           break;
-        case 'Current Year':
-          startDate = new Date(today.getFullYear() , 0, 1);
-          endDate = new Date(today.getFullYear() , 11, 31);
+        case 'currentYear':
+          startDate = new Date(today.getFullYear(), 0, 1);
+          endDate = new Date(today.getFullYear(), 11, 31);
           break;
         case 'allTime':
           startDate = new Date(0); // Earliest possible date
@@ -1567,6 +1467,7 @@ router.get('/resourcereport', isAuthenticated, isAdmin, async (req, res) => {
         resourceName: selectedResourceName,
         start: { $gte: startDate },
         Finish: { $lte: endDate },
+        actualWork: { $gt: 0 },
       });
 
       // Group tasks by projectName and calculate billable and non-billable hours
@@ -1588,13 +1489,19 @@ router.get('/resourcereport', isAuthenticated, isAdmin, async (req, res) => {
       projectNames = Object.keys(groupedData);
       billableHours = projectNames.map(project => groupedData[project].billable);
       nonBillableHours = projectNames.map(project => groupedData[project].nonBillable);
+
+      // Calculate total billable and non-billable hours
+      totalBillableHours = billableHours.reduce((sum, hours) => sum + hours, 0);
+      totalNonBillableHours = nonBillableHours.reduce((sum, hours) => sum + hours, 0);
     }
 
     // Render the chart view
-    res.render('reports', {
+    res.render('resourcereport', {
       projectNames,
       billableHours,
       nonBillableHours,
+      totalBillableHours,
+      totalNonBillableHours,
       searchResults: [],
       isAdmin,
       searchTerm,
