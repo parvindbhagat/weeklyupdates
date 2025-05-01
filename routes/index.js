@@ -323,7 +323,10 @@ async function updateWorkBreakdown(taskId, actualWork) {
 
 //GET APP HOME
 router.get("/", async (req, res) => {  
-    let msg = "";
+    let msg = req.query.msg || ""; // Get the message from the query string 
+    if (msg === "sessionExpired") {
+      msg = "Session expired. Please login again.";
+    }
   res.render("index", { msg });
 });
 
@@ -333,16 +336,26 @@ router.get("/leap", isAuthenticated, isFTE, async (req, res) => {
   const resourceDetails = await resourceModel.findOne({
     resourceName: resourceName,
   });
+  // if (resourceDetails.resourceRole === "Admin") {
+  //   // console.log("Admin user logged in, calling processUserComments function.");
+  //   await processUserComments(); // Process user comments if needed
+  // }  // comment to avoid running it more than once.
   let msg = "";
 res.render("leap", { msg, resourceDetails });
 });
 
 router.get("/home", isAuthenticated, redirectBasedOnGroup, async (req, res) => {  
   const accessToken = req.session.token;
-  await assignTaskIdsToTaskArchive(); // Assign task IDs to taskArchive collection
-  await assignTaskIdsToTasks(); // Assign task IDs to tasks collection
+  const user = req.session.user;
+  const resourceName = user.name;
+  const resource = await resourceModel.findOne({ resourceName: resourceName }, { resourceRole: 1 }).lean();
+  const resourceRole = resource ? resource.resourceRole : null;
+  // console.log(`User role is: ${resourceRole}`);
+  // await assignTaskIdsToTaskArchive(); // Assign task IDs to taskArchive collection
+  // await assignTaskIdsToTasks(); // Assign task IDs to tasks collection
+  if (resourceRole === "Admin") {
   await initializeResources(accessToken); // Initialize resources if needed
-  await processUserComments(); // Process user comments if needed
+  }
   let msg = "";
 res.render("home", { msg });
 });
@@ -1373,7 +1386,7 @@ router.get("/archivedtasks", isAdmin, async (req, res) => {
 });
 
 // Route to show reports for resources hours for projects.
-router.get('/resourcereport', isAuthenticated, isAdmin, async (req, res) => {
+router.get('/resourcereport', isAdmin, async (req, res) => {
   try {
     const user = req.session.user;
 
@@ -1514,6 +1527,98 @@ router.get('/resourcereport', isAuthenticated, isAdmin, async (req, res) => {
   }
 });
 
+router.get('/clientreport', isAdmin, async (req, res) => {
+  try {
+    const { clientName, projectName } = req.query;
 
+    // Fetch all unique client names from taskModel and taskArchiveModel
+    const clientNames = await taskModel.distinct('clientName');
+    const archivedClientNames = await taskArchiveModel.distinct('clientName');
+    const allClientNames = [...new Set([...clientNames, ...archivedClientNames])];
+
+    // Fetch all unique project names for the selected client
+    let projectNames = [];
+    if (clientName) {
+      const taskProjects = await taskModel.distinct('projectName', { clientName });
+      const archivedTaskProjects = await taskArchiveModel.distinct('projectName', { clientName });
+      projectNames = [...new Set([...taskProjects, ...archivedTaskProjects])];
+    }
+
+    // Fetch resources grouped by resourceFunction
+    const resources = await resourceModel.find({});
+    const groupedResources = resources.reduce((acc, resource) => {
+      const functionName = resource.resourceFunction || 'Unknown';
+      if (!acc[functionName]) {
+        acc[functionName] = [];
+      }
+      acc[functionName].push(resource);
+      return acc;
+    }, {});
+
+    // Fetch tasks for each resourceFunction
+    const groupedByFunction = {};
+    for (const [functionName, resourceList] of Object.entries(groupedResources)) {
+      const resourceIds = resourceList.map((resource) => resource.resourceId);
+      const resourceNames = resourceList.map((resource) => resource.resourceName);
+
+      // Query tasks for the resources in this function
+      const query = { actualWork: { $gt: 0 }, $or: [{ resourceId: { $in: resourceIds } }, { resourceName: { $in: resourceNames } }] };
+      if (clientName) query.clientName = clientName;
+      if (projectName) query.projectName = projectName;
+
+      const tasks = await taskModel.find(query);
+      const archivedTasks = await taskArchiveModel.find(query);
+      const allTasks = [...tasks, ...archivedTasks];
+
+      // Calculate billable, non-billable, and total hours for this function
+      groupedByFunction[functionName] = allTasks.reduce(
+        (acc, task) => {
+          const isBillable = task.consultingDay === 'Yes';
+          const workHours = task.actualWork || 0;
+
+          if (isBillable) {
+            acc.billable += workHours;
+          } else {
+            acc.nonBillable += workHours;
+          }
+          acc.total += workHours;
+
+          // Group by resourceName within the function
+          const resourceName = task.resourceName || 'Unknown';
+          if (!acc.resources[resourceName]) {
+            acc.resources[resourceName] = { billable: 0, nonBillable: 0, total: 0 };
+          }
+
+          if (isBillable) {
+            acc.resources[resourceName].billable += workHours;
+          } else {
+            acc.resources[resourceName].nonBillable += workHours;
+          }
+          acc.resources[resourceName].total += workHours;
+
+          return acc;
+        },
+        { billable: 0, nonBillable: 0, total: 0, resources: {} }
+      );
+    }
+
+    // Calculate total billable and non-billable hours
+    const totalBillableHours = Object.values(groupedByFunction).reduce((sum, func) => sum + func.billable, 0);
+    const totalNonBillableHours = Object.values(groupedByFunction).reduce((sum, func) => sum + func.nonBillable, 0);
+
+    res.render('clientreport', {
+      clientNames: allClientNames,
+      selectedClientName: clientName || '',
+      projectNames,
+      selectedProjectName: projectName || '',
+      groupedByFunction,
+      totalBillableHours,
+      totalNonBillableHours,
+    });
+  } catch (error) {
+    console.error('Error generating client report:', error);
+    res.status(500).send('An error occurred while generating the client report.');
+  }
+});
 
 module.exports = router;

@@ -8,8 +8,19 @@
   <link rel="stylesheet" href="/stylesheets/style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body>
-  <h1 class="text-center">Billable vs Non-Billable Hours <%= selectedResourceName %></h1>
+<body>    <nav class="navbar">
+  <a class="navbar-brand" href="/home">
+    <img src="/images/logo.png" alt="Chrysalis" >
+  </a>
+</nav>
+  <div class="menu d-flex justify-content-end my-4 gap-2 me-3">
+    <a class="btn" href="/home">Home</a>
+    <a class="btn" href="/admin">Admin Console</a>
+    <form  action="/clientreport" method="get">
+      <button class="btn">Report by client </button>
+    </form>
+  </div>
+  <h1 class="text-center">Productivity Report <%= selectedResourceName %></h1>
 
   <% if (isAdmin) { %>
     <!-- Search Form -->
@@ -110,7 +121,7 @@
     </script> -->
 
     <!-- Table -->
-    <h2 class="text-center mt-5">Project-Wise Billable and Non-Billable Hours for <%= selectedResourceName %></h2>
+    <h2 class="text-center mt-5">Workload Distribution Report for <%= selectedResourceName %></h2>
     <table class="table table-bordered table-striped mt-3">
       <thead>
         <tr>
@@ -120,6 +131,7 @@
         </tr>
       </thead>
       <tbody>
+        <%= projectNames %>
         <% for (let i = 0; i < projectNames.length; i++) { %>
           <tr>
             <td><%= projectNames[i] %></td>

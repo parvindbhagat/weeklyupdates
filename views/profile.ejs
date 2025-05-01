@@ -250,6 +250,7 @@ document.addEventListener('DOMContentLoaded', function() {
       <table class="table-striped table-auto m-2 border border-gray-300" >
         <thead >
           <tr>
+            <th  class="bg-warning">Client</th>
               <th  class="bg-warning">Intervention</th>
               <th  class="bg-warning">Task Name</th>
               <th  class="bg-warning">Planned Start</th>
@@ -267,6 +268,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <tbody>
           <% incompleteTasks.forEach(activity => { %>
             <tr class="tableData" id="row-<%= activity._id %>">
+              <td class="border border-gray-300 px-1 py-1 "><%= activity.clientName %></td>
               <td class="border border-gray-300 px-1 py-1 "><%= activity.interventionName %></td>
               <td class="border border-gray-300 px-1 py-1 "><%= activity.taskName %></td>
               <td class="border border-gray-300 px-1 py-1 "><%= new Date(activity.start).toLocaleDateString('en-in') %></td>
@@ -742,22 +744,19 @@ document.addEventListener('DOMContentLoaded', function() {
       const comment = task.userComment;
       const regex = /\((\d{2}\/\d{2}\/\d{4}): (\d+) Hrs\)/g;
 
-const result = {};
-let match;
+      const result = {};
+      let match;
 
-while ((match = regex.exec(comment)) !== null) {
-    const date = match[1];
-    const hours = parseInt(match[2], 10);
-    if (result[date]) {
-        result[date] += hours; // Add hours if date already exists
-    } else {
-        result[date] = hours; // Initialize with hours if date doesn't exist
-    }
-}
-
-console.log(`For the task: ${taskName}, total hours date wise are: ${JSON.stringify(result)}`);
+      while ((match = regex.exec(comment)) !== null) {
+        const date = match[1];
+        const hours = parseInt(match[2], 10);
+        if (result[date]) {
+            result[date] += hours; // Add hours if date already exists
+        } else {
+          result[date] = hours; // Initialize with hours if date doesn't exist
+        }
+      }
     });
- 
-  </script>
-   <script src="/javascripts/bootstrap.bundle.min.js"></script>
+</script>
+<script src="/javascripts/bootstrap.bundle.min.js"></script>
 </body>

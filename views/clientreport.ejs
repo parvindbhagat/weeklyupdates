@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Client Report</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/stylesheets/style.css">
+  <script>
+    function toggleResources(functionName) {
+      const resourceRows = document.querySelectorAll(`.resource-${functionName}`);
+      resourceRows.forEach(row => {
+        row.style.display = row.style.display === 'none' ? '' : 'none';
+      });
+    }
+  </script>
+</head>
+<body>
+    <nav class="navbar">
+        <a class="navbar-brand" href="/home">
+          <img src="/images/logo.png" alt="Chrysalis" >
+        </a>
+    </nav>
+        <div class="menu d-flex justify-content-end my-4 gap-2 me-3">
+          <a class="btn" href="/home">Home</a>
+          <a class="btn" href="/admin">Admin Console</a>
+          <form  action="/resourcereport" method="get">
+            <button class="btn">Report by resource </button>
+          </form>
+        </div>
+  <div class="container mt-4">
+    <h1 class="text-center mb-4">Chrysalis Projects Portfolio Dashboard</h1>
+
+    <!-- Filter Form -->
+    <form method="GET" action="/clientreport" class="row g-3 mb-4">
+      <div class="col-md-6">
+        <label for="clientName" class="form-label">Select Client</label>
+        <select name="clientName" id="clientName" class="form-select" onchange="this.form.submit()">
+          <option value="">All Clients</option>
+          <% clientNames.forEach(client => { %>
+            <option value="<%= client %>" <%= client === selectedClientName ? 'selected' : '' %>><%= client %></option>
+          <% }); %>
+        </select>
+      </div>
+      <% if (projectNames.length > 0) { %>
+        <div class="col-md-6">
+          <label for="projectName" class="form-label">Select Project</label>
+          <select name="projectName" id="projectName" class="form-select" onchange="this.form.submit()">
+            <option value="">All Projects</option>
+            <% projectNames.forEach(project => { %>
+              <option value="<%= project %>" <%= project === selectedProjectName ? 'selected' : '' %>><%= project %></option>
+            <% }); %>
+          </select>
+        </div>
+      <% } %>
+    </form>
+
+    <!-- Report Table -->
+    <div class="table-responsive">
+      <table class="table table-bordered table-striped">
+        <thead class="table-dark">
+          <tr>
+            <th>Resource Function</th>
+            <th>Billable Hours</th>
+            <th>Non-Billable Hours</th>
+            <th>Total Hours</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% Object.keys(groupedByFunction).forEach(functionName => { %>
+            <tr>
+              <td>
+                <button class=" btn-secondary btn-link p-0 text-decoration-none" onclick="toggleResources('<%= functionName %>')">
+                  <%= functionName %>
+                </button>
+              </td>
+              <td><%= groupedByFunction[functionName].billable.toFixed(2) %></td>
+              <td><%= groupedByFunction[functionName].nonBillable.toFixed(2) %></td>
+              <td><%= groupedByFunction[functionName].total.toFixed(2) %></td>
+            </tr>
+
+            <!-- Resource Breakdown -->
+            <% Object.keys(groupedByFunction[functionName].resources).forEach(resourceName => { %>
+              <tr class="resource-<%= functionName %>" style="display: none;">
+                <td class="ps-4">- <%= resourceName %></td>
+                <td><%= groupedByFunction[functionName].resources[resourceName].billable.toFixed(2) %></td>
+                <td><%= groupedByFunction[functionName].resources[resourceName].nonBillable.toFixed(2) %></td>
+                <td><%= groupedByFunction[functionName].resources[resourceName].total.toFixed(2) %></td>
+              </tr>
+            <% }); %>
+          <% }); %>
+        </tbody>
+        <tfoot>
+          <tr class="table-secondary">
+            <th>Total</th>
+            <th><%= totalBillableHours.toFixed(2) %></th>
+            <th><%= totalNonBillableHours.toFixed(2) %></th>
+            <th><%= (totalBillableHours + totalNonBillableHours).toFixed(2) %></th>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
