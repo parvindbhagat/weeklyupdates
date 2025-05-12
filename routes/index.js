@@ -1571,7 +1571,7 @@ router.get('/clientreport', isAdmin, async (req, res) => {
       const allTasks = [...tasks, ...archivedTasks];
 
       // Calculate billable, non-billable, and total hours for this function
-      groupedByFunction[functionName] = allTasks.reduce(
+      const functionData = allTasks.reduce(
         (acc, task) => {
           const isBillable = task.consultingDay === 'Yes';
           const workHours = task.actualWork || 0;
@@ -1600,6 +1600,16 @@ router.get('/clientreport', isAdmin, async (req, res) => {
         },
         { billable: 0, nonBillable: 0, total: 0, resources: {} }
       );
+
+      // Only include functions with total hours > 0
+      if (functionData.total > 0) {
+        // Filter out resources with total hours <= 0
+        functionData.resources = Object.fromEntries(
+          Object.entries(functionData.resources).filter(([_, resourceData]) => resourceData.total > 0)
+        );
+
+        groupedByFunction[functionName] = functionData;
+      }
     }
 
     // Calculate total billable and non-billable hours
