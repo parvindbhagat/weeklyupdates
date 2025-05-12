@@ -5,10 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Client Report</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/stylesheets/style.css">
+  <link rel="stylesheet" href="/stylesheets/style.css">
   <script>
+    // Function to reset projectName when clientName changes
+    function onClientChange() {
+      const projectDropdown = document.getElementById('projectName');
+      if (projectDropdown) {
+        projectDropdown.value = ''; // Reset projectName dropdown
+      }
+      document.querySelector('form').submit(); // Submit the form
+    }
+
+    // Function to toggle resource rows
     function toggleResources(functionName) {
-      const resourceRows = document.querySelectorAll(`.resource-${functionName}`);
+      const sanitizedFunctionName = functionName.replace(/[^a-zA-Z0-9]/g, '-'); // Replace all non-alphanumeric characters with hyphens
+      const resourceRows = document.querySelectorAll(`.resource-${sanitizedFunctionName}`);
       resourceRows.forEach(row => {
         row.style.display = row.style.display === 'none' ? '' : 'none';
       });
@@ -16,18 +27,17 @@
   </script>
 </head>
 <body>
-    <nav class="navbar">
-        <a class="navbar-brand" href="/home">
-          <img src="/images/logo.png" alt="Chrysalis" >
-        </a>
-    </nav>
-        <div class="menu d-flex justify-content-end my-4 gap-2 me-3">
-          <a class="btn" href="/home">Home</a>
-          <a class="btn" href="/admin">Admin Console</a>
-          <form  action="/resourcereport" method="get">
-            <button class="btn">Report by resource </button>
-          </form>
-        </div>
+  <nav class="navbar">
+    <a class="navbar-brand" href="/home">
+      <img src="/images/logo.png" alt="Chrysalis">
+    </a>
+  </nav>
+  <div class="menu d-flex justify-content-end my-4 gap-2 me-3">
+    <a class="btn" href="/home">Home</a>
+    <a class="btn" href="/admin">Admin Console</a>
+    <a href="/resourcereport" class="btn">Report by resource</a>
+  </div>
+  
   <div class="container mt-4">
     <h1 class="text-center mb-4">Chrysalis Projects Portfolio Dashboard</h1>
 
@@ -35,7 +45,7 @@
     <form method="GET" action="/clientreport" class="row g-3 mb-4">
       <div class="col-md-6">
         <label for="clientName" class="form-label">Select Client</label>
-        <select name="clientName" id="clientName" class="form-select" onchange="this.form.submit()">
+        <select name="clientName" id="clientName" class="form-select" onchange="onClientChange()">
           <option value="">All Clients</option>
           <% clientNames.forEach(client => { %>
             <option value="<%= client %>" <%= client === selectedClientName ? 'selected' : '' %>><%= client %></option>
@@ -70,7 +80,7 @@
           <% Object.keys(groupedByFunction).forEach(functionName => { %>
             <tr>
               <td>
-                <button class=" btn-secondary btn-link p-0 text-decoration-none" onclick="toggleResources('<%= functionName %>')">
+                <button class="btn-plain p-0 text-decoration-none" onclick="toggleResources('<%= functionName.replace(/[^a-zA-Z0-9]/g, '-') %>')">
                   <%= functionName %>
                 </button>
               </td>
@@ -81,7 +91,7 @@
 
             <!-- Resource Breakdown -->
             <% Object.keys(groupedByFunction[functionName].resources).forEach(resourceName => { %>
-              <tr class="resource-<%= functionName %>" style="display: none;">
+              <tr class="resource-<%= functionName.replace(/[^a-zA-Z0-9]/g, '-') %>" style="display: none;">
                 <td class="ps-4">- <%= resourceName %></td>
                 <td><%= groupedByFunction[functionName].resources[resourceName].billable.toFixed(2) %></td>
                 <td><%= groupedByFunction[functionName].resources[resourceName].nonBillable.toFixed(2) %></td>
