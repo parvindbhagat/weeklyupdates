@@ -41,6 +41,11 @@ html, body{
   border-radius: 5px;
   max-width: 600px;
 }
+.btn-plain{
+  background-color: transparent;
+  color: var(--primary-color);
+  padding: 0.5rem 1rem;
+}
 .btn{
   background-color: #E95757;
   color: white;
