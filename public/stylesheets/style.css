@@ -151,3 +151,8 @@ th{
   cursor: pointer;
   border-radius: 5px;
 }
+
+.preserve-white-spaces {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
