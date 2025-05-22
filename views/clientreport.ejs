@@ -39,12 +39,12 @@
   </div>
   
   <div class="container mt-4">
-    <h1 class="text-center mb-4">Chrysalis Projects Portfolio Dashboard</h1>
+    <h1 class="text-center mb-4">Functional Areas Project Hours</h1>
 
     <!-- Filter Form -->
     <form method="GET" action="/clientreport" class="row g-3 mb-4">
       <div class="col-md-6">
-        <label for="clientName" class="form-label">Select Client</label>
+        <label for="clientName" class="form-label">Clients</label>
         <select name="clientName" id="clientName" class="form-select" onchange="onClientChange()">
           <option value="">All Clients</option>
           <% clientNames.forEach(client => { %>
@@ -54,7 +54,7 @@
       </div>
       <% if (projectNames.length > 0) { %>
         <div class="col-md-6">
-          <label for="projectName" class="form-label">Select Project</label>
+          <label for="projectName" class="form-label">Projects</label>
           <select name="projectName" id="projectName" class="form-select" onchange="this.form.submit()">
             <option value="">All Projects</option>
             <% projectNames.forEach(project => { %>
