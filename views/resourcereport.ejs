@@ -72,14 +72,14 @@
   <!-- Chart -->
   <% if (projectNames.length > 0) { %>   
     <!-- Table -->
-    <h2 class="text-center mt-5"><%= selectedResourceName %></h2>
+    <h2 class="text-center mt-5"><%= selectedResourceName %> (<%= startDate.toLocaleDateString('en-in')%> to <%= endDate.toLocaleDateString('en-in')%>)</h2>
     <div class="table-responsive">
     <table class="table table-bordered table-striped mt-3">
       <thead>
         <tr>
           <th>Project Name</th>
-          <th>Billable Hours</th>
-          <th>Non-Billable Hours</th>
+          <th>Project Billed</th>
+          <th>Internal Efforts</th>
         </tr>
       </thead>
       <tbody>
