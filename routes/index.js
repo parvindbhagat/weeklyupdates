@@ -13,7 +13,6 @@ const moment = require("moment");
 const initializeResources = require("../controller/resourcecontrol");
 const {assignTaskIdsToTaskArchive, assignTaskIdsToTasks, processUserComments} = require("../controller/onetimescript");
 const Counter = require("../model/couter");
-// const { InteractionRequiredAuthErrorCodes } = require("@azure/msal-node");
 
 
 // function to check user is logged in with MSAL Auth flow
@@ -63,6 +62,7 @@ async function isManager(req, res, next) {
   if (req.session && req.session.user) {
     // console.log("User is logged in, checking user Role in resource model.");
     const user = req.session.user;
+    // console.log("isManager: User details are:", user);
     const resource = await resourceModel.findOne({resourceName: user.name});
     if(!resource){
       // console.log("user not found in db. sending to /profile");
@@ -84,6 +84,31 @@ async function isManager(req, res, next) {
     // );
     res.redirect("/login");
   }
+}
+
+// middleware to check if the user is logged in and a leader
+async function isLeadership(req, res, next) {
+  const leaders = process.env.PM_LEADERSHIP.split(",").map(name => name.trim());
+  console.log("leaders are: ", leaders);
+  if(req.session && req.session.user) {
+  const user = req.session.user;
+  const resource = await resourceModel.findOne({resourceName: user.name});
+  if(!resource){
+    // console.log("user not found in db. sending to /profile");
+    res.redirect('/home');
+  } else{
+    if (leaders.includes(resource.resourceName)) {
+      console.log("logged in user is a leader and user Name is: ", user.name);
+      return next();
+    } else {
+      console.log("logged in user is not a leader and user Name is: ", user.name);
+      res.redirect("/profile");
+    }
+  } 
+} else {
+  req.session.originalUrl = req.originalUrl; // Store the original URL
+  res.redirect("/login");
+}
 }
 
 //function to check if user is a MEMBER of the FTE or PTE group and redirect to the correct page
@@ -1076,7 +1101,7 @@ router.get("/alltasks", isAuthenticated, async (req, res) => {
   }
 });
 
-// route to filter TasksToUpdate
+// route to filter TasksToUpdate which are approved in LEAP and need to update status in PWA
 router.get('/taskstoupdate', isAdmin, async (req, res, next) => {
   try {
     // Query the database for tasks that match the criteria
@@ -1092,6 +1117,48 @@ router.get('/taskstoupdate', isAdmin, async (req, res, next) => {
     console.error('Error filtering PWA tasks:', error);
     next(error); // Pass the error to the next middleware
     // res.status(500).send('An error occurred while filtering tasks.');
+  }
+});
+
+//route to filter and sort PWA tasks by last updated by the resource in the LEAP
+router.get('/sortbyupdate', isAdmin, async (req, res) => {
+  try {
+    const { projectName, resourceName } = req.query; // Get filters from query parameters
+
+    // Build the match stage dynamically
+    const matchStage = {
+      workBreakdown: { $exists: true, $ne: [] },
+      taskId: { $not: /^MTE/ },
+      approvalStatus: { $ne: "Approved" },
+    };
+    if (projectName) {
+      matchStage.interventionName = projectName; // Intervention Name is stored in projectName
+    }
+    if (resourceName) {
+      matchStage.resourceName = resourceName;
+    }
+
+    // Build the sort stage
+    let sortStage = { latestWorkDate: -1 };
+    if (resourceName) {
+      // If resourceName is provided, sort by resourceName then latestWorkDate
+      sortStage = { resourceName: 1, latestWorkDate: -1 };
+    }
+
+    const sortedTasks = await workModel.aggregate([
+      { $match: matchStage },
+      { $addFields: { latestWorkDate: { $max: "$workBreakdown.date" } } },
+      { $sort: sortStage }
+    ]);
+
+    res.render('latesttaskupdates', {
+      tasks: sortedTasks,
+      selectedProject: projectName || "",
+      selectedResource: resourceName || ""
+    });
+  } catch (error) {
+    console.error('Error sorting tasks:', error);
+    res.status(500).send('An error occurred while sorting tasks.');
   }
 });
 
@@ -1328,7 +1395,8 @@ router.get("/refresharchive", isAdmin, async (req, res) => {
     const completedTasks = await taskModel.find({
       $or: [
         { ProjectStatus: "Completed" },
-        { source: "MTE", approvalStatus: "Approved" }
+        { source: "MTE", approvalStatus: "Approved" },
+        {taskCompletePercent: 100},
       ]
     });
 
@@ -1386,13 +1454,9 @@ router.get("/archivedtasks", isAdmin, async (req, res) => {
 });
 
 // Route to show reports for resources hours for projects.
-router.get('/resourcereport', isAdmin, async (req, res) => {
+router.get('/resourcereport', isLeadership, async (req, res) => {
   try {
     const user = req.session.user;
-
-    // Check if the user is an Admin
-    const resource = await resourceModel.findOne({ resourceName: user.name });
-    const isAdmin = resource && resource.resourceRole === 'Admin';
 
     // Get the search term, selected resource name, and time period from the query parameters
     const searchTerm = req.query.search || '';
@@ -1408,10 +1472,11 @@ router.get('/resourcereport', isAdmin, async (req, res) => {
         totalBillableHours: 0,
         totalNonBillableHours: 0,
         searchResults: [],
-        isAdmin,
         searchTerm,
         selectedResourceName,
         timePeriod,
+        startDate:  '',
+        endDate: '',
       });
     }
 
@@ -1431,10 +1496,11 @@ router.get('/resourcereport', isAdmin, async (req, res) => {
           totalBillableHours: 0,
           totalNonBillableHours: 0,
           searchResults,
-          isAdmin,
           searchTerm,
           selectedResourceName: '', // Clear selectedResourceName when showing search results
           timePeriod,
+          startDate:  '',
+          endDate: '',  
         });
       }
     }
@@ -1446,9 +1512,9 @@ router.get('/resourcereport', isAdmin, async (req, res) => {
     let totalBillableHours = 0;
     let totalNonBillableHours = 0;
 
+    let startDate, endDate;
     if (selectedResourceName) {
       // Determine the date range based on the selected time period
-      let startDate, endDate;
       const today = new Date();
       switch (timePeriod) {
         case 'lastMonth':
@@ -1475,13 +1541,17 @@ router.get('/resourcereport', isAdmin, async (req, res) => {
           break;
       }
 
-      // Fetch tasks for the selected resource within the date range
-      const tasks = await taskModel.find({
+      // Fetch tasks for the selected resource within the date range from both models
+      const query = {
         resourceName: selectedResourceName,
         start: { $gte: startDate },
         Finish: { $lte: endDate },
         actualWork: { $gt: 0 },
-      });
+      };
+
+      const tasksCurrent = await taskModel.find(query);
+      const tasksArchived = await taskArchiveModel.find(query);
+      const tasks = [...tasksCurrent, ...tasksArchived];
 
       // Group tasks by projectName and calculate billable and non-billable hours
       const groupedData = tasks.reduce((acc, task) => {
@@ -1516,10 +1586,11 @@ router.get('/resourcereport', isAdmin, async (req, res) => {
       totalBillableHours,
       totalNonBillableHours,
       searchResults: [],
-      isAdmin,
       searchTerm,
       selectedResourceName,
       timePeriod,
+      startDate,
+      endDate,
     });
   } catch (error) {
     console.error('Error generating report:', error);
@@ -1527,7 +1598,7 @@ router.get('/resourcereport', isAdmin, async (req, res) => {
   }
 });
 
-router.get('/clientreport', isAdmin, async (req, res) => {
+router.get('/clientreport', isLeadership, async (req, res) => {
   try {
     const { clientName, projectName } = req.query;
 
