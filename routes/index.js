@@ -89,16 +89,16 @@ async function isManager(req, res, next) {
 // middleware to check if the user is logged in and a leader
 async function isLeadership(req, res, next) {
   const leaders = process.env.PM_LEADERSHIP.split(",").map(name => name.trim());
-  console.log("leaders are: ", leaders);
+  // console.log("leaders are: ", leaders);
   if(req.session && req.session.user) {
   const user = req.session.user;
   const resource = await resourceModel.findOne({resourceName: user.name});
   if(!resource){
-    // console.log("user not found in db. sending to /profile");
-    res.redirect('/home');
+    // console.log("user not found in db. sending to root");
+    res.redirect('/');
   } else{
     if (leaders.includes(resource.resourceName)) {
-      console.log("logged in user is a leader and user Name is: ", user.name);
+      // console.log("logged in user is a leader and user Name is: ", user.name);
       return next();
     } else {
       console.log("logged in user is not a leader and user Name is: ", user.name);
