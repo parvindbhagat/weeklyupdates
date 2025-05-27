@@ -263,22 +263,6 @@ function sanitizeUserComment(userComment) {
   return userComment.replace(/;/g, ','); // Replace all ";" with ","
 }
 
-//check referrer to allow only from the chrd site
-function checkReferrer(req, res, next) {
-  const referrer = req.get('Referrer') || req.get('Referer'); // Some browsers use 'Referer' instead of 'Referrer'
-  const allowedDomains = [
-      /\.chrysalis\.in\/.*/,
-      /\.chrysalisonline\.in\/.*/,
-      /\.chrysalistechnologies\.in\/.*/
-  ];
-
-  if (referrer && allowedDomains.some(domain => domain.test(referrer))) {
-      return next();
-  } else {
-      res.status(403).send('Invalid access, please visit chrysalis.in to log in');
-  }
-}
-
 // Function to update or add work breakdown entry in work collection
 async function updateWorkBreakdown(taskId, actualWork) {
   const today = new Date();
@@ -349,24 +333,42 @@ async function updateWorkBreakdown(taskId, actualWork) {
 //GET APP HOME
 router.get("/", async (req, res) => {  
     let msg = req.query.msg || ""; // Get the message from the query string 
+    let msg_debug;
     if (msg === "sessionExpired") {
       msg = "Session expired. Please login again.";
     }
-  res.render("index", { msg });
+    if (process.env.NODE_ENV === "development") {
+      msg_debug = "This is Development Environment. Please use the LIVE app at:";
+    }
+  res.render("index", { msg, msg_debug });
 });
 
 router.get("/leap", isAuthenticated, isFTE, async (req, res) => {
+  let isLeader;
+  const leaders = process.env.PM_LEADERSHIP.split(",").map(name => name.trim());
   const user = req.session.user;
   const resourceName = user.name;
   const resourceDetails = await resourceModel.findOne({
     resourceName: resourceName,
   });
+  //check if the resourceDetails.resourceName exist in leaders array
+  if (!resourceDetails) {
+    console.log("Resource details not found for user:", resourceName);
+    return res.redirect("/profile");
+  } else if (leaders.includes(resourceDetails.resourceName)) {
+    console.log("User is a leader");
+    isLeader = true; // Set isLeader to true if user is a leader
+  } else {
+    console.log("User is not a leader");
+    isLeader = false; // Set isLeader to false if user is not a leader
+  }
+  console.log("isLeader value is: ", isLeader);
   // if (resourceDetails.resourceRole === "Admin") {
   //   // console.log("Admin user logged in, calling processUserComments function.");
   //   await processUserComments(); // Process user comments if needed
   // }  // comment to avoid running it more than once.
   let msg = "";
-res.render("leap", { msg, resourceDetails });
+res.render("leap", { msg, resourceDetails, isLeader  }); // Render the leap page with the resource details and isLeader status
 });
 
 router.get("/home", isAuthenticated, redirectBasedOnGroup, async (req, res) => {  
@@ -1453,6 +1455,93 @@ router.get("/archivedtasks", isAdmin, async (req, res) => {
   }
 });
 
+// route to get the chrysalis Projects Portfolio dashboard
+router.get('/reports', isLeadership, async (req, res) => {
+  try {
+    // Fetch all tasks from both collections
+    const tasks = await taskModel.find({});
+    const archivedTasks = await taskArchiveModel.find({});
+    const allTasks = [...tasks, ...archivedTasks];
+
+    // Group by clientName, then by interventionName
+    const groupedByClient = {};
+
+    allTasks.forEach(task => {
+      const client = task.clientName || 'Unknown Client';
+      const intervention = task.interventionName || 'Unknown Intervention';
+      const isBillable = task.consultingDay === 'Yes' && task.source === 'PWA';
+      const isNonBillable = task.consultingDay === 'No' || task.source === 'MTE';
+      const workHours = task.actualWork || 0;
+
+      if (!groupedByClient[client]) {
+        groupedByClient[client] = {
+          interventions: {},
+          billable: 0,
+          nonBillable: 0,
+          total: 0
+        };
+      }
+      if (!groupedByClient[client].interventions[intervention]) {
+        groupedByClient[client].interventions[intervention] = { billable: 0, nonBillable: 0, total: 0 };
+      }
+
+      if (isBillable) {
+        groupedByClient[client].interventions[intervention].billable += workHours;
+        groupedByClient[client].billable += workHours;
+      } else if (isNonBillable) {
+        groupedByClient[client].interventions[intervention].nonBillable += workHours;
+        groupedByClient[client].nonBillable += workHours;
+      }
+      groupedByClient[client].interventions[intervention].total += workHours;
+      groupedByClient[client].total += workHours;
+    });
+
+    // Prepare client and intervention lists for filters
+    const clientNames = Object.keys(groupedByClient);
+    const interventionNamesByClient = {};
+    clientNames.forEach(client => {
+      interventionNamesByClient[client] = Object.keys(groupedByClient[client].interventions);
+    });
+
+    // get project status for each intervention
+    const interventionDetailsByClient = {};
+
+for (const client of clientNames) {
+  interventionDetailsByClient[client] = {};
+  for (const intervention of interventionNamesByClient[client]) {
+    // Find the first matching task in either model for this client and intervention
+    let task = await taskModel.findOne({ clientName: client, interventionName: intervention });
+    if (!task) {
+      task = await taskArchiveModel.findOne({ clientName: client, interventionName: intervention });
+    }
+    interventionDetailsByClient[client][intervention] = {
+      projectStatus: task ? task.ProjectStatus || 'Unknown' : 'Unknown'
+    };
+  }
+}
+
+    // Calculate overall totals
+    let totalBillableHours = 0;
+    let totalNonBillableHours = 0;
+    clientNames.forEach(client => {
+      totalBillableHours += groupedByClient[client].billable;
+      totalNonBillableHours += groupedByClient[client].nonBillable;
+    });
+    // console.log("interventionNamesByClient is: ", interventionNamesByClient);
+    res.render('reports', {
+      groupedByClient,
+      clientNames,
+      interventionNamesByClient,
+      interventionDetailsByClient,
+      totalBillableHours,
+      totalNonBillableHours
+    });
+  } catch (error) {
+    console.error("Error generating reports:", error);
+    res.status(500).send("An error occurred while generating the reports.");
+  }
+});
+
 // Route to show reports for resources hours for projects.
 router.get('/resourcereport', isLeadership, async (req, res) => {
   try {
@@ -1461,12 +1550,12 @@ router.get('/resourcereport', isLeadership, async (req, res) => {
     // Get the search term, selected resource name, and time period from the query parameters
     const searchTerm = req.query.search || '';
     const selectedResourceName = req.query.resourceName || '';
-    const timePeriod = req.query.timePeriod || 'currentMonth'; // Default to current month
+    const timePeriod = req.query.timePeriod || 'alltime'; // Default to current month
 
     // If no search term or resource name is provided, render the search form
     if (!searchTerm && !selectedResourceName) {
       return res.render('resourcereport', {
-        projectNames: [],
+        interventionNames: [],
         billableHours: [],
         nonBillableHours: [],
         totalBillableHours: 0,
@@ -1490,7 +1579,7 @@ router.get('/resourcereport', isLeadership, async (req, res) => {
       // If search results are found, display them
       if (searchResults.length > 0) {
         return res.render('resourcereport', {
-          projectNames: [],
+          interventionNames: [],
           billableHours: [],
           nonBillableHours: [],
           totalBillableHours: 0,
@@ -1506,7 +1595,7 @@ router.get('/resourcereport', isLeadership, async (req, res) => {
     }
 
     // If a resource is selected, fetch tasks for that resource within the selected time period
-    let projectNames = [];
+    let interventionNames = [];
     let billableHours = [];
     let nonBillableHours = [];
     let totalBillableHours = 0;
@@ -1530,14 +1619,14 @@ router.get('/resourcereport', isLeadership, async (req, res) => {
           startDate = new Date(today.getFullYear(), 0, 1);
           endDate = new Date(today.getFullYear(), 11, 31);
           break;
-        case 'allTime':
-          startDate = new Date(0); // Earliest possible date
-          endDate = new Date(); // Current date
-          break;
         case 'currentMonth':
-        default:
           startDate = new Date(today.getFullYear(), today.getMonth(), 1);
           endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+          break;          
+        case 'allTime':
+        default:
+          startDate = new Date(0); // Earliest possible date
+          endDate = new Date(); // Current date
           break;
       }
 
@@ -1555,23 +1644,23 @@ router.get('/resourcereport', isLeadership, async (req, res) => {
 
       // Group tasks by projectName and calculate billable and non-billable hours
       const groupedData = tasks.reduce((acc, task) => {
-        if (!acc[task.projectName]) {
-          acc[task.projectName] = { billable: 0, nonBillable: 0 };
+        if (!acc[task.interventionName]) {
+          acc[task.interventionName] = { billable: 0, nonBillable: 0 };
         }
 
         if (task.consultingDay === 'Yes' && task.source === 'PWA') {
-          acc[task.projectName].billable += task.actualWork || 0;
+          acc[task.interventionName].billable += task.actualWork || 0;
         } else if (task.consultingDay === 'No' || task.source === 'MTE') {
-          acc[task.projectName].nonBillable += task.actualWork || 0;
+          acc[task.interventionName].nonBillable += task.actualWork || 0;
         }
 
         return acc;
       }, {});
 
       // Prepare data for the chart
-      projectNames = Object.keys(groupedData);
-      billableHours = projectNames.map(project => groupedData[project].billable);
-      nonBillableHours = projectNames.map(project => groupedData[project].nonBillable);
+      interventionNames = Object.keys(groupedData);
+      billableHours = interventionNames.map(project => groupedData[project].billable);
+      nonBillableHours = interventionNames.map(project => groupedData[project].nonBillable);
 
       // Calculate total billable and non-billable hours
       totalBillableHours = billableHours.reduce((sum, hours) => sum + hours, 0);
@@ -1580,7 +1669,7 @@ router.get('/resourcereport', isLeadership, async (req, res) => {
 
     // Render the chart view
     res.render('resourcereport', {
-      projectNames,
+      interventionNames,
       billableHours,
       nonBillableHours,
       totalBillableHours,
@@ -1606,7 +1695,6 @@ router.get('/clientreport', isLeadership, async (req, res) => {
     const clientNames = await taskModel.distinct('clientName');
     const archivedClientNames = await taskArchiveModel.distinct('clientName');
     const allClientNames = [...new Set([...clientNames, ...archivedClientNames])];
-
     // Fetch all unique project names for the selected client
     let projectNames = [];
     if (clientName) {
