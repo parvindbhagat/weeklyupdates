@@ -14,6 +14,14 @@ html, body{
   box-sizing: border-box;
   /* font-size: 12px; */
 }
+
+.text-cred{
+  color: #E95757;
+}
+
+.bg-cred{
+  background-color: #E95757;
+}
 .content{
   display: flex;
   flex-direction: column;
@@ -156,3 +164,12 @@ th{
   white-space: pre-wrap;
   word-break: break-word;
 }
+
+/* grid css code*/
+
+      .parent {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        grid-template-rows: repeat(1, 1fr);
+        gap: 8px;
+      }
