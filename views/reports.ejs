@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Chrysalis Projects Portfolio Dashboard</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    />
+    <link rel="stylesheet" href="/stylesheets/style.css" />
+  </head>
+  <body>
+    <nav class="navbar">
+      <a class="navbar-brand" href="/home">
+        <img src="/images/logo.png" alt="Chrysalis" />
+      </a>
+    </nav>
+    <div class="menu d-flex justify-content-end my-4 gap-2 me-3">
+      <a class="btn" href="/home">Home</a>
+      <a class="btn" href="/admin">Admin Console</a>
+      <a class="btn" href="/pwaactivities">Weekly Plan</a>
+    </div>
+    <h1
+      class="mb-4 text-center text-cred fs-bolder"
+      style="font-weight: bolder"
+    >
+      Chrysalis Projects Portfolio Dashboard
+    </h1>
+
+    <div class="parent m-5 p-2 justify-content-center align-items-center">
+      <a class="text-decoration-none" href="/reports">
+        <div class="div1 text-center bg-warning text-black">Clients ⬇</div>
+      </a>
+      <a class="text-decoration-none" href="/clientreport">
+        <div class="div2 text-center bg-cred text-white">Functional Areas ➡</div>
+      </a>
+      <a class="text-decoration-none" href="/resourcereport">
+        <div class="div3 text-center bg-cred text-white">Workload Distribution ➡</div>
+      </a>
+    </div>
+    
+    <div class="container mt-4">
+      <% if (clientNames.length === 0) { %>
+      <div class="alert alert-info">No data available.</div>
+      <% } else { %>
+      <!-- <h1 class="text-center mb-4">Clients</h1> -->
+      <table
+        class="table table-striped table-bordered table-hover align-middle"
+      >
+        <thead class="table-warning">
+          <tr>
+            <th>#</th>
+            <th>Client</th>
+            <th class="text-center">Project Billed</th>
+            <th class="text-center">Internal Efforts</th>
+            <th class="text-center">Total Hours</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% clientNames.forEach((client, idx) => { %>
+          <tr
+            class="client-row"
+            style="cursor: pointer"
+            data-bs-toggle="collapse"
+            data-bs-target="#client-<%= idx %>"
+          >
+            <td><%= idx + 1 %></td>
+            <td>
+              <span class="me-2">&#9654;</span>
+              <%= client %>
+            </td>
+            <td class="text-center"><%= groupedByClient[client].billable.toFixed(2) %></td>
+            <td class="text-center"><%= groupedByClient[client].nonBillable.toFixed(2) %></td>
+            <td class="text-center"><%= groupedByClient[client].total.toFixed(2) %></td>
+          </tr>
+          <tr class="collapse" id="client-<%= idx %>">
+            <td colspan="5">
+              <table class="table table-striped table-sm table-bordered mb-0">
+                <thead>
+                  <tr class="table-secondary">
+                    <th>Intervention</th>
+                    <th>Status</th>
+                    <th class="text-center">Project Billed</th>
+                    <th class="text-center">Internal Efforts</th>
+                    <th class="text-center">Total Hours</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% interventionNamesByClient[client].forEach(intervention => {
+                  %>
+                  <tr>
+                    <td><%= intervention %></td>
+                    <td><%= interventionDetailsByClient[client][intervention].projectStatus %></td>
+                    <td class="text-center">
+                      <%=
+                      groupedByClient[client].interventions[intervention].billable.toFixed(2)
+                      %>
+                    </td>
+                    <td class="text-center">
+                      <%=
+                      groupedByClient[client].interventions[intervention].nonBillable.toFixed(2)
+                      %>
+                    </td>
+                    <td class="text-center">
+                      <%=
+                      groupedByClient[client].interventions[intervention].total.toFixed(2)
+                      %>
+                    </td>
+                  </tr>
+                  <% }) %>
+                  <!-- Totals row for this client -->
+                  <tr class="table-secondary fw-bold">
+                    <td>Total for <%= client %></td>
+                    <td> </td>
+                    <td class="text-center"><%= groupedByClient[client].billable.toFixed(2) %></td>
+                    <td class="text-center">
+                      <%= groupedByClient[client].nonBillable.toFixed(2) %>
+                    </td>
+                    <td class="text-center">
+                      <%= (groupedByClient[client].billable +
+                      groupedByClient[client].nonBillable).toFixed(2) %>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </td>
+          </tr>
+          <% }) %>
+        </tbody>
+        <tfoot>
+          <tr class="table-secondary">
+            <th>Total</th>
+            <th> </th>
+            <th class="text-center"><%= totalBillableHours.toFixed(2) %></th>
+            <th class="text-center"><%= totalNonBillableHours.toFixed(2) %></th>
+            <th class="text-center">
+              <%= (totalBillableHours + totalNonBillableHours).toFixed(2) %>
+            </th>
+          </tr>
+        </tfoot>
+      </table>
+      <% } %>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- <script>
+      // Toggle arrow direction on expand/collapse
+      document.querySelectorAll('.client-row').forEach(row => {
+        row.addEventListener('click', function() {
+          const arrow = this.querySelector('span');
+          const targetId = this.getAttribute('data-bs-target');
+          const target = document.querySelector(targetId);
+          setTimeout(() => {
+            if (target.classList.contains('show')) {
+              arrow.innerHTML = '&#9660;'; // Down arrow
+            } else {
+              arrow.innerHTML = '&#9654;'; // Right arrow
+            }
+          }, 200);
+        });
+      });
+    </script> -->
+  </body>
+</html>
