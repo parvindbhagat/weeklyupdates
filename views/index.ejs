@@ -42,7 +42,7 @@
         <img src="/images/logo-red.png" alt="Chrysalis" />        
       </div>
       <% if (msg) { %>
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <div class="alert alert-danger" role="alert">
             <%= msg %>
             
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close">
@@ -50,7 +50,15 @@
         </div>
         
       <% } %>
-    <div class="main d-flex flex-column justify-content-center align-items-center">
+
+      <div class="main d-flex flex-column justify-content-center align-items-center">
+      <% if (msg_debug) { %>
+        <div class="fw-bolder alert alert-danger alert-dismissible fade show" role="alert">
+            <strong>ALERT:</strong>
+            <%= msg_debug %>
+            <a href="https://chrysalisonline.in">LEAP</a>
+        </div>        
+      <% } %>
       <h3 class="display-block">Please log in with your Chrysalis email.</h3>
       <button class="btn btn-lg  mt-3" type="button" onclick="window.location.href='/home'">Log in</button>
     </div>
