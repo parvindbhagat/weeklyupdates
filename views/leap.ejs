@@ -171,8 +171,8 @@
     
   <% } %>
   <div class="main">
+    <div class="title-text contentSection">LEAP</div>
     <div class="options">
-      <div class="title-text contentSection">LEAP</div>
       <a href="/pwaactivities" style="text-decoration: none; color: inherit" id="activities" class="box">
         <div class="contentSection">
           <h4>Chrysalis Weekly Plan</h4>
@@ -189,6 +189,16 @@
           </p>
         </div>
       </a>
+      <% if (isLeader = true) { %>
+            <a href="/reports" style="text-decoration: none; color: inherit" id="escalations" class="box">
+              <div class="contentSection">
+                <h4>Chrysalis Projects Report</h4>
+                <p style="font-size: 1.2rem">
+                <strong>Restricted Access! </strong>
+                </p>
+              </div>
+            </a>
+      <% } %>
       <a style="text-decoration: none;" href="/profile" 
         class="box">
         <div class="contentSection">
