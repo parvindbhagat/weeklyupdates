@@ -106,7 +106,8 @@
             <th class="border border-gray-300 px-4 py-2 bg-warning">Delay (in Days)</th>
             <th class="border border-gray-300 px-4 py-2 bg-warning">Resource</th>
             <th class="border border-gray-300 px-4 py-2 bg-warning">Complete %</th>
-            <th class="border border-gray-300 px-4 py-2 bg-warning">Status</th>
+            <th class="border border-gray-300 px-4 py-2 bg-warning">Comments</th>
+            <th class="border border-gray-300 px-4 py-2 bg-warning">Delay Status</th>
           </tr>
         </thead>
         <tbody>
@@ -121,6 +122,7 @@
               <td class="border border-gray-300 px-4 py-2 "><%= esc.resourceName %></td>
               <td class="border border-gray-300 px-4 py-2 "><%= esc.taskCompletePercent %></td>
               <td class="border border-gray-300 px-4 py-2 "><%= esc.userComment %></td>
+              <td class="border border-gray-300 px-4 py-2"><%= esc.delayStatus %></td>
             </tr>
           <% }); %>
         </tbody>
