@@ -989,9 +989,20 @@ router.get("/refreshdatabase", isAdmin, async (req, res) => {
     const allprojects = projectAPIresponse.data.value;
 
     // Filter out completed projects
-    const nonCompleteProjects = allprojects.filter(
+    const inCompleteProjects = allprojects.filter(
           (project) => project.ProjectStatus !== "Completed"
         );
+    const completedProjects = allprojects.filter(
+          (project) => project.ProjectStatus === "Completed"
+        );
+    const leapProjects = await taskModel.distinct("projectName");
+    //recently completed projects that are common in compeltedProjects and leapProjects 
+    const recentlyCompletedProjects = completedProjects.filter(
+      (project) => leapProjects.includes(project.ProjectName)
+    );
+    // now we nee to have nonCompleteprojects as combination of incompleteProjects and recentlyCompletedProjects
+    const nonCompleteProjects = [...inCompleteProjects, ...recentlyCompletedProjects];
+    
     //get data from Tasks API
     const tasksPromises = nonCompleteProjects.map(async (project) => {
       const projectId = project.ProjectId;
