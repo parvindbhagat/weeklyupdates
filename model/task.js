@@ -31,6 +31,7 @@ const taskSchema = new mongoose.Schema({
     submitted: {type: Number, default: 0},
     consultingDay: {type: String, default: "NA"},
     taskIndex: {type: Number, default: 0},
+    delayStatus: {type: String, default: "NA"},
   });
   const task = mongoose.model("task", taskSchema);
   const taskArchive = mongoose.model('taskArchive', taskSchema); // Reuse the same schema for the archive collection
