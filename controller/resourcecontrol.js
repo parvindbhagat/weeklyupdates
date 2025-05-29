@@ -14,7 +14,7 @@ function determineResourceFunction(resourceGroup) {
     Technology: JSON.parse(process.env.IT_DEPT || '[]'),
     Leadership: JSON.parse(process.env.LEAD_DEPT || '[]'),
     Talent: JSON.parse(process.env.TALENT_DEPT || '[]'),
-    "Project Manangement": JSON.parse(process.env.PROJ_MGMT_DEPT || '[]'),
+    "Project Management": JSON.parse(process.env.PROJ_MGMT_DEPT || '[]'),
     Custom: JSON.parse(process.env.CUSTOM_DEPT || '[]'),
   };
 
