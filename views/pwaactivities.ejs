@@ -158,7 +158,7 @@
           <td><%= new Date(activity.start).toLocaleDateString('en-uk') %></td>
           <td><%= new Date(activity.Finish).toLocaleDateString('en-uk') %></td>
           <td><%= activity.resourceName %></td>
-          <td><%= (activity.taskCompletePercent < 100) ? "On Going" : "Completed" %></td>
+          <td><%= (activity.isDelayed)? activity.delayStatus: (activity.taskCompletePercent < 100) ? "On Going" : "Completed" %></td>
         </tr>
       <% }); %>
     <% }); %>
