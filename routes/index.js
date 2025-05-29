@@ -31,6 +31,18 @@ function isAuthenticated(req, res, next) {
   }
 }
 
+//function to check if the user session is active with session data if yes, go next else go to /?sessionExpired
+function isSessionActive(req, res, next) {
+  // console.log("isSessionActive function called");
+  if (req.session && req.session.user) {
+    // console.log("isSessionActive: User is logged in, calling next use is: ", req.session.user.name);
+    return next();
+  } else {
+    // console.log("isSessionActive: User Not logged in, redirecting to /?msg=sessionExpired");
+    res.redirect("/?msg=sessionExpired");
+  }
+}
+
 async function isAdmin(req, res, next) {
   if (req.session && req.session.user) {
     // console.log("User is logged in, checking user Role in resource model.");
@@ -330,6 +342,15 @@ async function updateWorkBreakdown(taskId, actualWork) {
   }
 }
 
+//function to check if the tasks delay status if its NA them its not delayed otherwise it is delayed. then add isDelayed key value to each task as per its delay status.
+function isDelayed(activity) {
+  if (activity.delayStatus === "NA") {
+    return false; // Not delayed if delayStatus is "NA"
+  } else {
+    return true; // Delayed if delayStatus is anything else
+  }
+}
+
 //GET APP HOME
 router.get("/", async (req, res) => {  
     let msg = req.query.msg || ""; // Get the message from the query string 
@@ -347,15 +368,11 @@ router.get("/leap", isAuthenticated, isFTE, async (req, res) => {
   let isLeader;
   const leaders = process.env.PM_LEADERSHIP.split(",").map(name => name.trim());
   const user = req.session.user;
-  const resourceName = user.name;
-  const resourceDetails = await resourceModel.findOne({
-    resourceName: resourceName,
-  });
   //check if the resourceDetails.resourceName exist in leaders array
-  if (!resourceDetails) {
-    console.log("Resource details not found for user:", resourceName);
-    return res.redirect("/profile");
-  } else if (leaders.includes(resourceDetails.resourceName)) {
+  if (!user) {
+    console.log("Resource details not found, redirecting to root.");
+    return res.redirect("/?msg=sessionExpired"); // Redirect to home with session expired message
+  } else if (leaders.includes(user.name)) {
     console.log("User is a leader");
     isLeader = true; // Set isLeader to true if user is a leader
   } else {
@@ -368,7 +385,7 @@ router.get("/leap", isAuthenticated, isFTE, async (req, res) => {
   //   await processUserComments(); // Process user comments if needed
   // }  // comment to avoid running it more than once.
   let msg = "";
-res.render("leap", { msg, resourceDetails, isLeader  }); // Render the leap page with the resource details and isLeader status
+res.render("leap", { msg, isLeader  }); // Render the leap page with the resource details and isLeader status
 });
 
 router.get("/home", isAuthenticated, redirectBasedOnGroup, async (req, res) => {  
@@ -587,7 +604,7 @@ router.get("/profile", isAuthenticated,  async (req, res, next) => {
         {ProjectStatus: { $ne: "On Hold" }},
         {approvalStatus: { $ne: "Approved" }}
       ]
-  }).sort({start: 1});
+  }).sort({interventionName: 1, taskIndex: 1});
 
   const loggedInUserName = req.session.user.name; // Get the logged-in user's name from the session
   let msg2;
@@ -630,7 +647,7 @@ router.get("/profile", isAuthenticated,  async (req, res, next) => {
 });
 
 // /profile method post to SAVE Manual Task Entries.  /////////////////////////////////////////////////////////////////////////////////////////////////
-router.post("/profile", isAuthenticated, async (req, res) => {
+router.post("/profile", isSessionActive, async (req, res) => {
   try {
     if (!req.session.user) {
       let sessions;
@@ -748,7 +765,36 @@ router.get("/pwaactivities", isAuthenticated, isFTE, async (req, res, next) => {
       { source: "PWA" },
       { ProjectStatus: { $ne: "On Hold" } },
     ],
-  }).sort({ typeofActivity: -1 }); // returns activities with start/finish between current week or activity that either starts or finishes in current week.
+  }).sort({ typeofActivity: -1, interventionName: 1, taskIndex: 1 }); // returns activities with start/finish between current week or activity that either starts or finishes in current week.
+  
+  // identify delayed tasks if the finish is before today
+  const delayedTasks = activities.filter(activity => {
+    const finishDate = new Date(activity.Finish);
+    return finishDate < new Date() && activity.taskCompletePercent < 100;
+  });
+  // Update the status of delayed tasks to delayStatus in the database set it to "Non-Excusable Delay" if its 'NA'
+  if (delayedTasks.length > 0 && delayedTasks.some(task => task.delayStatus === "NA")) {
+    await taskModel.updateMany(
+      { _id: { $in: delayedTasks.map(task => task._id) } },
+      { $set: { delayStatus: "Non-Excusable Delay" } }
+    );
+  }
+  //check if any task has delayStatus other than NA and its taskCompletePercent is equal to 100; that is delayed task is completed now make its DelayStatus back to "NA".
+  const completedDelayedTasks = activities.filter(activity => {
+    const finishDate = new Date(activity.Finish);
+    return finishDate < new Date() && activity.taskCompletePercent === 100 && activity.delayStatus !== "NA";
+  });
+  if (completedDelayedTasks.length > 0) {
+    await taskModel.updateMany(
+      { _id: { $in: completedDelayedTasks.map(task => task._id) } },
+      { $set: { delayStatus: "NA" } }
+    );
+  } 
+
+  // Add isDelayed property to each activity based on its delay status
+  activities.forEach(activity => {
+    activity.isDelayed = isDelayed(activity);
+  });
 
   // Apply projectName filter if provided
   if (interventionName) {
@@ -836,7 +882,12 @@ router.get("/monthlyplan", isAuthenticated, isFTE, async (req, res) => {
       { source: "PWA" },
       { ProjectStatus: { $ne: "On Hold" } },
     ],
-  }).sort({ typeofActivity: 1 });
+  }).sort({ typeofActivity: -1, interventionName: 1, taskIndex: 1 });
+
+  // Add isDelayed property to each activity based on its delay status
+  activities.forEach(activity => {
+    activity.isDelayed = isDelayed(activity);
+  });
 
   // Apply projectName filter if provided
   if (interventionName) {
@@ -877,7 +928,7 @@ router.get("/monthlyplan", isAuthenticated, isFTE, async (req, res) => {
 });
 
 // LOGOUT route  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-router.post("/logout", isAuthenticated, (req, res) => {
+router.post("/logout", isSessionActive, (req, res) => {
   req.session.destroy((err) => {
     if (err) {
       return res.status(500).send("Failed to logout");
@@ -1093,7 +1144,7 @@ router.get("/alltasks", isAuthenticated, async (req, res) => {
     }
 
     // Fetch filtered tasks from the database
-    const tasks = await taskModel.find(query).sort({ projectName: 1, resourceName: 1 });
+    const tasks = await taskModel.find(query).sort({ projectName: 1, taskIndex: 1 });
 
     // Render the page with filtered tasks and selected filters
     res.render("alltasks", { tasks, selectedProject: projectName || "", selectedResource: resourceName || "" });
@@ -1164,8 +1215,60 @@ router.get('/sortbyupdate', isAdmin, async (req, res) => {
   }
 });
 
+//Route to list all delayed tasks with delayStatus other than NA
+router.get('/delayedtasks', isAdmin, async (req, res) => {
+  try {
+    //check param msg in query string to show success message
+    let msg = "";
+    if (req.query.msg === "successupdate") {
+      msg = "Delay status updated successfully.";
+    } else if (req.query.msg === "failupdate") {
+      msg = "Failed to update delay status. Please try again.";
+    } else if (req.query.msg === "error") {
+      msg = "An error occurred while updating the delay status. Please try again.";
+    }
+    const delayedTasks = await taskModel.find({
+      delayStatus: { $ne: "NA" },
+      taskCompletePercent: { $lt: 100 },
+      source: "PWA"
+    }).sort({ interventionName: 1, taskIndex: 1 });
+
+    res.render('delayedtasks', { tasks: delayedTasks, msg }); // Render the delayed tasks page with the tasks and message
+  } catch (error) {
+    console.error('Error fetching delayed tasks:', error);
+    res.status(500).redirect('/delayedtasks?msg=error'); // Redirect with an error message if there's an issue
+  }
+});
+
+// Route to handle delay status update by admin and change the delayStatus in document
+router.post('/delayedtasks', isSessionActive, isAdmin, async (req, res) => {
+  try {
+    const { taskId, delayStatus } = req.body; // Get the taskId and new delayStatus from the request body
+    // console.log("Received taskId:", taskId, "and delayStatus:", delayStatus);
+    // Validate the input
+    if (!taskId || !delayStatus) {
+      return res.status(400).send('Task ID and delay status are required.');
+    }
+    // Update the delayStatus for the specified task
+    const updatedTask = await taskModel.findOneAndUpdate(
+      { _id: taskId },
+      { delayStatus: delayStatus },
+      { new: true } // Return the updated document
+    );
+    // Check if the task was found and updated
+    if (!updatedTask) {
+      res.redirect('/delayedtasks?msg=failupdate');
+    }
+    // Redirect back to the delayed tasks page with a success message
+    res.redirect('/delayedtasks?msg=successupdate');
+  } catch (error) {
+    console.error('Error updating delay status:', error);
+    res.status(500).redirect('/delayedtasks?msg=error'); // Redirect with an error message if there's an issue
+  }
+}); 
+
 // Save PWA task details for first time in the database and then it can be updated or submitted to manager for approval
-router.post("/savetask", isAuthenticated, async (req, res) => {
+router.post("/savetask", isSessionActive, async (req, res) => {
   let { activityId, actualStart, actualFinish, actualWork, comment, completed } = req.body;
   comment = sanitizeUserComment(comment);
   const datedComment = "(" + new Date().toLocaleDateString("en-in") + ": " + actualWork + " Hrs)" + comment;
@@ -1200,7 +1303,7 @@ router.post("/savetask", isAuthenticated, async (req, res) => {
 });
 
 //UPDATE saved tasks by member before submission. 
-router.post("/updatetask", isAuthenticated, async (req, res) => {
+router.post("/updatetask", isSessionActive, async (req, res) => {
   let { actualFinish, actualWork, comment, completed, activityId } = req.body;
   comment = sanitizeUserComment(comment);
   const existingTask = await taskModel.findById(activityId);
@@ -1272,7 +1375,7 @@ router.get('/manager', isManager, async (req, res) => {
 });
 
 // Submit tasks with consulting day YES to manager for approval and tasks with consulting day NO to be approved or reassigned immediately.
-router.post('/submitToManager', isAuthenticated, async (req, res) => {
+router.post('/submitToManager', isSessionActive, async (req, res) => {
   try {
     const user = req.session.user; // Authentication check and can get the logged-in user's ID
 
@@ -1302,7 +1405,7 @@ router.post('/submitToManager', isAuthenticated, async (req, res) => {
 });
 
 
-router.post('/approve', isManager, async (req, res) => {
+router.post('/approve', isSessionActive, isManager, async (req, res) => {
   try {
     const user = req.session.user;
     let approved = 0;
@@ -1338,7 +1441,7 @@ router.post('/approve', isManager, async (req, res) => {
   }
 });
 // Route to handle Reassign tasks from Manager to make all tasks where saved =1 and submitted= 1 to submitted = 0 and save comment in resourceModel
-router.post('/reassign', isManager, async (req, res) => {
+router.post('/reassign', isSessionActive, isManager, async (req, res) => {
   try {
     const {resourceName, comment} = req.body;
     // console.log('req body resource name is: ', resourceName);
@@ -1364,7 +1467,7 @@ router.post('/reassign', isManager, async (req, res) => {
 });
 
 // Route to render Escalation for delayed tasks.
-router.get('/escalation', isManager,  async (req, res, next) => {
+router.get('/escalation', isLeadership,  async (req, res, next) => {
   try {
     const user = req.session.user;
     const today = new Date().toISOString().split('T')[0] + "T00:00:00";
@@ -1702,7 +1805,7 @@ router.get('/clientreport', isLeadership, async (req, res) => {
       const archivedTaskProjects = await taskArchiveModel.distinct('projectName', { clientName });
       projectNames = [...new Set([...taskProjects, ...archivedTaskProjects])];
     }
-
+    const customOrder = ["REBL", "TBL", "Administration", "Resourcing & Facilitation", "Project Management", "Technology", "Talent", "Finance", "Leadership"]
     // Fetch resources grouped by resourceFunction
     const resources = await resourceModel.find({});
     const groupedResources = resources.reduce((acc, resource) => {
@@ -1771,16 +1874,34 @@ router.get('/clientreport', isLeadership, async (req, res) => {
       }
     }
 
+    // Sort the groupedByFunction keys based on customOrder
+const sortedGroupedByFunction = {};
+
+// Add functions that exist in customOrder first in the specified order
+customOrder.forEach(fn => {
+  if (groupedByFunction[fn]) {
+    sortedGroupedByFunction[fn] = groupedByFunction[fn];
+  }
+});
+
+// Optionally, add any remaining functions (not listed in customOrder) sorted alphabetically
+Object.keys(groupedByFunction)
+  .filter(fn => !customOrder.includes(fn))
+  .sort()
+  .forEach(fn => {
+    sortedGroupedByFunction[fn] = groupedByFunction[fn];
+  });
+
     // Calculate total billable and non-billable hours
     const totalBillableHours = Object.values(groupedByFunction).reduce((sum, func) => sum + func.billable, 0);
     const totalNonBillableHours = Object.values(groupedByFunction).reduce((sum, func) => sum + func.nonBillable, 0);
-
+    console.log(`grouped functions are : ${JSON.stringify(groupedByFunction)}`);
     res.render('clientreport', {
       clientNames: allClientNames,
       selectedClientName: clientName || '',
       projectNames,
       selectedProjectName: projectName || '',
-      groupedByFunction,
+      groupedByFunction: sortedGroupedByFunction,
       totalBillableHours,
       totalNonBillableHours,
     });
