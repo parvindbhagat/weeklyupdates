@@ -12,7 +12,7 @@ const qs = require("qs");
 const moment = require("moment");
 const initializeResources = require("../controller/resourcecontrol");
 const {assignTaskIdsToTaskArchive, assignTaskIdsToTasks, processUserComments} = require("../controller/onetimescript");
-const Counter = require("../model/couter");
+const Counter = require("../model/counter");
 
 
 // function to check user is logged in with MSAL Auth flow
@@ -552,6 +552,21 @@ router.get("/profile", isAuthenticated,  async (req, res, next) => {
   const accessToken = req.session.token;
   // const accessToken = req.session.token;
   const resourceName = user.name;
+//  get date range for current week or month as query parameter
+//   const range = req.query.range || "week";
+//   let workStartDate, workEndDate;
+//   if (range === "month") {
+//   const { monthStart, monthEnd } = getDateRangeForMonth();
+//   workStartDate = new Date(monthStart);
+//   workEndDate = new Date(monthEnd);
+// } else {
+//   // Default to current week (Monday to Sunday)
+//   const { startDate: weekStart, endDate: weekEnd } = getCurrentWeekDateRange();
+//   workStartDate = new Date(weekStart);
+//   workEndDate = new Date(weekEnd);
+// }
+
+// console.log("workStartDate: ", workStartDate, "workEndDate: ", workEndDate);
   // const encodedName = encodeResourceName(resourceName);
   console.log("LOGGED IN to /profile Name is : ", resourceName);
   await initializeResources(accessToken);
@@ -638,7 +653,56 @@ router.get("/profile", isAuthenticated,  async (req, res, next) => {
       msg = "Failed to update task data. Please try again.";
     }
 
-   res.render('profile', {user, incompleteTasks, resourceDetails, startDate, endDate, msg, msg2});  //  Actual data to be passed to view for usrs view.
+    // Aggregate workModel data for the logged-in user
+// This aggregation unpacks the workBreakdown array,
+// filters entries whose date is between workStartDate and workEndDate,
+// and then groups by interventionName to sum up the "work" hours.
+// const interventionWorkAggregation = await workModel.aggregate([
+//   { $match: { resourceName: "Rajat Prajapati" } },
+//   { $unwind: "$workBreakdown" },
+//   { $match: { "workBreakdown.date": { $gte: workStartDate, $lte: workEndDate } } },
+//   { $group: {
+//       _id: "$interventionName",
+//       totalWork: { $sum: "$workBreakdown.work" }
+//   } }
+// ]);
+
+// const interventionWorkAggregation = await workModel.aggregate([
+//   { 
+//     // Use regex to match the resource name case-insensitively
+//     $match: { 
+//       resourceName: { $regex: "^Rajat Prajapati$", $options: "i" } 
+//     } 
+//   },
+//   { 
+//     // Unwind the workBreakdown array
+//     $unwind: { path: "$workBreakdown", preserveNullAndEmptyArrays: false } 
+//   },
+//   { 
+//     // Match documents where the workBreakdown.date is between workStartDate and workEndDate
+//     $match: { 
+//       "workBreakdown.date": { $gte: workStartDate, $lte: workEndDate } 
+//     } 
+//   },
+//   { 
+//     // Group by interventionName and sum the work from each entry
+//     $group: {
+//       _id: "$interventionName",
+//       totalWork: { $sum: "$workBreakdown.work" }
+//     }
+//   }
+// ]);
+
+// // console.log("interventionWorkAggregation is: ", interventionWorkAggregation);
+
+// // Convert aggregation result to a simple JSON mapping: interventionName => totalWork
+// const interventionWorkMapping = {};
+// interventionWorkAggregation.forEach(doc => {
+//   interventionWorkMapping[doc._id] = doc.totalWork;
+// });
+//   console.log("interventionWorkMapping is: ", interventionWorkMapping);
+
+   res.render('profile', {user, incompleteTasks, resourceDetails, startDate, endDate, msg, msg2, });  //  Actual data to be passed to view for usrs view pass interventionWorkMapping, workTimeRange: { workStartDate, workEndDate } as well .
   
   } catch (error) {
     console.log(error.message);
@@ -1661,6 +1725,10 @@ router.get('/resourcereport', isLeadership, async (req, res) => {
   try {
     const user = req.session.user;
 
+    if (!user) {
+      return res.redirect('/login?msg=sessionexpired');
+    }
+
     // Get the search term, selected resource name, and time period from the query parameters
     const searchTerm = req.query.search || '';
     const selectedResourceName = req.query.resourceName || '';
@@ -1756,7 +1824,7 @@ router.get('/resourcereport', isLeadership, async (req, res) => {
       const tasksArchived = await taskArchiveModel.find(query);
       const tasks = [...tasksCurrent, ...tasksArchived];
 
-      // Group tasks by projectName and calculate billable and non-billable hours
+      // Group tasks by interventionName and calculate billable and non-billable hours
       const groupedData = tasks.reduce((acc, task) => {
         if (!acc[task.interventionName]) {
           acc[task.interventionName] = { billable: 0, nonBillable: 0 };
@@ -1906,7 +1974,7 @@ Object.keys(groupedByFunction)
     // Calculate total billable and non-billable hours
     const totalBillableHours = Object.values(groupedByFunction).reduce((sum, func) => sum + func.billable, 0);
     const totalNonBillableHours = Object.values(groupedByFunction).reduce((sum, func) => sum + func.nonBillable, 0);
-    console.log(`grouped functions are : ${JSON.stringify(groupedByFunction)}`);
+    // console.log(`grouped functions are : ${JSON.stringify(groupedByFunction)}`);
     res.render('clientreport', {
       clientNames: allClientNames,
       selectedClientName: clientName || '',

@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 require('dotenv').config(); // Load environment variables from .env file
 const {task, taskArchive } = require('../model/task'); // Import the taskArchive model
-const Counter = require('../model/couter'); // Import the Counter model
+const Counter = require('../model/counter'); // Import the Counter model
 const work = require('../model/work'); // Import the work model
 const resourceModel = require('../model/resource'); // Import the resource model
 

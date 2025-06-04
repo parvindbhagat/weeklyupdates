@@ -51,8 +51,8 @@
           <tr>
             <th>#</th>
             <th>Client</th>
-            <th class="text-center">Project Billed</th>
-            <th class="text-center">Internal Efforts</th>
+            <th class="text-center">Consulting Hours</th>
+            <th class="text-center">Non Consulting Hours</th>
             <th class="text-center">Total Hours</th>
           </tr>
         </thead>
@@ -80,8 +80,9 @@
                   <tr class="table-secondary">
                     <th>Intervention</th>
                     <th>Status</th>
-                    <th class="text-center">Project Billed</th>
-                    <th class="text-center">Internal Efforts</th>
+                    <!-- <th>Planned Hours</th> -->
+                    <th class="text-center">Consulting Hours</th>
+                    <th class="text-center">Non Consulting Hours</th>
                     <th class="text-center">Total Hours</th>
                   </tr>
                 </thead>
@@ -91,6 +92,7 @@
                   <tr>
                     <td><%= intervention %></td>
                     <td><%= interventionDetailsByClient[client][intervention].projectStatus %></td>
+                    <!-- <td><%= interventionDetailsByClient[client][intervention].taskWork || 0 %></td> -->
                     <td class="text-center">
                       <%=
                       groupedByClient[client].interventions[intervention].billable.toFixed(2)
@@ -112,6 +114,7 @@
                   <tr class="table-secondary fw-bold">
                     <td>Total for <%= client %></td>
                     <td> </td>
+                    <!-- <td> </td> -->
                     <td class="text-center"><%= groupedByClient[client].billable.toFixed(2) %></td>
                     <td class="text-center">
                       <%= groupedByClient[client].nonBillable.toFixed(2) %>
