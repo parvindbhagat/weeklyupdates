@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 
 const taskSchema = new mongoose.Schema({
-    projectId: {type: String, },
+    projectId: {type: String, default: "chrd001" },
     projectName: {type: String,  },
     ProjectStatus: {type: String, },
     ProjectPercentWorkCompleted: {type: Number, default: 0 },
