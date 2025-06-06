@@ -13,6 +13,7 @@ const moment = require("moment");
 const initializeResources = require("../controller/resourcecontrol");
 const {assignTaskIdsToTaskArchive, assignTaskIdsToTasks, processUserComments} = require("../controller/onetimescript");
 const Counter = require("../model/counter");
+const WorkLog = require("../model/worklog");
 
 
 // function to check user is logged in with MSAL Auth flow
@@ -1987,6 +1988,194 @@ Object.keys(groupedByFunction)
   } catch (error) {
     console.error('Error generating client report:', error);
     res.status(500).send('An error occurred while generating the client report.');
+  }
+});
+
+router.get('/workloadreport', isLeadership, async (req, res) => {
+  try {
+    // Read query parameters
+    const selectedResourceName = req.query.resourceName || '';
+    const timePeriod = req.query.timePeriod || 'allTime';
+    const searchTerm = req.query.search || '';
+
+
+    // If no resource is selected, render view with a message
+    if (!selectedResourceName && !searchTerm) {
+      return res.render('workloadreport', {
+        groupedProjects: {},
+        overallPlanned: 0,
+        overallBillable: 0,
+        overallNonBillable: 0,
+        overallTotal: 0,
+        selectedResourceName,
+        timePeriod,
+        message: 'No resource selected.',
+        startDate: '',
+        endDate: '',
+        searchTerm,
+        searchResults: []
+      });
+    }
+
+        // If a search term is provided, search for matching resources
+    let searchResults = [];
+    if (searchTerm) {
+      console.log("Search term provided:", searchTerm);
+      searchResults = await resourceModel.find({
+        resourceName: { $regex: searchTerm, $options: 'i' }, // Case-insensitive partial match
+      });
+
+
+
+      // If search results are found, display them
+      if (searchResults && searchResults.length > 0) {
+        return res.render('workloadreport', {
+          groupedProjects: {},
+          overallPlanned: 0,
+          overallBillable: 0,
+          overallNonBillable: 0,
+          overallTotal: 0,  
+          selectedResourceName: '',
+          searchResults,
+          searchTerm,
+          timePeriod,
+          startDate:  '',
+          endDate: '',  
+        });
+      } else {
+        console.log("No search results found for:", searchTerm);
+        return res.render('workloadreport', {
+          groupedProjects: {},
+          overallPlanned: 0,
+          overallBillable: 0,
+          overallNonBillable: 0,
+          overallTotal: 0,  
+          selectedResourceName: '',
+          searchResults: [],
+          searchTerm,
+          timePeriod,
+          startDate:  '',
+          endDate: '',  
+        });
+      }
+    }
+
+    // Determine startDate and endDate based on timePeriod
+    let startDate, endDate;
+    const today = new Date();
+    let groupedProjects;
+    let overallPlanned;
+    let overallBillable;
+    let overallNonBillable;
+    let overallTotal;
+    if (selectedResourceName) {
+
+    switch (timePeriod) {
+      case 'currentMonth':
+        startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+        endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        break;
+      case 'lastMonth':
+        startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        endDate = new Date(today.getFullYear(), today.getMonth(), 0);
+        break;
+      case 'lastQuarter':
+        const currentQuarter = Math.floor(today.getMonth() / 3);
+        startDate = new Date(today.getFullYear(), (currentQuarter - 1) * 3, 1);
+        endDate = new Date(today.getFullYear(), currentQuarter * 3, 0);
+        break;
+      case 'currentYear':
+        startDate = new Date(today.getFullYear(), 0, 1);
+        endDate = new Date(today.getFullYear(), 11, 31);
+        break;
+      // Add other time periods as needed.
+      case 'allTime':
+      default:
+        startDate = new Date(0); // earliest possible
+        endDate = today;
+        break;
+    }
+
+    // Aggregate WorkLog documents matching the selected resource and date range.
+    const workLogs = await WorkLog.aggregate([
+      {
+        $match: {
+          resourceName: { $regex: new RegExp(`^${selectedResourceName}$`, 'i') },
+          date: { $gte: startDate, $lte: endDate }
+        }
+      },
+      {
+        $group: {
+          _id: '$taskId',
+          totalWork: { $sum: '$work' }
+        }
+      }
+    ]);
+
+    // For each grouped work log, fetch task details from either taskModel or taskArchiveModel.
+    const taskDetails = await Promise.all(workLogs.map(async (log) => {
+      let task = await taskModel.findOne({ taskId: log._id });
+      if (!task) {
+        task = await taskArchiveModel.findOne({ taskId: log._id });
+      }
+      if (task) {
+        const taskObject = task.toObject();
+        taskObject.totalWork = log.totalWork; // aggregated actual work
+        return taskObject;
+      }
+      return null;
+    }));
+    const validTaskDetails = taskDetails.filter(task => task !== null);
+
+    // Group tasks by project and sum up hours.
+    // Assume each task may have a plannedHours field (if missing use 0)
+      groupedProjects = validTaskDetails.reduce((acc, task) => {
+      const projectName = task.interventionName || 'Unknown Project';
+      if (!acc[projectName]) {
+        acc[projectName] = { plannedHours: 0, billableHours: 0, nonBillableHours: 0, totalHours: 0, tasks: [] };
+      }
+      // Use task.plannedHours if available; otherwise default planned to 0.
+      const planned = task.taskWork ? Number(task.taskWork) : 0;
+      // For actual work, if consultingDay is 'Yes', count all of task.totalWork as billable; else non‑billable.
+      const actual = task.totalWork ? Number(task.totalWork) : 0;
+      const billable = task.consultingDay === 'Yes' ? actual : 0;
+      const nonBillable = task.consultingDay !== 'Yes' ? actual : 0;
+
+      acc[projectName].plannedHours += planned;
+      acc[projectName].billableHours += billable;
+      acc[projectName].nonBillableHours += nonBillable;
+      acc[projectName].totalHours += actual;
+      acc[projectName].tasks.push(task);
+      return acc;
+    }, {});
+
+    // Calculate overall totals.
+    overallPlanned = 0, overallBillable = 0, overallNonBillable = 0, overallTotal = 0;
+    for (let proj in groupedProjects) {
+      overallPlanned += groupedProjects[proj].plannedHours;
+      overallBillable += groupedProjects[proj].billableHours;
+      overallNonBillable += groupedProjects[proj].nonBillableHours;
+      overallTotal += groupedProjects[proj].totalHours;
+    }
+  }
+  
+    // Render the view: pass groupedProjects and overall totals plus additional info.
+    res.render('workloadreport', {
+      groupedProjects,
+      overallPlanned,
+      overallBillable,
+      overallNonBillable,
+      overallTotal,
+      selectedResourceName,
+      timePeriod,
+      searchTerm,
+      searchResults: '',
+      startDate: startDate.toISOString().split('T')[0],
+      endDate: endDate.toISOString().split('T')[0]
+    });
+  } catch (error) {
+    console.error('Error generating workload report:', error);
+    res.status(500).send("An error occurred while generating the workload report.");
   }
 });
 

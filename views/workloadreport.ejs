@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Workload Report</title>
+    <!-- Bootstrap 5.3 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="/stylesheets/style.css" />
+    <style>
+      .clickable { cursor: pointer; }
+      .table-sm td, .table-sm th { padding: 0.3rem; }
+    </style>
+  </head>
+  <body>
+  <nav class="navbar">
+  <a class="navbar-brand" href="/home">
+    <img src="/images/logo.png" alt="Chrysalis" >
+  </a>
+</nav>
+  <div class="menu d-flex justify-content-end my-4 gap-2 me-3">
+    <a class="btn" href="/home">Home</a>
+    <a class="btn" href="/admin">Admin Console</a>
+    <a class="btn" href="/pwaactivities">Weekly Plan</a>
+  </div>
+
+  <h1 class="mb-4 text-center text-cred fw-bolder">Chrysalis Projects Portfolio Dashboard</h1>
+
+    <div class="parent m-5 p-2 justify-content-center align-items-center">
+      <a class="text-decoration-none" href="/reports">
+        <div class="div1 text-center bg-cred text-white">Clients ➡</div>
+      </a>
+      <a class="text-decoration-none" href="/clientreport">
+        <div class="div2 text-center bg-cred text-white">Functional Areas ➡</div>
+      </a>
+      <a class="text-decoration-none" href="/resourcereport">
+        <div class="div3 text-center bg-warning text-black">Workload Distribution ⬇</div>
+      </a>
+    </div>
+  
+  <div class="container mt-3">
+    <!-- <h1 class="text-center">Workload Distribution Report</h1> -->
+    <div class="filters d-flex justify-content-between gap-4 m-3 ">
+    <div class="search-div">
+    <!-- Search Form -->
+    <form class="my-2" method="GET" action="/workloadreport">
+      <label  for="search">Team Member Name:</label>
+      <input class="rounded"
+        type="text"
+        id="search"
+        name="search"
+        placeholder="Enter Team Member name"
+        value="<%= searchTerm || '' %>"
+      >
+      <button type="submit">Search</button>
+    </form>
+
+    <!-- Display Search Results -->
+    <% if (searchResults.length > 0) { %>
+      <h3 class="my-2">Search Results:</h3>
+      <ul>
+        <% searchResults.forEach(result => { %>
+          <li>
+            <a href="/workloadreport?resourceName=<%= result.resourceName %>"><%= result.resourceName %></a>
+          </li>
+        <% }); %>
+      </ul>
+    <% } %>
+    </div>
+    <div class="time-period-selection">
+    <!-- Time Period Selection -->
+    <% if (selectedResourceName) { %>
+      <form class="my-2" method="GET" action="/workloadreport">
+        <input type="hidden" name="resourceName" value="<%= selectedResourceName || '' %>">
+        <label for="timePeriod">Select Time Period:</label>
+        <select class="rounded" id="timePeriod" name="timePeriod">
+          <option value="allTime" <%= timePeriod === 'allTime' ? 'selected' : '' %>>All Time</option>
+          <option value="currentMonth" <%= timePeriod === 'currentMonth' ? 'selected' : '' %>>Current Month</option>
+          <option value="lastMonth" <%= timePeriod === 'lastMonth' ? 'selected' : '' %>>Last Month</option>
+          <option value="lastQuarter" <%= timePeriod === 'lastQuarter' ? 'selected' : '' %>>Last Quarter</option>
+          <option value="currentYear" <%= timePeriod === 'currentYear' ? 'selected' : '' %>>Current Year</option>
+        </select>
+        <button type="submit">Generate Report</button>
+      </form>
+    <% } %>
+    </div>
+    </div>
+    <% if (Object.keys(groupedProjects).length > 0) { %>
+    <div class="container my-4">
+      <h1>Workload Report</h1>
+      <p>
+        Resource: <strong><%= selectedResourceName %></strong>
+        | Time Period: <strong><%= timePeriod %></strong>
+        | From: <strong><%= startDate %></strong> To: <strong><%= endDate %></strong>
+      </p>
+      
+      <table class="table table-bordered">
+        <thead class="table-light">
+          <tr>
+            <th>Project Name</th>
+            <th>Planned Hours</th>
+            <th>Consulting Hours</th>
+            <th>Non-Consulting Hours</th>
+            <th>Total Hours</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% 
+            const oPlanned = (typeof overallPlanned !== 'undefined') ? overallPlanned : 0;
+            const oBillable = (typeof overallBillable !== 'undefined') ? overallBillable : 0;
+            const oNonBillable = (typeof overallNonBillable !== 'undefined') ? overallNonBillable : 0;
+            const oTotal = (typeof overallTotal !== 'undefined') ? overallTotal : 0;
+            for(let project in groupedProjects) { 
+              let proj = groupedProjects[project];
+              // Create a safe id for collapse (replace spaces)
+              let collapseId = "proj-" + project.replace(/\s+/g, '-');
+          %>
+          <tr data-bs-toggle="collapse" data-bs-target="#<%= collapseId %>" class="clickable">
+            <td style="color: brown;"><%= project %></td>
+            <td><%= proj.plannedHours ? proj.plannedHours.toFixed(2) : 0 %></td>
+            <td><%= proj.billableHours.toFixed(2) %></td>
+            <td><%= proj.nonBillableHours.toFixed(2) %></td>
+            <td><%= proj.totalHours ? proj.totalHours.toFixed(2) : 0  %></td>
+          </tr>
+          <tr>
+            <td colspan="5" class="p-0">
+              <div id="<%= collapseId %>" class="collapse">
+                <table class="table table-sm table-bordered mb-0">
+                  <thead class="table-secondary">
+                    <tr>
+                      <th>Task</th>
+                      <th>Planned Hours</th>
+                      <th>Consulting Hours</th>
+                      <th>Non-Consulting Hours</th>
+                      <th>Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% proj.tasks.forEach(task => { 
+                         let taskPlanned = task.taskWork ? Number(task.taskWork) : 0;
+                         let taskTotal = task.totalWork ? Number(task.totalWork) : 0;
+                         let taskBillable = (task.consultingDay === 'Yes') ? taskTotal : 0;
+                         let taskNonBillable = (task.consultingDay !== 'Yes') ? taskTotal : 0;
+                    %>
+                    <tr>
+                      <td> -- <%= task.taskName %></td>
+                      <td><%= taskPlanned.toFixed(2) %></td>
+                      <td><%= taskBillable.toFixed(2) %></td>
+                      <td><%= taskNonBillable.toFixed(2) %></td>
+                      <td><%= taskTotal.toFixed(2) %></td>
+                    </tr>
+                    <% }); %>
+                  </tbody>
+                </table>
+              </div>
+            </td>
+          </tr>
+          <% } %>
+          <!-- Overall Totals -->
+          <tr class="fw-bold">
+            <td>Total</td>
+            <td><%= oPlanned.toFixed(2) %></td>
+            <td><%= oBillable.toFixed(2) %></td>
+            <td><%= oNonBillable.toFixed(2) %></td>
+            <td><%= oTotal.toFixed(2) %></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <% } else { %>
+    <div class="container my-4">
+      <h1>No Data</h1>
+      <p>Please search for a resource and/or select a different time period.</p>
+    </div>
+    <% } %>
+    
+    <!-- Bootstrap 5.3 JS Bundle (includes Popper) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>
