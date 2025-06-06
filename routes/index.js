@@ -1650,20 +1650,34 @@ router.get('/reports', isLeadership, async (req, res) => {
       const intervention = task.interventionName || 'Unknown Intervention';
       const isBillable = task.consultingDay === 'Yes' && task.source === 'PWA';
       const isNonBillable = task.consultingDay === 'No' || task.source === 'MTE';
-      const workHours = task.actualWork || 0;
-
+      // Use task.taskWork as planned hours
+      const plannedHours = task.taskWork ? Number(task.taskWork) : 0;
+      // Actual worked hours
+      const workHours = task.actualWork ? Number(task.actualWork) : 0;
+      
       if (!groupedByClient[client]) {
         groupedByClient[client] = {
           interventions: {},
+          plannedHours: 0,
           billable: 0,
           nonBillable: 0,
           total: 0
         };
       }
       if (!groupedByClient[client].interventions[intervention]) {
-        groupedByClient[client].interventions[intervention] = { billable: 0, nonBillable: 0, total: 0 };
+        groupedByClient[client].interventions[intervention] = {
+          plannedHours: 0,
+          billable: 0,
+          nonBillable: 0,
+          total: 0
+        };
       }
-
+      
+      // Accumulate planned hours
+      groupedByClient[client].plannedHours += plannedHours;
+      groupedByClient[client].interventions[intervention].plannedHours += plannedHours;
+      
+      // Accumulate actual work hours
       if (isBillable) {
         groupedByClient[client].interventions[intervention].billable += workHours;
         groupedByClient[client].billable += workHours;
@@ -1682,38 +1696,40 @@ router.get('/reports', isLeadership, async (req, res) => {
       interventionNamesByClient[client] = Object.keys(groupedByClient[client].interventions);
     });
 
-    // get project status for each intervention
+    // Retrieve additional details for each intervention (projectStatus, etc.)
     const interventionDetailsByClient = {};
-
-for (const client of clientNames) {
-  interventionDetailsByClient[client] = {};
-  for (const intervention of interventionNamesByClient[client]) {
-    // Find the first matching task in either model for this client and intervention
-    let task = await taskModel.findOne({ clientName: client, interventionName: intervention });
-    if (!task) {
-      task = await taskArchiveModel.findOne({ clientName: client, interventionName: intervention });
+    for (const client of clientNames) {
+      interventionDetailsByClient[client] = {};
+      for (const intervention of interventionNamesByClient[client]) {
+        // Find the first matching task from either taskModel or taskArchiveModel for this client and intervention
+        let task = await taskModel.findOne({ clientName: client, interventionName: intervention });
+        if (!task) {
+          task = await taskArchiveModel.findOne({ clientName: client, interventionName: intervention });
+        }
+        interventionDetailsByClient[client][intervention] = {
+          projectStatus: task ? task.ProjectStatus || 'Unknown' : 'Unknown'
+        };
+      }
     }
-    interventionDetailsByClient[client][intervention] = {
-      projectStatus: task ? task.ProjectStatus || 'Unknown' : 'Unknown'
-    };
-  }
-}
 
-    // Calculate overall totals
-    let totalBillableHours = 0;
-    let totalNonBillableHours = 0;
+    // Calculate overall totals (including planned hours)
+    let overallBillableHours = 0;
+    let overallNonBillableHours = 0;
+    let overallPlannedHours = 0;
     clientNames.forEach(client => {
-      totalBillableHours += groupedByClient[client].billable;
-      totalNonBillableHours += groupedByClient[client].nonBillable;
+      overallBillableHours += groupedByClient[client].billable;
+      overallNonBillableHours += groupedByClient[client].nonBillable;
+      overallPlannedHours += groupedByClient[client].plannedHours;
     });
-    // console.log("interventionNamesByClient is: ", interventionNamesByClient);
+
     res.render('reports', {
       groupedByClient,
       clientNames,
       interventionNamesByClient,
       interventionDetailsByClient,
-      totalBillableHours,
-      totalNonBillableHours
+      totalBillableHours: overallBillableHours,
+      totalNonBillableHours: overallNonBillableHours,
+      totalPlannedHours: overallPlannedHours
     });
   } catch (error) {
     console.error("Error generating reports:", error);
@@ -1817,6 +1833,7 @@ router.get('/resourcereport', isLeadership, async (req, res) => {
       const query = {
         resourceName: selectedResourceName,
         start: { $gte: startDate },
+
         Finish: { $lte: endDate },
         actualWork: { $gt: 0 },
       };
