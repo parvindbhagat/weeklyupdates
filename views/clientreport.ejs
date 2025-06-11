@@ -85,7 +85,7 @@
         <thead class="table-warning">
           <tr>
             <th>Team</th>
-            <!-- <th>Planned hours</th> -->
+            <th class="text-center">Planned hours</th>
             <th class="text-center">Consulting Hours</th>
             <th class="text-center">Non Consulting Hours</th>
             <th class="text-center">Total Hours</th>
@@ -100,20 +100,20 @@
                   <%= functionName %>
                 </button>
               </td>
-              <!-- <td><%= groupedByFunction[functionName].taskWork || 0 %></td> -->
-              <td class="text-center"><%= groupedByFunction[functionName].billable.toFixed(2) %></td>
-              <td class="text-center"><%= groupedByFunction[functionName].nonBillable.toFixed(2) %></td>
-              <td class="text-center"><%= groupedByFunction[functionName].total.toFixed(2) %></td>
+              <td class="text-center"><%= groupedByFunction[functionName].plannedHours || 0 %></td>
+              <td class="text-center  bg-warning bg-gradient" style="--bs-bg-opacity: .4;"><%= groupedByFunction[functionName].billable.toFixed(2) %></td>
+              <td class="text-center  bg-warning bg-gradient" style="--bs-bg-opacity: .4;"><%= groupedByFunction[functionName].nonBillable.toFixed(2) %></td>
+              <td class="text-center  bg-warning bg-gradient" style="--bs-bg-opacity: .4;"><%= groupedByFunction[functionName].total.toFixed(2) %></td>
             </tr>
 
             <!-- Resource Breakdown -->
             <% Object.keys(groupedByFunction[functionName].resources).forEach(resourceName => { %>
               <tr class="resource-<%= functionName.replace(/[^a-zA-Z0-9]/g, '-') %>" style="display: none;">
                 <td class="ps-4">- <%= resourceName %></td>
-                <!-- <td class="text-center"><%= groupedByFunction[functionName].resources[resourceName].taskWork || 0 %></td> -->
-                <td class="text-center"><%= groupedByFunction[functionName].resources[resourceName].billable.toFixed(2) %></td>
-                <td class="text-center"><%= groupedByFunction[functionName].resources[resourceName].nonBillable.toFixed(2) %></td>
-                <td class="text-center"><%= groupedByFunction[functionName].resources[resourceName].total.toFixed(2) %></td>
+                <td class="text-center"><%= groupedByFunction[functionName].resources[resourceName].plannedHours.toFixed(2) || 0 %></td>
+                <td class="text-center bg-warning bg-gradient" style="--bs-bg-opacity: .2;"><%= groupedByFunction[functionName].resources[resourceName].billable.toFixed(2) %></td>
+                <td class="text-center bg-warning bg-gradient" style="--bs-bg-opacity: .2;"><%= groupedByFunction[functionName].resources[resourceName].nonBillable.toFixed(2) %></td>
+                <td class="text-center bg-warning bg-gradient" style="--bs-bg-opacity: .2;"><%= groupedByFunction[functionName].resources[resourceName].total.toFixed(2) %></td>
               </tr>
             <% }); %>
           <% }); %>
@@ -121,7 +121,7 @@
         <tfoot>
           <tr class="table-secondary">
             <th>Total</th>
-            <!-- <th> </th> -->
+            <th class="text-center"><%= totalPlannedHours.toFixed(2) %></th>
             <th class="text-center"><%= totalBillableHours.toFixed(2) %></th>
             <th class="text-center"><%= totalNonBillableHours.toFixed(2) %></th>
             <th class="text-center"><%= (totalBillableHours + totalNonBillableHours).toFixed(2) %></th>
