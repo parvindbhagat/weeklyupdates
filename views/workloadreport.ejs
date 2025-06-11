@@ -117,10 +117,10 @@
           %>
           <tr data-bs-toggle="collapse" data-bs-target="#<%= collapseId %>" class="clickable">
             <td style="color: brown;"><%= project %></td>
-            <td><%= proj.plannedHours ? proj.plannedHours.toFixed(2) : 0 %></td>
-            <td><%= proj.billableHours.toFixed(2) %></td>
-            <td><%= proj.nonBillableHours.toFixed(2) %></td>
-            <td><%= proj.totalHours ? proj.totalHours.toFixed(2) : 0  %></td>
+            <td class="text-center"><%= proj.plannedHours ? proj.plannedHours.toFixed(2) : 0 %></td>
+            <td class="text-center bg-warning bg-gradient" style="--bs-bg-opacity: .4;"><%= proj.billableHours.toFixed(2) %></td>
+            <td class="text-center bg-warning bg-gradient" style="--bs-bg-opacity: .4;"><%= proj.nonBillableHours.toFixed(2) %></td>
+            <td class="text-center bg-warning bg-gradient" style="--bs-bg-opacity: .4;"><%= proj.totalHours ? proj.totalHours.toFixed(2) : 0  %></td>
           </tr>
           <tr>
             <td colspan="5" class="p-0">
@@ -144,10 +144,10 @@
                     %>
                     <tr>
                       <td> -- <%= task.taskName %></td>
-                      <td><%= taskPlanned.toFixed(2) %></td>
-                      <td><%= taskBillable.toFixed(2) %></td>
-                      <td><%= taskNonBillable.toFixed(2) %></td>
-                      <td><%= taskTotal.toFixed(2) %></td>
+                      <td class="text-center"><%= taskPlanned.toFixed(2) %></td>
+                      <td class="text-center bg-warning bg-gradient" style="--bs-bg-opacity: .2;"><%= taskBillable.toFixed(2) %></td>
+                      <td class="text-center bg-warning bg-gradient" style="--bs-bg-opacity: .2;"><%= taskNonBillable.toFixed(2) %></td>
+                      <td class="text-center bg-warning bg-gradient" style="--bs-bg-opacity: .2;"><%= taskTotal.toFixed(2) %></td>
                     </tr>
                     <% }); %>
                   </tbody>
@@ -157,12 +157,12 @@
           </tr>
           <% } %>
           <!-- Overall Totals -->
-          <tr class="fw-bold">
+          <tr class="fw-bold table-light">
             <td>Total</td>
-            <td><%= oPlanned.toFixed(2) %></td>
-            <td><%= oBillable.toFixed(2) %></td>
-            <td><%= oNonBillable.toFixed(2) %></td>
-            <td><%= oTotal.toFixed(2) %></td>
+            <td class="text-center"><%= oPlanned.toFixed(2) %></td>
+            <td class="text-center"><%= oBillable.toFixed(2) %></td>
+            <td class="text-center"><%= oNonBillable.toFixed(2) %></td>
+            <td class="text-center"><%= oTotal.toFixed(2) %></td>
           </tr>
         </tbody>
       </table>
