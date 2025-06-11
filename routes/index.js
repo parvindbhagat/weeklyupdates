@@ -14,6 +14,7 @@ const initializeResources = require("../controller/resourcecontrol");
 const {assignTaskIdsToTaskArchive, assignTaskIdsToTasks, processUserComments} = require("../controller/onetimescript");
 const Counter = require("../model/counter");
 const WorkLog = require("../model/worklog");
+const momenttz = require("moment-timezone");
 
 
 // function to check user is logged in with MSAL Auth flow
@@ -249,7 +250,7 @@ const checkPendingSubmissions = async (loggedInUserName) => {
     const managedResourceIds = managedResources.map(resource => resource.resourceId);
 
     if (managedResourceIds.length === 0) {
-      console.log("No resources managed by the user.");
+      // console.log("No resources managed by the user.");
       return "No"; // No tasks to notify
     }
 
@@ -274,6 +275,46 @@ function sanitizeUserComment(userComment) {
     return userComment; // Return as is if it's not a string
   }
   return userComment.replace(/;/g, ','); // Replace all ";" with ","
+}
+
+// function to update worklog collection with work data when a task is saved, edited or updated
+async function updateWorkLog(taskId, resourceName, actualWork) {
+  console.log("updateWorkLog function called");
+
+   // Use IST if in development, otherwise use UTC
+  const isDev = process.env.NODE_ENV === "development";
+  let today;
+  if (isDev) {
+    today = momenttz().tz("Asia/Kolkata").startOf("day").toDate();
+  } else {
+    today = new Date();
+  }
+
+  today.setHours(0, 0, 0, 0); // Normalize today's date to midnight
+
+  console.log("updateWorkLog called with taskId:", taskId, "resourceName:", resourceName, "actualWork:", actualWork);
+
+  // Try to find an existing workLog document for the given taskId and resourceName for today
+  const existingWorkLog = await WorkLog.findOne({
+    taskId,
+    resourceName,
+    date: today
+  });
+
+  if (existingWorkLog) {
+    // Found an entry for today, add actualWork to its work field
+    existingWorkLog.work += Number(actualWork);
+    await existingWorkLog.save();
+  } else {
+    // No document exists: create a new workLog document with today's date
+    const newWorkLog = new WorkLog({
+      taskId,
+      resourceName,
+      date: today,
+      work: Number(actualWork)
+    });
+    await newWorkLog.save();
+  }
 }
 
 // Function to update or add work breakdown entry in work collection
@@ -553,23 +594,8 @@ router.get("/profile", isAuthenticated,  async (req, res, next) => {
   const accessToken = req.session.token;
   // const accessToken = req.session.token;
   const resourceName = user.name;
-//  get date range for current week or month as query parameter
-//   const range = req.query.range || "week";
-//   let workStartDate, workEndDate;
-//   if (range === "month") {
-//   const { monthStart, monthEnd } = getDateRangeForMonth();
-//   workStartDate = new Date(monthStart);
-//   workEndDate = new Date(monthEnd);
-// } else {
-//   // Default to current week (Monday to Sunday)
-//   const { startDate: weekStart, endDate: weekEnd } = getCurrentWeekDateRange();
-//   workStartDate = new Date(weekStart);
-//   workEndDate = new Date(weekEnd);
-// }
 
-// console.log("workStartDate: ", workStartDate, "workEndDate: ", workEndDate);
-  // const encodedName = encodeResourceName(resourceName);
-  console.log("LOGGED IN to /profile Name is : ", resourceName);
+  // console.log("LOGGED IN to /profile Name is : ", resourceName);
   await initializeResources(accessToken);
   const resourceDetails = await resourceModel.findOne({
     resourceName: resourceName,
@@ -654,54 +680,6 @@ router.get("/profile", isAuthenticated,  async (req, res, next) => {
       msg = "Failed to update task data. Please try again.";
     }
 
-    // Aggregate workModel data for the logged-in user
-// This aggregation unpacks the workBreakdown array,
-// filters entries whose date is between workStartDate and workEndDate,
-// and then groups by interventionName to sum up the "work" hours.
-// const interventionWorkAggregation = await workModel.aggregate([
-//   { $match: { resourceName: "Rajat Prajapati" } },
-//   { $unwind: "$workBreakdown" },
-//   { $match: { "workBreakdown.date": { $gte: workStartDate, $lte: workEndDate } } },
-//   { $group: {
-//       _id: "$interventionName",
-//       totalWork: { $sum: "$workBreakdown.work" }
-//   } }
-// ]);
-
-// const interventionWorkAggregation = await workModel.aggregate([
-//   { 
-//     // Use regex to match the resource name case-insensitively
-//     $match: { 
-//       resourceName: { $regex: "^Rajat Prajapati$", $options: "i" } 
-//     } 
-//   },
-//   { 
-//     // Unwind the workBreakdown array
-//     $unwind: { path: "$workBreakdown", preserveNullAndEmptyArrays: false } 
-//   },
-//   { 
-//     // Match documents where the workBreakdown.date is between workStartDate and workEndDate
-//     $match: { 
-//       "workBreakdown.date": { $gte: workStartDate, $lte: workEndDate } 
-//     } 
-//   },
-//   { 
-//     // Group by interventionName and sum the work from each entry
-//     $group: {
-//       _id: "$interventionName",
-//       totalWork: { $sum: "$workBreakdown.work" }
-//     }
-//   }
-// ]);
-
-// // console.log("interventionWorkAggregation is: ", interventionWorkAggregation);
-
-// // Convert aggregation result to a simple JSON mapping: interventionName => totalWork
-// const interventionWorkMapping = {};
-// interventionWorkAggregation.forEach(doc => {
-//   interventionWorkMapping[doc._id] = doc.totalWork;
-// });
-//   console.log("interventionWorkMapping is: ", interventionWorkMapping);
 
    res.render('profile', {user, incompleteTasks, resourceDetails, startDate, endDate, msg, msg2, });  //  Actual data to be passed to view for usrs view pass interventionWorkMapping, workTimeRange: { workStartDate, workEndDate } as well .
   
@@ -781,6 +759,8 @@ router.post("/profile", isSessionActive, async (req, res) => {
       resourceName: resourceName,
       resourceId: resourceId,
       clientName: clientName,
+      updatedOn: new Date(),
+      updatedBy: resourceName,
     });
 
     try {
@@ -788,6 +768,7 @@ router.post("/profile", isSessionActive, async (req, res) => {
       if (savedTask) {
         // Update or create the work breakdown
         await updateWorkBreakdown(taskId, actualWork);
+        await updateWorkLog(taskId, resourceName, actualWork); // Update work log with the new task data
         res.redirect("/profile?msg=successadd");
       } else {
         console.log("Error saving the task:", taskName);
@@ -802,8 +783,6 @@ router.post("/profile", isSessionActive, async (req, res) => {
     res.redirect("/profile?msg=failadd");
   }
 });
-
-
 
 // route to show activites for users from the pwa data stored in the database. //////////////////////////////////////////////////////////////////////////////////////
 router.get("/pwaactivities", isAuthenticated, isFTE, async (req, res, next) => {
@@ -1359,6 +1338,8 @@ router.post("/savetask", isSessionActive, async (req, res) => {
       saved: 1,
       leapComplete: completed,
       approvalStatus: "Saved, Awaiting Submission",
+      updatedOn: new Date(),
+      updatedBy: req.session.user.name, // Use the logged-in user's name
     });
 
     if (!save) {
@@ -1366,11 +1347,15 @@ router.post("/savetask", isSessionActive, async (req, res) => {
       res.redirect("/profile?msg=failsave");
     } else {
       console.log("Task data saved successfully");
-
+      const taskId = save.taskId; // Get the taskId from the saved task
+      const resourceName = save.resourceName; // Get the resourceName from the saved task
+      // console.log("Task ID is: ", taskId);
+      // console.log("Resource Name is: ", resourceName);
       // Update the work breakdown
       await updateWorkBreakdown(save.taskId, actualWork);
+      await updateWorkLog(taskId, resourceName, actualWork); // Update work log with the new task data
 
-      res.redirect("/profile?msg=successsave");
+       return res.redirect("/profile?msg=successsave");
     }
   } catch (error) {
     console.error("Error in /savetask route:", error.message);
@@ -1399,6 +1384,8 @@ router.post("/updatetask", isSessionActive, async (req, res) => {
       actualWork: Number(existingWorkDone) + Number(actualWork),
       userComment: newComment,
       leapComplete: completed,
+      updatedOn: new Date(),
+      updatedBy: req.session.user.name, // Use the logged-in user's name
     });
 
     if (!update) {
@@ -1409,6 +1396,7 @@ router.post("/updatetask", isSessionActive, async (req, res) => {
 
       // Update the work breakdown
       await updateWorkBreakdown(update.taskId, actualWork);
+      await updateWorkLog(update.taskId, update.resourceName, actualWork); // Update work log with the new task data
 
       res.redirect("/profile?msg=successupdate");
     }
@@ -1454,7 +1442,30 @@ router.get('/manager', isManager, async (req, res) => {
 router.post('/submitToManager', isSessionActive, async (req, res) => {
   try {
     const user = req.session.user; // Authentication check and can get the logged-in user's ID
+    // check if the user is with AUTO_APPROVE list declared in the config file
+    let autoApprove = false
+    const autoApproveList = process.env.AUTO_APPROVE.split(',').map(name => name.trim());
 
+    if (autoApproveList.includes(user.name)) {
+      console.log("User is in AUTO_APPROVE list, skipping submission to manager.");
+      autoApprove = true;
+    }
+    console.log("User is: ", autoApprove ? "Auto Approve" : 'Manager approved');
+    if (autoApprove) {
+      // In autoApprove mode, treat all tasks as if consultingDay is "No"
+      // Get all tasks which are saved and not submitted
+      const tasks = await taskModel.find({ resourceName: user.name, saved: 1, submitted: 0 });
+      const updatePromises = tasks.map(async (task) => {
+        if (task.leapComplete === 100) {
+          // If 100% complete, mark as approved
+          return taskModel.findByIdAndUpdate(task._id, { submitted: 2, approvalStatus: "Approved" });
+        } else {
+          // If not, mark as reassigned
+          return taskModel.findByIdAndUpdate(task._id, { submitted: 0, approvalStatus: "Reassigned" });
+        }
+      });
+      await Promise.all(updatePromises);
+    } else {
     // Update tasks with consultingDay = Yes or NA
     const updateYes = {
       submitted: 1,
@@ -1472,7 +1483,7 @@ router.post('/submitToManager', isSessionActive, async (req, res) => {
       }
     });
     await Promise.all(updatePromises);
-
+    }
     res.json({ success: true, message: 'Tasks processed successfully!' });
   } catch (err) {
     console.error("Error in /submitToManager route:", err);
@@ -1902,7 +1913,7 @@ router.get('/clientreport', isLeadership, async (req, res) => {
       const archivedTaskProjects = await taskArchiveModel.distinct('projectName', { clientName });
       projectNames = [...new Set([...taskProjects, ...archivedTaskProjects])];
     }
-    const customOrder = ["REBL", "TBL", "Administration", "Resourcing & Facilitation", "Project Management", "Technology", "Talent", "Finance", "Leadership"]
+    const customOrder = ["ReBL", "TBL", "Administration", "Resourcing & Facilitation", "Project Management", "Technology", "Talent", "Finance", "Leadership"]
     // Fetch resources grouped by resourceFunction
     const resources = await resourceModel.find({});
     const groupedResources = resources.reduce((acc, resource) => {
@@ -1934,6 +1945,9 @@ router.get('/clientreport', isLeadership, async (req, res) => {
         (acc, task) => {
           const isBillable = task.consultingDay === 'Yes';
           const workHours = task.actualWork || 0;
+          const planned = task.taskWork ? Number(task.taskWork) : 0;
+
+          acc.plannedHours = (acc.plannedHours || 0) + planned;
 
           if (isBillable) {
             acc.billable += workHours;
@@ -1945,8 +1959,10 @@ router.get('/clientreport', isLeadership, async (req, res) => {
           // Group by resourceName within the function
           const resourceName = task.resourceName || 'Unknown';
           if (!acc.resources[resourceName]) {
-            acc.resources[resourceName] = { billable: 0, nonBillable: 0, total: 0 };
+            acc.resources[resourceName] = { plannedHours: 0, billable: 0, nonBillable: 0, total: 0 };
           }
+
+          acc.resources[resourceName].plannedHours += planned;
 
           if (isBillable) {
             acc.resources[resourceName].billable += workHours;
@@ -1957,7 +1973,7 @@ router.get('/clientreport', isLeadership, async (req, res) => {
 
           return acc;
         },
-        { billable: 0, nonBillable: 0, total: 0, resources: {} }
+        { billable: 0, nonBillable: 0, total: 0, plannedHours: 0, resources: {} }
       );
 
       // Only include functions with total hours > 0
@@ -1989,6 +2005,12 @@ Object.keys(groupedByFunction)
     sortedGroupedByFunction[fn] = groupedByFunction[fn];
   });
 
+  // get total planned hours for all functions
+    let totalPlannedHours = 0;
+    for (let fn in groupedByFunction) {
+      totalPlannedHours += groupedByFunction[fn].plannedHours || 0;
+    }
+
     // Calculate total billable and non-billable hours
     const totalBillableHours = Object.values(groupedByFunction).reduce((sum, func) => sum + func.billable, 0);
     const totalNonBillableHours = Object.values(groupedByFunction).reduce((sum, func) => sum + func.nonBillable, 0);
@@ -1999,6 +2021,7 @@ Object.keys(groupedByFunction)
       projectNames,
       selectedProjectName: projectName || '',
       groupedByFunction: sortedGroupedByFunction,
+      totalPlannedHours,
       totalBillableHours,
       totalNonBillableHours,
     });
@@ -2128,6 +2151,7 @@ router.get('/workloadreport', isLeadership, async (req, res) => {
         }
       }
     ]);
+    // console.log("Length Work logs aggregated:", workLogs);
 
     // For each grouped work log, fetch task details from either taskModel or taskArchiveModel.
     const taskDetails = await Promise.all(workLogs.map(async (log) => {
@@ -2142,6 +2166,7 @@ router.get('/workloadreport', isLeadership, async (req, res) => {
       }
       return null;
     }));
+    // console.log("Task details fetched length:", taskDetails.length);
     const validTaskDetails = taskDetails.filter(task => task !== null);
 
     // Group tasks by project and sum up hours.
