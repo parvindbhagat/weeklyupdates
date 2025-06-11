@@ -6,7 +6,7 @@ require("dotenv").config();
 function determineResourceFunction(resourceGroup) {
   // Parse department mappings from the .env file
   const departmentMappings = {
-    REBL: JSON.parse(process.env.REBL_DEPT || '[]'),
+    ReBL: JSON.parse(process.env.REBL_DEPT || '[]'),
     TBL: JSON.parse(process.env.TBL_DEPT || '[]'),
     Administration: JSON.parse(process.env.ADMIN_DEPT || '[]'),
     "Resourcing & Facilitation": JSON.parse(process.env.RES_FAC_DEPT || '[]'),
