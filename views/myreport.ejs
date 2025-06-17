@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>My Report Calendar</title>
+    <!-- Bootstrap 5.3 CSS -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/stylesheets/style.css" />
+    <style>
+      .calendar-cell {
+        height: 120px;
+        border: 1px solid #dee2e6;
+        vertical-align: top;
+        padding: 5px;
+        position: relative;
+      }
+      .empty-cell {
+        background-color: #f8f9fa;
+      }
+      .day-number {
+        font-weight: bold;
+      }
+      .work-hours {
+        font-size: 0.9rem;
+        color: #007bff;
+      }
+      .week-info {
+        font-weight: bold;
+        background-color: #e9ecef;
+      }
+      .zero-work {
+        background-color: #fad9d9 !important;
+      }
+      .some-work {
+        background-color: #cff3d7 !important;
+      }
+      .details-btn {
+        position: absolute;
+        bottom: 5px;
+        right: 5px;
+      }
+      .clickable { cursor: pointer; }
+      .table-sm td, .table-sm th { padding: 0.3rem; }
+    </style>
+  </head>
+  <body>
+    <nav class="navbar">
+      <a class="navbar-brand" href="/home">
+        <img src="/images/logo.png" alt="Chrysalis" >
+      </a>
+    </nav>
+    <div class="menu d-flex flex-wrap flex-row-reverse gap-3 my-2">
+      <form style="display: inline-block; margin-right: 3rem;" action="/logout" method="POST">
+        <button type="submit" class="btn rounded">Logout</button>
+      </form>
+      <button><a class="me-3" href="/home">Home</a></button> 
+      <button><a class="me-3" href="/profile">My Tasks</a></button>
+    </div>
+
+    <div class="calendar container my-4">
+      <!-- <h1 class="text-center mb-4">Hi, <%= resourceName.split(" ")[0] %>!</h1> -->
+      <!-- Month Selection Dropdown Form -->
+      <form id="monthForm" method="GET" action="/myreport" class="mb-4">
+        <div class="row">
+          <div class="col-md-4">
+            <label for="monthSelect" class="form-label">Select Month:</label>
+            <select class="form-select" id="monthSelect" name="month" onchange="document.getElementById('monthForm').submit()">
+              <% 
+                // selectedMonth is expected as a string in "YYYY-MM" format passed by backend.
+                // If not provided, default to current month.
+                const now = new Date();
+                const defaultMonthStr = now.getFullYear() + '-' + ('0' + (now.getMonth()+1)).slice(-2);
+                const selMonthStr = (typeof selectedMonth !== 'undefined' && selectedMonth) ? selectedMonth : defaultMonthStr;
+                // Create options for current month and the three previous months.
+                const options = [];
+                for (let i = 0; i < 4; i++) {
+                  let dt = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                  let optStr = dt.getFullYear() + '-' + ('0' + (dt.getMonth()+1)).slice(-2);
+                  options.push(optStr);
+                }
+              %>
+              <% options.forEach(function(opt) { %>
+                <option value="<%= opt %>" <%= (selMonthStr === opt) ? 'selected' : '' %>>
+                  <%= new Date(opt + '-01').toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }) %>
+                </option>
+              <% }); %>
+            </select>
+          </div>
+        </div>
+      </form>
+
+      <h1 class="text-center mb-4">
+        My Report Calendar for 
+        <%= new Date(selMonthStr + '-01').toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }) %>
+      </h1>
+      <% 
+         // Use the selected month to build the calendar.
+         // Parse the selected month string ("YYYY-MM") into a Date object.
+         const selectedDate = new Date(selMonthStr + '-01');
+         const year = selectedDate.getFullYear();
+         const month = selectedDate.getMonth();  // 0-indexed
+         const firstDay = new Date(year, month, 1);
+         const lastDay = new Date(year, month + 1, 0);
+         const totalDays = lastDay.getDate();
+
+         // Group logs by date (YYYY-MM-DD) and sum work hours.
+         const workByDate = {};
+         // Also group detailed logs for the modal.
+         const detailsByDate = {};
+         if (calendarData && calendarData.length) {
+             calendarData.forEach(log => {
+                const dateStr = new Date(log.date).toISOString().split('T')[0];
+                if (!workByDate[dateStr]) {
+                    workByDate[dateStr] = 0;
+                }
+                workByDate[dateStr] += log.work;
+                
+                if (!detailsByDate[dateStr]) {
+                    detailsByDate[dateStr] = [];
+                }
+                detailsByDate[dateStr].push(log);
+             });
+         }
+      
+         // Build a calendar grid starting with Monday.
+         // For week starting Monday, determine empty cells before day1:
+         let emptyStart = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
+         let calendar = [];
+         let week = [];
+      
+         // Fill initial empty cells.
+         for (let i = 0; i < emptyStart; i++) {
+             week.push(null);
+         }
+      
+         // Fill the days of the month.
+         for (let d = 1; d <= totalDays; d++) {
+             week.push(new Date(year, month, d));
+             if (week.length === 7) {
+                 calendar.push(week);
+                 week = [];
+             }
+         }
+         // Fill remaining empty cells in last week if any.
+         if (week.length > 0) {
+             while (week.length < 7) {
+               week.push(null);
+             }
+             calendar.push(week);
+         }
+      
+         // Initialize month total.
+         let monthTotal = 0;
+      %>
+      
+      <table class="table table-bordered text-center">
+         <thead class="table-light">
+           <tr>
+             <th>Mon</th>
+             <th>Tue</th>
+             <th>Wed</th>
+             <th>Thu</th>
+             <th>Fri</th>
+             <th>Sat</th>
+             <th>Sun</th>
+             <th>Week Info</th>
+           </tr>
+         </thead>
+         <tbody>
+           <% calendar.forEach((weekDays, weekIndex) => { 
+                let weekTotal = 0;
+           %>
+           <tr>
+            <% weekDays.forEach(day => { 
+              if(day) {
+                const dayStr = day.toISOString().split('T')[0];
+                const hours = workByDate[dayStr] || 0;
+                weekTotal += hours;
+                monthTotal += hours;
+            %>
+                <td class="calendar-cell <%= hours === 0 ? 'zero-work' : 'some-work' %>">
+                  <div class="day-number"><%= day.getDate() %></div>
+                  <div class="work-hours"><%= hours %> hrs</div>
+                  <% if(hours > 0) { %>
+                    <button class="btn btn-sm details-btn" data-date="<%= dayStr %>">Details</button>
+                  <% } %>
+                </td>
+            <% } else { %>
+                <td class="calendar-cell empty-cell"></td>
+            <% } }); %>
+                <td class="calendar-cell week-info">
+                  Week <%= weekIndex + 1 %>: <br /><%= weekTotal %> hrs
+                </td>
+           </tr>
+           <% }); %>
+           <tr>
+             <td colspan="8" class="text-end fw-bold">
+               Total for Month: <%= monthTotal %> hrs
+             </td>
+           </tr>
+         </tbody>
+      </table>
+    </div>
+    
+    <!-- Modal for Details -->
+    <div class="modal fade" id="detailsModal" tabindex="-1" aria-labelledby="detailsModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="detailsModalLabel">Details for <span id="modalDate"></span></h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body" id="modalBody">
+            <!-- Details will be injected here -->
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Pass detailsByDate object to client-side -->
+    <script>
+      var detailsByDate = <%- JSON.stringify(detailsByDate) %>;
+    
+      // When a Details button is clicked
+      document.querySelectorAll('.details-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          var date = this.getAttribute('data-date');
+          var modalDate = document.getElementById('modalDate');
+          var modalBody = document.getElementById('modalBody');
+          
+          modalDate.innerText = new Date(date).toLocaleDateString('en-IN', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          });
+          // Get logs for this date
+          var logs = detailsByDate[date];
+    
+          // Group logs by interventionName
+          var interventions = {};
+          logs.forEach(function(log) {
+            var key = log.interventionName || "Unknown Intervention";
+            if (!interventions[key]) {
+              interventions[key] = [];
+            }
+            interventions[key].push(log);
+          });
+    
+          // Build the HTML content for the modal.
+          var content = '';
+          for (var intervention in interventions) {
+            content += '<h5>' + intervention + '</h5>';
+            content += '<ul class="list-group mb-3">';
+            interventions[intervention].forEach(function(log) {
+              content += '<li class="list-group-item d-flex justify-content-between align-items-center">';
+              content += log.taskName + '';
+              content += '<span class="badge bg-primary rounded-pill">' + log.work + ' hrs</span>';
+              content += '</li>';
+            });
+            content += '</ul>';
+          }
+    
+          modalBody.innerHTML = content;
+    
+          // Show modal (using Bootstrap 5)
+          var modal = new bootstrap.Modal(document.getElementById('detailsModal'));
+          modal.show();
+        });
+      });
+    </script>
+
+    <!-- Table data for the logged in user.  -->
+         <% if (Object.keys(groupedProjects).length > 0) { %>
+          <br>
+    <div class="container my-4 py-4">
+      <h1 class="text-center mb-4">My Projects report for <%= new Date(selMonthStr + '-01').toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }) %> </h1>
+
+      
+      <table class="table table-bordered">
+        <thead class="table-light">
+          <tr>
+            <th>Project Name</th>
+            <th>Planned Hours</th>
+            <th>Consulting Hours</th>
+            <th>Non-Consulting Hours</th>
+            <th>Total Hours</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% 
+            const oPlanned = (typeof overallPlanned !== 'undefined') ? overallPlanned : 0;
+            const oBillable = (typeof overallBillable !== 'undefined') ? overallBillable : 0;
+            const oNonBillable = (typeof overallNonBillable !== 'undefined') ? overallNonBillable : 0;
+            const oTotal = (typeof overallTotal !== 'undefined') ? overallTotal : 0;
+            for(let project in groupedProjects) { 
+              let proj = groupedProjects[project];
+              // Create a safe id for collapse (replace spaces)
+              let collapseId = "proj-" + project.replace(/\s+/g, '-');
+          %>
+          <tr data-bs-toggle="collapse" data-bs-target="#<%= collapseId %>" class="clickable">
+            <td style="color: brown;"><%= project %></td>
+            <td class="text-center"><%= proj.plannedHours ? proj.plannedHours.toFixed(2) : 0 %></td>
+            <td class="text-center bg-warning bg-gradient" style="--bs-bg-opacity: .4;"><%= proj.billableHours.toFixed(2) %></td>
+            <td class="text-center bg-warning bg-gradient" style="--bs-bg-opacity: .4;"><%= proj.nonBillableHours.toFixed(2) %></td>
+            <td class="text-center bg-warning bg-gradient" style="--bs-bg-opacity: .4;"><%= proj.totalHours ? proj.totalHours.toFixed(2) : 0  %></td>
+          </tr>
+          <tr>
+            <td colspan="5" class="p-0">
+              <div id="<%= collapseId %>" class="collapse">
+                <table class="table table-sm table-bordered mb-0">
+                  <thead class="table-secondary">
+                    <tr>
+                      <th>Task</th>
+                      <th>Planned Hours</th>
+                      <th>Consulting Hours</th>
+                      <th>Non-Consulting Hours</th>
+                      <th>Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% proj.tasks.forEach(task => { 
+                         let taskPlanned = task.taskWork ? Number(task.taskWork) : 0;
+                         let taskTotal = task.totalWork ? Number(task.totalWork) : 0;
+                         let taskBillable = (task.consultingDay === 'Yes') ? taskTotal : 0;
+                         let taskNonBillable = (task.consultingDay !== 'Yes') ? taskTotal : 0;
+                    %>
+                    <tr>
+                      <td> -- <%= task.taskName %></td>
+                      <td class="text-center"><%= taskPlanned.toFixed(2) %></td>
+                      <td class="text-center bg-warning bg-gradient" style="--bs-bg-opacity: .2;"><%= taskBillable.toFixed(2) %></td>
+                      <td class="text-center bg-warning bg-gradient" style="--bs-bg-opacity: .2;"><%= taskNonBillable.toFixed(2) %></td>
+                      <td class="text-center bg-warning bg-gradient" style="--bs-bg-opacity: .2;"><%= taskTotal.toFixed(2) %></td>
+                    </tr>
+                    <% }); %>
+                  </tbody>
+                </table>
+              </div>
+            </td>
+          </tr>
+          <% } %>
+          <!-- Overall Totals -->
+          <tr class="fw-bold table-light">
+            <td>Total</td>
+            <td class="text-center"><%= oPlanned.toFixed(2) %></td>
+            <td class="text-center"><%= oBillable.toFixed(2) %></td>
+            <td class="text-center"><%= oNonBillable.toFixed(2) %></td>
+            <td class="text-center"><%= oTotal.toFixed(2) %></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <% } else { %>
+    <div class="container my-4">
+      <h1>No Data!</h1>
+    </div>
+    <% } %>
+    
+    <!-- Bootstrap 5.3 JS Bundle (includes Popper) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>

@@ -1,11 +1,12 @@
 const mongoose = require('mongoose');
+require("dotenv").config();
 const task = require('../model/task');         // Adjust path as needed
 const Work = require('../model/work');         // Adjust path as needed
 const WorkLog = require('../model/workLog');     // Adjust path as needed
 const Resource = require('../model/resource');   // Assuming you have a resource model
 
 // Make sure to use your actual connection settings
-mongoose.connect('mongodb://127.0.0.1:27017/weeklyupdatesDB').then(async () => {
+mongoose.connect(process.env.MONGO_URI).then(async () => {
   console.log('Connected to MongoDB, starting migration...');
   
   try {

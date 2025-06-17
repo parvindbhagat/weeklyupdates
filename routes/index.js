@@ -13,7 +13,7 @@ const moment = require("moment");
 const initializeResources = require("../controller/resourcecontrol");
 const {assignTaskIdsToTaskArchive, assignTaskIdsToTasks, processUserComments} = require("../controller/onetimescript");
 const Counter = require("../model/counter");
-const WorkLog = require("../model/worklog");
+const WorkLog = require("../model/workLog");
 const momenttz = require("moment-timezone");
 
 
@@ -503,7 +503,9 @@ function getCurrentWeekDateRange() {
 function getDateRangeForMonth() {
   const today = new Date();
   const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+  monthStart.setHours(0, 0, 0, 0); // Normalize to start of the day
   const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+  monthEnd.setHours(23, 59, 59, 999); // Normalize to end of the day
   return { monthStart, monthEnd };
 }
 
@@ -583,7 +585,7 @@ router.get("/oauth/redirect", async (req, res) => {
 //profile page to land after access token authenticated also initialize resource MOdel if empty  /////////////////////////////////////////////////////////////////////
 router.get("/profile", isAuthenticated,  async (req, res, next) => {
   if (!req.session.user) {
-    return res.redirect("/home");
+    return res.redirect("/?msg=sessionExpired");
   }
   function encodeResourceName(name) {
     return qs.stringify({ name }).split("=")[1];
@@ -681,12 +683,124 @@ router.get("/profile", isAuthenticated,  async (req, res, next) => {
     }
 
 
-   res.render('profile', {user, incompleteTasks, resourceDetails, startDate, endDate, msg, msg2, });  //  Actual data to be passed to view for usrs view pass interventionWorkMapping, workTimeRange: { workStartDate, workEndDate } as well .
+   res.render('profile', { incompleteTasks, resourceDetails, startDate, endDate, msg, msg2, });  //  Actual data to be passed to view for usrs view pass interventionWorkMapping, workTimeRange: { workStartDate, workEndDate } as well .
   
   } catch (error) {
     console.log(error.message);
     next(error);
   }
+});
+
+// Report page to show show actualWork hours for logged in user for the current month and weekly total. /////////////////////////////////////////////////////////////////////////////////////////////////
+router.get("/myreport", isAuthenticated, async (req, res) => {
+  if (!req.session.user) {
+    return res.render("/?msg=sessionExpired");
+  }
+  const user = req.session.user;
+  const resourceName = "Anish Thomas"; //user.name; // For testing purpose, hardcoded to a name
+  const resource = await resourceModel.findOne({ resourceName: resourceName });
+  if (!resource) {
+    console.log("Resource not found for user:", resourceName);
+    return res.redirect("/?msg=sessionExpired");
+  }
+
+  const selectedMonth = req.query.month || new Date().toISOString().slice(0,7);
+
+  const [year, month] = selectedMonth.split('-');
+  // Note: month in Date constructor is 0-indexed.
+  const monthStart = new Date(year, month - 1, 1);
+  const monthEnd = new Date(year, month, 0); // last day of selected month
+
+  console.log("Month Start:", monthStart);
+  console.log("Month End:", monthEnd);
+
+  const monthWorkLogs = await WorkLog.find({
+    resourceName: resourceName,
+    date: { $gte: monthStart, $lte: monthEnd },
+  }).sort({ date: 1 }); // Sort by date in ascending order
+
+  const enrichedLogs = await Promise.all(monthWorkLogs.map(async (log) => {
+  // First try to fetch the task from taskModel; if not found, try taskArchiveModel.
+  let task = await taskModel.findOne({ taskId: log.taskId });
+  if (!task) {
+    task = await taskArchiveModel.findOne({ taskId: log.taskId });
+  }
+  return {
+    date: log.date,
+    work: log.work,
+    // Fall back to 'Unknown' if task wasn't found.
+    taskName: task ? task.taskName : 'Unknown',
+    interventionName: task ? task.interventionName : 'Unknown',
+    consultingDay: task ? task.consultingDay : 'NA',
+    };
+  }));
+
+    // Aggregate WorkLog documents matching the selected resource and date range.
+    const workLogs = await WorkLog.aggregate([
+      {
+        $match: {
+          resourceName: { $regex: new RegExp(`^${resourceName}$`, 'i') },
+          date: { $gte: monthStart, $lte: monthEnd }
+        }
+      },
+      {
+        $group: {
+          _id: '$taskId',
+          totalWork: { $sum: '$work' }
+        }
+      }
+    ]);
+    // console.log("Length Work logs aggregated:", workLogs);
+
+    // For each grouped work log, fetch task details from either taskModel or taskArchiveModel.
+    const taskDetails = await Promise.all(workLogs.map(async (log) => {
+      let task = await taskModel.findOne({ taskId: log._id });
+      if (!task) {
+        task = await taskArchiveModel.findOne({ taskId: log._id });
+      }
+      if (task) {
+        const taskObject = task.toObject();
+        taskObject.totalWork = log.totalWork; // aggregated actual work
+        return taskObject;
+      }
+      return null;
+    }));
+    // console.log("Task details fetched length:", taskDetails.length);
+    const validTaskDetails = taskDetails.filter(task => task !== null);
+
+    // Group tasks by project and sum up hours.
+    // Assume each task may have a plannedHours field (if missing use 0)
+      groupedProjects = validTaskDetails.reduce((acc, task) => {
+      const projectName = task.interventionName || 'Unknown Project';
+      if (!acc[projectName]) {
+        acc[projectName] = { plannedHours: 0, billableHours: 0, nonBillableHours: 0, totalHours: 0, tasks: [] };
+      }
+      // Use task.plannedHours if available; otherwise default planned to 0.
+      const planned = task.taskWork ? Number(task.taskWork) : 0;
+      // For actual work, if consultingDay is 'Yes', count all of task.totalWork as billable; else non‑billable.
+      const actual = task.totalWork ? Number(task.totalWork) : 0;
+      const billable = task.consultingDay === 'Yes' ? actual : 0;
+      const nonBillable = task.consultingDay !== 'Yes' ? actual : 0;
+
+      acc[projectName].plannedHours += planned;
+      acc[projectName].billableHours += billable;
+      acc[projectName].nonBillableHours += nonBillable;
+      acc[projectName].totalHours += actual;
+      acc[projectName].tasks.push(task);
+      return acc;
+    }, {});
+
+    // Calculate overall totals.
+    overallPlanned = 0, overallBillable = 0, overallNonBillable = 0, overallTotal = 0;
+    for (let proj in groupedProjects) {
+      overallPlanned += groupedProjects[proj].plannedHours;
+      overallBillable += groupedProjects[proj].billableHours;
+      overallNonBillable += groupedProjects[proj].nonBillableHours;
+      overallTotal += groupedProjects[proj].totalHours;
+    }
+  
+  res.render("myreport",{resourceName, calendarData: enrichedLogs, selectedMonth, groupedProjects, overallPlanned, overallBillable, overallNonBillable, overallTotal });
+  // res.render("myreport", {resource, monthWorkLogs, totalMonthWorkHours});
 });
 
 // /profile method post to SAVE Manual Task Entries.  /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1125,6 +1239,9 @@ router.get("/refreshdatabase", isAdmin, async (req, res) => {
   
         if (existingTask) {
           // Update existing task
+          if (existingTask.typeofActivity === "Facilitation") {
+            existingTask.actualWork = task.TaskActualWork; // Update actualWork for Facilitation tasks
+          }
           existingTask.start = task.TaskStartDate;
           existingTask.Finish = task.TaskFinishDate;
           existingTask.taskCompletePercent = task.TaskPercentWorkCompleted;
@@ -1185,7 +1302,7 @@ router.get("/refreshdatabase", isAdmin, async (req, res) => {
 });
 
 // all tasks for admin  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-router.get("/alltasks", isAuthenticated, async (req, res) => {
+router.get("/alltasks", isAdmin, async (req, res) => {
   try {
     const { projectName, resourceName } = req.query; // Get filters from query parameters
 
