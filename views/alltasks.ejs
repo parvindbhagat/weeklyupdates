@@ -27,7 +27,7 @@
     <div class="d-flex justify-content-center gap-3 my-3">
       <!-- Dropdown for Project Name -->
       <select id="projectFilter" class="form-select w-auto">
-        <option value="">Filter by Project</option>
+        <option value="">All Projects</option>
         <% const uniqueProjects = [...new Set(tasks.map(task => task.projectName))]; %>
         <% uniqueProjects.forEach(project => { %>
           <option value="<%= project %>" <%= project === selectedProject ? "selected" : "" %>><%= project %></option>
@@ -36,7 +36,7 @@
 
       <!-- Dropdown for Resource Name -->
       <select id="resourceFilter" class="form-select w-auto">
-        <option value="">Filter by Resource</option>
+        <option value="">All Resources</option>
         <% const uniqueResources = [...new Set(tasks.map(task => task.resourceName))]; %>
         <% uniqueResources.forEach(resource => { %>
           <option value="<%= resource %>" <%= resource === selectedResource ? "selected" : "" %>><%= resource %></option>
