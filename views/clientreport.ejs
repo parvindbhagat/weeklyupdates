@@ -100,7 +100,7 @@
                   <%= functionName %>
                 </button>
               </td>
-              <td class="text-center"><%= groupedByFunction[functionName].plannedHours || 0 %></td>
+              <td class="text-center"><%= groupedByFunction[functionName].plannedHours.toFixed(2) || 0 %></td>
               <td class="text-center  bg-warning bg-gradient" style="--bs-bg-opacity: .4;"><%= groupedByFunction[functionName].billable.toFixed(2) %></td>
               <td class="text-center  bg-warning bg-gradient" style="--bs-bg-opacity: .4;"><%= groupedByFunction[functionName].nonBillable.toFixed(2) %></td>
               <td class="text-center  bg-warning bg-gradient" style="--bs-bg-opacity: .4;"><%= groupedByFunction[functionName].total.toFixed(2) %></td>
