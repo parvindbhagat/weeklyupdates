@@ -38,6 +38,22 @@
         <div class="div3 text-center bg-cred text-white">Workload Distribution ➡</div>
       </a>
     </div>
+
+    <div class="status-filter d-flex justify-content-center mb-4">
+      <form  action="/reports" method="get" class="d-flex">
+        <label for="status" class="mx-2">Status:</label>
+        <select
+          id="status"
+          name="status"
+          class="form-select me-2 py-0"
+          onchange="this.form.submit()"
+        >
+          <option value="In Progress" <% if (selectedStatus === 'In Progress') { %>selected<% } %>>In Progress</option>
+          <option value="Completed" <% if (selectedStatus === 'Completed') { %>selected<% } %>>Completed</option>
+          <option value="On Hold" <% if (selectedStatus === 'On Hold') { %>selected<% } %>>On Hold</option>
+        </select>
+      </form>
+    </div>
     
     <div class="container mt-4">
       <% if (clientNames.length === 0) { %>
