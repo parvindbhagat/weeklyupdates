@@ -1,11 +1,10 @@
 var express = require("express");
 var router = express.Router();
-const session = require("express-session");
 const {task: taskModel, taskArchive: taskArchiveModel }= require("../model/task");
 const resourceModel = require("../model/resource");
 const workModel = require("../model/work");
+const WorkLog = require("../model/workLog");
 require("dotenv").config();
-const mongoose = require("mongoose");
 const axios = require("axios");
 const {getAccessToken, cca: msal } = require("../authconfig");
 const qs = require("qs");
@@ -13,7 +12,6 @@ const moment = require("moment");
 const initializeResources = require("../controller/resourcecontrol");
 const {assignTaskIdsToTaskArchive, assignTaskIdsToTasks, processUserComments} = require("../controller/onetimescript");
 const Counter = require("../model/counter");
-const WorkLog = require("../model/workLog");
 const momenttz = require("moment-timezone");
 
 
@@ -49,7 +47,7 @@ async function isAdmin(req, res, next) {
   if (req.session && req.session.user) {
     // console.log("User is logged in, checking user Role in resource model.");
     const user = req.session.user;
-    const resource = await resourceModel.findOne({resourceName: user.name});
+    const resource = await resourceModel.findOne({resourceName: user.name}).lean();
     if(!resource){
       // console.log("user not found in db. sending to /profile");
       res.redirect('/profile');
@@ -77,7 +75,7 @@ async function isManager(req, res, next) {
     // console.log("User is logged in, checking user Role in resource model.");
     const user = req.session.user;
     // console.log("isManager: User details are:", user);
-    const resource = await resourceModel.findOne({resourceName: user.name});
+    const resource = await resourceModel.findOne({resourceName: user.name}).lean();
     if(!resource){
       // console.log("user not found in db. sending to /profile");
       res.redirect('/profile');
@@ -106,7 +104,7 @@ async function isLeadership(req, res, next) {
   // console.log("leaders are: ", leaders);
   if(req.session && req.session.user) {
   const user = req.session.user;
-  const resource = await resourceModel.findOne({resourceName: user.name});
+  const resource = await resourceModel.findOne({resourceName: user.name}).lean();
   if(!resource){
     // console.log("user not found in db. sending to root");
     res.redirect('/');
@@ -233,7 +231,7 @@ async function isFTE(req, res, next) {
 const checkPendingSubmissions = async (loggedInUserName) => {
   try {
     // Step 1: Find the logged-in user's resource details
-    const manager = await resourceModel.findOne({ resourceName: loggedInUserName });
+    const manager = await resourceModel.findOne({ resourceName: loggedInUserName }).lean();
     if (!manager) {
       console.log("User not found in resourceModel.");
       return "No"; // No tasks to notify
@@ -393,6 +391,60 @@ function isDelayed(activity) {
   }
 }
 
+//function to delete all tasks in task collection which are older than 90 days of project completion using projectactualFinishdate
+async function delete90DaysOldTasks(accessToken, req, res) {
+  
+  let result;
+  const today = new Date();
+  const archiveDate = new Date(today);
+  archiveDate.setDate(today.getDate() - 120); // Set the archive date to 90 days ago
+  
+  // Format the archiveDate to 'YYYY-MM-DDTHH:MM:SSZ'
+  const year = archiveDate.getFullYear();
+  const month = (archiveDate.getMonth() + 1).toString().padStart(2, '0'); // Months are zero-based
+  const day = archiveDate.getDate().toString().padStart(2, '0');
+  const formattedArchiveDate = `${year}-${month}-${day}T00:00:00Z`;
+  const filterQuery = `$filter=ProjectActualFinishDate lt datetime'${formattedArchiveDate}'&$select=ProjectId`;
+
+  if (!accessToken) {
+    console.log("Access token is missing.");
+    // return res.redirect('/archivedtasks?msg=fail');
+  }
+  try {
+    // find projects which ProjectActualFinishDate is older than 90 days
+    const projectAPIresponse = await axios.get(
+      `https://chrysalishrd.sharepoint.com/pwa/_api/ProjectData/Projects?${filterQuery}`,
+      {
+          headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: "application/json",
+        },
+      }
+    );
+    const projectsToArchive = projectAPIresponse.data.value;
+    const projectIds = projectsToArchive.map(project => project.ProjectId);
+    if (projectIds.length === 0) {
+      console.log("No projects to delete.");
+      // return res.json({ message: "No projects to archive." });
+    } else {
+      result = await taskModel.deleteMany({     //  choose the Model task or task archive to delete tasks which are older than 90 days
+      projectId: { $in: projectIds }
+      });
+      console.log(`Deleted ${result.deletedCount} tasks for projects older than 90 days.`);
+    }
+
+    // console.log("Projects to archive: ", {projectIds});
+    // res.json(projectIds);
+    // res.send(`Deleted ${result.deletedCount} tasks for projects older than 90 days.`);
+    return 1; 
+
+  } catch (error) {
+    console.error("Error deleting old tasks from task collection:", error);
+    // res.status(500).send("Error deleting old tasks from archive.");
+    return 0; // Return 0 to indicate failure
+  }
+}
+
 //GET APP HOME
 router.get("/", async (req, res) => {  
     let msg = req.query.msg || ""; // Get the message from the query string 
@@ -450,7 +502,7 @@ res.render("home", { msg });
 router.get("/admin", isAdmin, async (req, res) => {
   const user = req.session.user;
   // console.log("logged in user to /admin page is: ", user.name);
-  const tasks = await taskModel.find();
+  const tasks = await taskModel.find({ProjectStatus: { $ne: "Completed" } }).lean(); // Fetch all tasks except Completed ones
 
   // Process data to get the count of tasks per projectName and their completion status
   const taskData = tasks.reduce((acc, task) => {
@@ -601,7 +653,7 @@ router.get("/profile", isAuthenticated,  async (req, res, next) => {
   await initializeResources(accessToken);
   const resourceDetails = await resourceModel.findOne({
     resourceName: resourceName,
-  });
+  }).lean();
   const { startDate, endDate } = getCurrentWeekDateRange();
  
   // const userTasks = await taskModel.find({resourceName: resourceName});
@@ -697,8 +749,13 @@ router.get("/myreport", isAuthenticated, async (req, res) => {
     return res.render("/?msg=sessionExpired");
   }
   const user = req.session.user;
-  const resourceName = "Anish Thomas"; //user.name; // For testing purpose, hardcoded to a name
-  const resource = await resourceModel.findOne({ resourceName: resourceName });
+  let resourceName;
+  if (process.env.NODE_ENV === "development") {
+  resourceName = "Anish Thomas"; //user.name; // For testing purpose, hardcoded to a name
+} else {
+  resourceName = user.name; // Use the logged-in user's name from the session
+}
+  const resource = await resourceModel.findOne({ resourceName: resourceName }).lean();
   if (!resource) {
     console.log("Resource not found for user:", resourceName);
     return res.redirect("/?msg=sessionExpired");
@@ -721,10 +778,10 @@ router.get("/myreport", isAuthenticated, async (req, res) => {
 
   const enrichedLogs = await Promise.all(monthWorkLogs.map(async (log) => {
   // First try to fetch the task from taskModel; if not found, try taskArchiveModel.
-  let task = await taskModel.findOne({ taskId: log.taskId });
-  if (!task) {
-    task = await taskArchiveModel.findOne({ taskId: log.taskId });
-  }
+  let task = await taskModel.findOne({ taskId: log.taskId }).lean();
+  // if (!task) {
+  //   task = await taskArchiveModel.findOne({ taskId: log.taskId });
+  // }
   return {
     date: log.date,
     work: log.work,
@@ -755,9 +812,9 @@ router.get("/myreport", isAuthenticated, async (req, res) => {
     // For each grouped work log, fetch task details from either taskModel or taskArchiveModel.
     const taskDetails = await Promise.all(workLogs.map(async (log) => {
       let task = await taskModel.findOne({ taskId: log._id });
-      if (!task) {
-        task = await taskArchiveModel.findOne({ taskId: log._id });
-      }
+      // if (!task) {
+      //   task = await taskArchiveModel.findOne({ taskId: log._id });
+      // }
       if (task) {
         const taskObject = task.toObject();
         taskObject.totalWork = log.totalWork; // aggregated actual work
@@ -816,7 +873,7 @@ router.post("/profile", isSessionActive, async (req, res) => {
 
     const user = req.session.user;
     const resourceName = user.name;
-    const resource = await resourceModel.findOne({ resourceName: resourceName });
+    const resource = await resourceModel.findOne({ resourceName: resourceName }).lean();
     const resourceId = resource.resourceId;
 
     let {
@@ -1297,6 +1354,10 @@ router.get("/refreshdatabase", isAdmin, async (req, res) => {
   // Call the function to update or insert tasks
   await updateOrInsertTasks();
 
+  //call function to deleted 90 days older tasks from the taskModel
+  await delete90DaysOldTasks(accessToken); 
+   
+
   res.redirect('/alltasks');
 
 });
@@ -1698,77 +1759,82 @@ router.get('/escalation', isLeadership,  async (req, res, next) => {
 });
 
 // Route to refresh the task archive
-router.get("/refresharchive", isAdmin, async (req, res) => {
-  try {
-    // Find all tasks with ProjectStatus = 'Completed'
-    const completedTasks = await taskModel.find({
-      $or: [
-        { ProjectStatus: "Completed" },
-        { source: "MTE", approvalStatus: "Approved" },
-        {taskCompletePercent: 100},
-      ]
-    });
+// router.get("/refresharchive", isAdmin, async (req, res) => {
+//   try {
+//     // Find all tasks with ProjectStatus = 'Completed'
+//     const completedTasks = await taskModel.find({
+//       $or: [
+//         { ProjectStatus: "Completed" },
+//         { source: "MTE", approvalStatus: "Approved" },
+//         {taskCompletePercent: 100},
+//       ]
+//     });
 
-    if (completedTasks.length === 0) {
-      // return res.status(200).send("No completed tasks found to archive.");
-      return res.redirect('/archivedtasks?msg=archive up to date');
-    }
+//     if (completedTasks.length === 0) {
+//       // return res.status(200).send("No completed tasks found to archive.");
+//       return res.redirect('/archivedtasks?msg=archive up to date');
+//     }
 
-    // Insert completed tasks into the archive collection
-    await taskArchiveModel.insertMany(completedTasks);
+//     // remove the _id field from each task before inserting into the archive to avoid id conflicts
+//     const tasksToArchive = completedTasks.map(task => {
+//       const { _id, ...rest } = task.toObject(); // remove _id
+//       return rest;
+//     });
 
-    // Remove the completed tasks from the tasks collection
-    await taskModel.deleteMany({ 
-      $or: [
-        { ProjectStatus: "Completed" },
-        { source: "MTE", approvalStatus: "Approved" }  
-      ] 
-     });
+//     await taskArchiveModel.insertMany(tasksToArchive);
 
-    // res.status(200).send(`${completedTasks.length} tasks archived successfully.`);
-    res.redirect('/archivedtasks?msg=success');
-  } catch (error) {
-    console.error("Error refreshing archive:", error);
-    // res.status(500).send("An error occurred while refreshing the archive.");
-    res.redirect('/archivedtasks?msg=fail');
-  }
-});
+
+//     // Remove the completed tasks from the tasks collection
+//     const response = await taskModel.deleteMany({ 
+//       $or: [
+//         { ProjectStatus: "Completed" },
+//         { source: "MTE", approvalStatus: "Approved" }  
+//       ] 
+//      });
+
+//      console.log(`Deleted ${response.deletedCount} completed tasks from the taskModel collection.`);
+//     // res.status(200).send(`${completedTasks.length} tasks archived successfully.`);
+//     return res.redirect('/archivedtasks?msg=success');
+//   } catch (error) {
+//     console.error("Error refreshing archive:", error);
+//     // res.status(500).send("An error occurred while refreshing the archive.");
+//     res.redirect('/archivedtasks?msg=fail');
+//   }
+// });
 
 // Route to view grouped and sorted archived tasks
-router.get("/archivedtasks", isAdmin, async (req, res) => {
-  try {
-    // Fetch all archived tasks and sort by projectName and taskIndex
-    const archivedTasks = await taskArchiveModel.find().sort({ projectName: 1, taskIndex: 1 });
+// router.get("/archivedtasks", isAdmin, async (req, res) => {
+//   try {
+//     // Fetch all archived tasks and sort by projectName and taskIndex
+//     const archivedTasks = await taskArchiveModel.find().sort({ projectName: 1, taskIndex: 1 });
 
-    if (archivedTasks.length === 0) {
-      // return res.status(200).send("No archived tasks found.");
-      return res.redirect('/admin?msg=archive_empty');
-    }
+//     if (archivedTasks.length === 0) {
+//       // return res.status(200).send("No archived tasks found.");
+//       return res.redirect('/admin?msg=archive_empty');
+//     }
 
-    // Group tasks by projectName
-    const groupedTasks = archivedTasks.reduce((acc, task) => {
-      if (!acc[task.projectName]) {
-        acc[task.projectName] = [];
-      }
-      acc[task.projectName].push(task);
-      return acc;
-    }, {});
+//     // Group tasks by projectName
+//     const groupedTasks = archivedTasks.reduce((acc, task) => {
+//       if (!acc[task.projectName]) {
+//         acc[task.projectName] = [];
+//       }
+//       acc[task.projectName].push(task);
+//       return acc;
+//     }, {});
 
-    // Render the grouped and sorted tasks
-    res.render("archivedtasks", { groupedTasks });
-  } catch (error) {
-    console.error("Error fetching archived tasks:", error);
-    res.status(500).send("An error occurred while fetching archived tasks.");
-  }
-});
+//     // Render the grouped and sorted tasks
+//     res.render("archivedtasks", { groupedTasks });
+//   } catch (error) {
+//     console.error("Error fetching archived tasks:", error);
+//     res.status(500).send("An error occurred while fetching archived tasks.");
+//   }
+// });
 
 // route to get the chrysalis Projects Portfolio dashboard
 router.get('/reports', isLeadership, async (req, res) => {
   try {
-    // Fetch all tasks from both collections
-    const tasks = await taskModel.find({});
-    const archivedTasks = await taskArchiveModel.find({});
-    const allTasks = [...tasks, ...archivedTasks];
+    const selectedStatus = req.query.status || 'In Progress'; // Get the selected status from query parameters, default to 'In Progress'
+    const allTasks = await taskModel.find({ProjectStatus: selectedStatus});
 
     // Group by clientName, then by interventionName
     const groupedByClient = {};
@@ -1830,10 +1896,10 @@ router.get('/reports', isLeadership, async (req, res) => {
       interventionDetailsByClient[client] = {};
       for (const intervention of interventionNamesByClient[client]) {
         // Find the first matching task from either taskModel or taskArchiveModel for this client and intervention
-        let task = await taskModel.findOne({ clientName: client, interventionName: intervention });
-        if (!task) {
-          task = await taskArchiveModel.findOne({ clientName: client, interventionName: intervention });
-        }
+        let task = await taskModel.findOne({ clientName: client, interventionName: intervention }).lean();
+        // if (!task) {
+        //   task = await taskArchiveModel.findOne({ clientName: client, interventionName: intervention });
+        // }
         interventionDetailsByClient[client][intervention] = {
           projectStatus: task ? task.ProjectStatus || 'Unknown' : 'Unknown'
         };
@@ -1857,7 +1923,8 @@ router.get('/reports', isLeadership, async (req, res) => {
       interventionDetailsByClient,
       totalBillableHours: overallBillableHours,
       totalNonBillableHours: overallNonBillableHours,
-      totalPlannedHours: overallPlannedHours
+      totalPlannedHours: overallPlannedHours,
+      selectedStatus,
     });
   } catch (error) {
     console.error("Error generating reports:", error);
@@ -1966,9 +2033,10 @@ router.get('/resourcereport', isLeadership, async (req, res) => {
         actualWork: { $gt: 0 },
       };
 
-      const tasksCurrent = await taskModel.find(query);
-      const tasksArchived = await taskArchiveModel.find(query);
-      const tasks = [...tasksCurrent, ...tasksArchived];
+      // const tasksCurrent = await taskModel.find(query);
+      // const tasksArchived = await taskArchiveModel.find(query);
+      // const tasks = [...tasksCurrent, ...tasksArchived];
+      const tasks = await taskModel.find(query);
 
       // Group tasks by interventionName and calculate billable and non-billable hours
       const groupedData = tasks.reduce((acc, task) => {
@@ -2020,15 +2088,17 @@ router.get('/clientreport', isLeadership, async (req, res) => {
     const { clientName, projectName } = req.query;
 
     // Fetch all unique client names from taskModel and taskArchiveModel
-    const clientNames = await taskModel.distinct('clientName');
-    const archivedClientNames = await taskArchiveModel.distinct('clientName');
-    const allClientNames = [...new Set([...clientNames, ...archivedClientNames])];
+    // const clientNames = await taskModel.distinct('clientName');
+    // const archivedClientNames = await taskArchiveModel.distinct('clientName');
+    // const allClientNames = [...new Set([...clientNames, ...archivedClientNames])];
+    const allClientNames = await taskModel.distinct('clientName');
     // Fetch all unique project names for the selected client
     let projectNames = [];
     if (clientName) {
-      const taskProjects = await taskModel.distinct('projectName', { clientName });
-      const archivedTaskProjects = await taskArchiveModel.distinct('projectName', { clientName });
-      projectNames = [...new Set([...taskProjects, ...archivedTaskProjects])];
+      // const taskProjects = await taskModel.distinct('projectName', { clientName });
+      // const archivedTaskProjects = await taskArchiveModel.distinct('projectName', { clientName });
+      // projectNames = [...new Set([...taskProjects, ...archivedTaskProjects])];
+      projectNames = await taskModel.distinct('projectName', { clientName });
     }
     const customOrder = ["ReBL", "TBL", "Administration", "Resourcing & Facilitation", "Project Management", "Technology", "Talent", "Finance", "Leadership"]
     // Fetch resources grouped by resourceFunction
@@ -2053,9 +2123,10 @@ router.get('/clientreport', isLeadership, async (req, res) => {
       if (clientName) query.clientName = clientName;
       if (projectName) query.projectName = projectName;
 
-      const tasks = await taskModel.find(query);
-      const archivedTasks = await taskArchiveModel.find(query);
-      const allTasks = [...tasks, ...archivedTasks];
+      // const tasks = await taskModel.find(query);
+      // const archivedTasks = await taskArchiveModel.find(query);
+      // const allTasks = [...tasks, ...archivedTasks];
+      const allTasks = await taskModel.find(query);
 
       // Calculate billable, non-billable, and total hours for this function
       const functionData = allTasks.reduce(
@@ -2273,9 +2344,9 @@ router.get('/workloadreport', isLeadership, async (req, res) => {
     // For each grouped work log, fetch task details from either taskModel or taskArchiveModel.
     const taskDetails = await Promise.all(workLogs.map(async (log) => {
       let task = await taskModel.findOne({ taskId: log._id });
-      if (!task) {
-        task = await taskArchiveModel.findOne({ taskId: log._id });
-      }
+      // if (!task) {
+      //   task = await taskArchiveModel.findOne({ taskId: log._id });
+      // }
       if (task) {
         const taskObject = task.toObject();
         taskObject.totalWork = log.totalWork; // aggregated actual work
@@ -2337,5 +2408,57 @@ router.get('/workloadreport', isLeadership, async (req, res) => {
     res.status(500).send("An error occurred while generating the workload report.");
   }
 });
+
+// route to find and delete tasks in archive collection which are older than 90 days of completion
+// router.get('/delete-archive', async (req, res) => {
+//   let result;
+//   const today = new Date();
+//   const archiveDate = new Date(today);
+//   archiveDate.setDate(today.getDate() - 90); // Set the archive date to 30 days ago
+  
+// // Format the archiveDate to 'YYYY-MM-DDTHH:MM:SSZ'
+// const year = archiveDate.getFullYear();
+// const month = (archiveDate.getMonth() + 1).toString().padStart(2, '0'); // Months are zero-based
+// const day = archiveDate.getDate().toString().padStart(2, '0');
+// const formattedArchiveDate = `${year}-${month}-${day}T00:00:00Z`;
+// const filterQuery = `$filter=ProjectActualFinishDate lt datetime'${formattedArchiveDate}'&$select=ProjectId`;
+
+
+//   const accessToken = req.session.token;
+//   if (!accessToken) {
+//     console.log("Access token is missing.");
+//     return res.redirect('/archivedtasks?msg=fail');
+//   }
+//   try {
+//     // find projects which ProjectActualFinishDate is older than 90 days
+//     const projectAPIresponse = await axios.get(
+//       `https://chrysalishrd.sharepoint.com/pwa/_api/ProjectData/Projects?${filterQuery}`,
+//       {
+//           headers: {
+//           Authorization: `Bearer ${accessToken}`,
+//           Accept: "application/json",
+//         },
+//       }
+//     );
+//     const projectsToArchive = projectAPIresponse.data.value;
+//     const projectIds = projectsToArchive.map(project => project.ProjectId);
+//     if (projectIds.length === 0) {
+//       console.log("No projects to archive.");
+//       return res.json({ message: "No projects to archive." });
+//     } else {
+//       result = await taskModel.deleteMany({     //  choose the Model task or task archive to delete tasks which are older than 90 days
+//       projectId: { $in: projectIds }
+//       });
+//       console.log(`Deleted ${result.deletedCount} archived tasks for projects older than 90 days.`);
+//     }
+
+//     // console.log("Projects to archive: ", {projectIds});
+//     // res.json(projectIds);
+//     res.send(`Deleted ${result.deletedCount} tasks for projects older than 90 days.`);
+//   } catch (error) {
+//     console.error("Error fetching projects for archiving:", error);
+//     return res.send("An error occurred while fetching projects for archiving.");
+//   }
+// });
 
 module.exports = router;
