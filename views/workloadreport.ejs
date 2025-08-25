@@ -51,6 +51,7 @@
         name="search"
         placeholder="Enter Team Member name"
         value="<%= searchTerm || '' %>"
+        onchange="this.form.submit()"
       >
       <button type="submit">Search</button>
     </form>
@@ -73,14 +74,13 @@
       <form class="my-2" method="GET" action="/workloadreport">
         <input type="hidden" name="resourceName" value="<%= selectedResourceName || '' %>">
         <label for="timePeriod">Select Time Period:</label>
-        <select class="rounded" id="timePeriod" name="timePeriod">
+        <select class="rounded" id="timePeriod" name="timePeriod" onchange="this.form.submit()">
           <option value="allTime" <%= timePeriod === 'allTime' ? 'selected' : '' %>>All Time</option>
           <option value="currentMonth" <%= timePeriod === 'currentMonth' ? 'selected' : '' %>>Current Month</option>
           <option value="lastMonth" <%= timePeriod === 'lastMonth' ? 'selected' : '' %>>Last Month</option>
           <option value="lastQuarter" <%= timePeriod === 'lastQuarter' ? 'selected' : '' %>>Last Quarter</option>
           <option value="currentYear" <%= timePeriod === 'currentYear' ? 'selected' : '' %>>Current Year</option>
         </select>
-        <button type="submit">Generate Report</button>
       </form>
     <% } %>
     </div>
