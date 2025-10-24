@@ -13,6 +13,7 @@ const initializeResources = require("../controller/resourcecontrol");
 const {assignTaskIdsToTaskArchive, assignTaskIdsToTasks, processUserComments} = require("../controller/onetimescript");
 const Counter = require("../model/counter");
 const momenttz = require("moment-timezone");
+// const { resource } = require("../app");
 
 
 // function to check user is logged in with MSAL Auth flow
@@ -460,6 +461,7 @@ router.get("/", async (req, res) => {
 
 router.get("/leap", isAuthenticated, isFTE, async (req, res) => {
   let isLeader;
+  let ispm = false;
   const leaders = process.env.PM_LEADERSHIP.split(",").map(name => name.trim());
   const user = req.session.user;
   //check if the resourceDetails.resourceName exist in leaders array
@@ -478,8 +480,13 @@ router.get("/leap", isAuthenticated, isFTE, async (req, res) => {
   //   // console.log("Admin user logged in, calling processUserComments function.");
   //   await processUserComments(); // Process user comments if needed
   // }  // comment to avoid running it more than once.
+  const projectPM = await taskModel.findOne({ designPM: user.name }).lean();
+  if (projectPM) {
+    ispm = true;
+  }
+
   let msg = "";
-res.render("leap", { msg, isLeader  }); // Render the leap page with the resource details and isLeader status
+res.render("leap", { msg, isLeader, ispm  }); // Render the leap page with the resource details and isLeader status
 });
 
 router.get("/home", isAuthenticated, redirectBasedOnGroup, async (req, res) => {  
@@ -633,6 +640,104 @@ router.get("/oauth/redirect", async (req, res) => {
     res.status(500).send(error);
   }
 });
+
+// Get route for DesignPM to show the list of projects where the logged in user is the designPM
+router.get("/designpm", isAuthenticated, async (req, res) => {
+  if (!req.session.user) {
+    return res.redirect("/?msg=sessionExpired");
+  }
+  let msg="";
+  if (req.query.msg === "notasks") {
+    msg = "No tasks found for the selected project. Please select another Project.";
+  }
+  const user = req.session.user;
+  let resourceName = user.name;
+  if (process.env.NODE_ENV === "development") {
+    resourceName = "Gaurav Ahuja"; // for testing in dev environment
+  }
+  try {
+ const projectsGroupedByClient = await taskModel.aggregate([
+  { $match: { designPM: resourceName } },
+  {
+    $group: {
+      _id: {
+        clientName: "$clientName",
+        interventionName: "$interventionName"
+      },
+      projectPercentWorkCompleted: { $first: "$ProjectPercentWorkCompleted" },
+      projectStatus: { $first: "$ProjectStatus" }
+    }
+  },
+  {
+    $group: {
+      _id: "$_id.clientName",
+      projects: {
+        $push: {
+          interventionName: "$_id.interventionName",
+          ProjectPercentWorkCompleted: "$ProjectPercentWorkCompleted",
+          ProjectStatus: "$ProjectStatus"
+        }
+      }
+    }
+  },
+  {
+    $project: {
+      clientName: "$_id",
+      projects: 1,
+      _id: 0
+    }
+  } 
+]);
+// console.log("Projects grouped by client for DesignPM:", projectsGroupedByClient);
+    if (projectsGroupedByClient.length === 0) {
+      return res.render("designpm", { projects: [],projectsGroupedByClient: [], resourceName, msg: "No projects found where you are the Project Manager." });
+    }
+    
+    res.render("designpm", { projectsGroupedByClient, resourceName, msg });
+
+  } catch (error) {
+    console.error("Error fetching projects for DesignPM:", error);
+      return res.render("designpm", { projectsGroupedByClient: [], projects: [], resourceName, msg: "Error fetching projects for in your name." });    
+  }
+});
+
+//GET route for design pm to show all tasks for a selected project where the logged in user is the designPM
+router.get("/designpm/:project", isAuthenticated, async (req, res) => {
+  if (!req.session.user) {
+    return res.redirect("/?msg=sessionExpired");
+  }
+  const user = req.session.user;
+  let resourceName = user.name;
+  if (process.env.NODE_ENV === "development") {
+    resourceName = "Gaurav Ahuja"; // for testing in dev environment
+  }
+  const projectName = req.params.project;
+  // console.log("Fetching tasks for DesignPM project:", projectName, "and DesignPM:", resourceName);
+  let msg = "";
+  try {
+    const tasks = await taskModel.find({ interventionName: projectName, designPM: resourceName }).sort({taskIndex: 1}).lean();
+    if (!tasks) {
+      console.log("No tasks found for DesignPM project:", projectName);
+      return res.redirect("/designpm?msg=notasks");
+      // return res.render("designpm", { tasks: [], projectName, resourceName, msg: "No tasks found for the selected project." });
+    }
+    // get project percent work completed from the first task (assuming all tasks have the same project percent)
+    const projectStatus = tasks[0].ProjectStatus;
+    const projectPercentCompleted = tasks[0].ProjectPercentWorkCompleted;
+    //get count of tasks completed, incompleted and total tasks based on taskCompletePercent
+    const totalTasks = tasks.length;
+    const completedTasks = tasks.filter(task => task.taskCompletePercent === 100).length;
+    const incompleteTasks = totalTasks - completedTasks;
+    // console.log("Tasks for DesignPM project:", projectName, projectStatus, projectPercentCompleted, totalTasks, completedTasks, incompleteTasks );
+
+    res.render("designpmtasks", { tasks, projectName, projectStatus, projectPercentCompleted, totalTasks, completedTasks, incompleteTasks, resourceName, msg });
+  } catch (error) {
+    console.error("Error fetching tasks for DesignPM:", error);
+    return res.render("designpmtasks", { tasks: [], projectName, resourceName, msg: "Error fetching tasks for the selected project." });
+  }
+});
+
+
 
 //profile page to land after access token authenticated also initialize resource MOdel if empty  /////////////////////////////////////////////////////////////////////
 router.get("/profile", isAuthenticated,  async (req, res, next) => {
@@ -1217,6 +1322,11 @@ router.get("/refreshdatabase", isAdmin, async (req, res) => {
     );
     // now we nee to have nonCompleteprojects as combination of incompleteProjects and recentlyCompletedProjects
     const nonCompleteProjects = [...inCompleteProjects, ...recentlyCompletedProjects];
+
+    //log DesignPM field value for all non-complete projects
+    for (const project of nonCompleteProjects) {
+      console.log("stat for projects", project.ProjectName, project.DesignPM);
+    }
     
     //get data from Tasks API
     const tasksPromises = nonCompleteProjects.map(async (project) => {
@@ -1284,6 +1394,7 @@ router.get("/refreshdatabase", isAdmin, async (req, res) => {
           task.InterventionName = project.InterventionName;
           task.ProjectStatus = project.ProjectStatus;
           task.ProjectPercentWorkCompleted = project.ProjectPercentWorkCompleted;
+          task.DesignPM = project.DesignPM
         }
   
         const resource = resources.find(res => res.TaskId === task.TaskId);
@@ -1315,8 +1426,10 @@ router.get("/refreshdatabase", isAdmin, async (req, res) => {
           existingTask.ProjectPercentWorkCompleted = task.ProjectPercentWorkCompleted;
           existingTask.ProjectStatus = task.ProjectStatus;
           existingTask.projectName = task.ProjectName;
+          existingTask.designPM = task.DesignPM;
           existingTask.consultingDay = task.ConsultingDay;
           existingTask.taskIndex = task.TaskIndex;
+          // console.log(`Updating existing task: ${existingTask.projectName} - ${existingTask.designPM}`);
           await existingTask.save();
         } else {
           // Insert new task
@@ -1325,6 +1438,7 @@ router.get("/refreshdatabase", isAdmin, async (req, res) => {
             projectName: task.ProjectName,
             ProjectPercentWorkCompleted: task.ProjectPercentWorkCompleted,
             ProjectStatus: task.ProjectStatus,
+            designPM: task.DesignPM,
             taskId: task.TaskId,
             taskName: task.TaskName,
             parentTaskName: task.ParentTaskName,
@@ -1342,6 +1456,7 @@ router.get("/refreshdatabase", isAdmin, async (req, res) => {
             taskIndex: task.TaskIndex,
             taskIsActive: task.TaskIsActive,
           });
+          // console.log(`Inserting new task: ${newTask.projectName} - ${newTask.designPM}`);
           await newTask.save();
         }
       }

@@ -22,6 +22,10 @@ html, body{
 .bg-cred{
   background-color: #E95757;
 }
+
+.text-cgreen{
+  color: #129781;
+}
 .content{
   display: flex;
   flex-direction: column;

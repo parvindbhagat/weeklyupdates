@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Manager: Tasks</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="stylesheet" href="/stylesheets/style.css">
+</head>
+<body>
+    <nav class="navbar">
+      <a class="navbar-brand" href="/home">
+        <img src="/images/logo.png" alt="Chrysalis" >
+      </a>
+    </nav>
+    <div class=" menu d-flex flex-row-reverse gap-3 me-5 mt-2">
+        <form style="display: inline-block; margin-right: 3rem;" action="/logout" method="POST">
+            <button type="submit" class="btn rounded">Logout (<%= resourceName %>)</button>
+        </form>
+      <button><a href="/home">Home</a> </button>  <br>
+      <button><a href="/pwaactivities">Weekly Plan</a></button>
+        <button><a href="/profile">My Tasks</a></button>
+        <button><a href="javascript:history.back()"><i class="ri-arrow-left-circle-line"></i> Go Back</a></button>
+
+    </div>
+
+    <h1 class="text-center">Project Plan: <span class="text-cgreen"><%= projectName %></span></h1>
+
+    <% if (msg) { %>
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <%= msg %>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close">
+        </div>    
+        <% } %>
+        
+<% if(tasks) { %>
+<div class="container mt-4 w-50">
+    <div class="card mb-3 shadow-sm">
+      <div class="card-header bg-danger text-white">
+        <h5 class="mb-0"> Project Details</h5>
+      </div>
+      <div class="card-body">
+        <p><strong>Status:</strong> <%= projectStatus %> </p>
+        <p><strong>Completion:</strong> <%= projectPercentCompleted %> %</p>
+
+        <!-- Progress Bar -->
+        <div class="progress mb-3" style="height: 20px;">
+          <div class="progress-bar 
+                      <% if (projectPercentCompleted < 50) { %> bg-danger 
+                      <% } else if (projectPercentCompleted < 80) { %> bg-warning 
+                      <% } else { %> bg-success <% } %>" 
+               role="progressbar" 
+               style="width: <%= projectPercentCompleted %>%;" 
+               aria-valuenow="<%= projectPercentCompleted %>" 
+               aria-valuemin="0" 
+               aria-valuemax="100">
+            <%= projectPercentCompleted %>%
+          </div>
+        </div>
+
+        <p><strong>Total Tasks:</strong> <%= totalTasks %></p>
+        <p><strong>Completed Tasks:</strong> <%= completedTasks %></p>
+        <p><strong>Incomplete Tasks:</strong> <%= incompleteTasks %></p>
+      </div>
+    </div>
+</div>
+
+
+
+        <div class="container mt-4">
+               <!-- Task Table -->
+            <div class="task_table">
+                <table class="table-striped table-auto w-100 bg-white border border-gray-300">
+                <thead>
+                <tr>
+                    <th class="bg-warning px-2">Task Index</th>
+                    <th class="bg-warning px-2">Milestone</th>
+                    <th class="bg-warning px-2">Task Name</th>
+                    <th class="bg-warning px-2">Type Of Activity</th>                    
+                    <th class="bg-warning px-2">Planned Work Hours</th>
+                    <th class="bg-warning px-2">Planned Start</th>
+                    <th class="bg-warning px-2">Planned Finish</th>
+                    <th class="bg-warning px-2">Actual Start</th>
+                    <th class="bg-warning px-2">Actual Finish</th>
+                    <th class="bg-warning px-2">Actual Work Hours</th>
+                    <th class="bg-warning px-2">Resource</th>
+                    <th class="bg-warning px-2">Status</th>
+                    <th class="bg-warning px-2">Comments</th>
+                    <th class="bg-warning px-2">Completed in PWA?</th>
+                </tr>
+                </thead>
+                <tbody id="taskTableBody">
+                <% tasks.forEach((ta) => { %>
+                <tr class="tableData">
+                    <td class="border border-gray-300 px-2 py-2"><%= ta.taskIndex %></td>
+                    <td class="border border-gray-300 px-2 py-2"><%= ta.parentTaskName %></td>
+                    <td class="border border-gray-300 px-2 py-2"><%= ta.taskName %></td>
+                    <td class="border border-gray-300 px-2 py-2"><%= ta.typeofActivity %></td>
+                    <td class="border border-gray-300 px-2 py-2"><%= ta.taskWork %></td>
+                    <td class="border border-gray-300 px-2 py-2"><%= new Date(ta.start).toLocaleDateString('en-in') %></td>
+                    <td class="border border-gray-300 px-2 py-2"><%= new Date(ta.Finish).toLocaleDateString('en-in') %></td>
+                    <td class="border border-gray-300 px-2 py-2"><%= ta.actualStart ? new Date(ta.actualStart).toLocaleDateString('en-in') : " " %></td>
+                    <td class="border border-gray-300 px-2 py-2"><%= ta.actualFinish ? new Date(ta.actualFinish).toLocaleDateString('en-in') : " " %></td>
+                    <td class="border border-gray-300 px-2 py-2"><%= ta.actualWork %></td>
+                    <td class="border border-gray-300 px-2 py-2"><%= ta.resourceName %></td>
+                    <td class="border border-gray-300 px-2 py-2"><%= ta.approvalStatus %></td>
+                    <td class="border border-gray-300 px-2 py-2"><%= ta.userComment %></td>
+                    <td class="border border-gray-300 px-2 py-2 text-white text-center <% if (ta.taskCompletePercent < 100) { %> bg-danger 
+                      <% } else { %> bg-success <% } %>"><%= ta.taskCompletePercent === 100 ? "Yes" : "No" %></td>
+                </tr>
+                <% }); %>
+                </tbody>
+                </table>
+            </div>
+        </div>
+<% } else {%>
+    <div class="container mt-4">
+        <div class="alert alert-info" role="alert">
+            No tasks found for this project.
+        </div>
+    </div>
+  <% } %>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

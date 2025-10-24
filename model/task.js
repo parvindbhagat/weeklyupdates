@@ -6,6 +6,7 @@ const taskSchema = new mongoose.Schema({
     projectName: {type: String,  },
     ProjectStatus: {type: String, },
     ProjectPercentWorkCompleted: {type: Number, default: 0 },
+    designPM: { type: String, },
     taskId: {    type: String,     },  
     taskName: {    type: String,  },
     parentTaskName: {    type: String, default: "Internal Work" },  

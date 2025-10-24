@@ -20,7 +20,8 @@ app.use(express.urlencoded({ extended: false }));
 
 app.use(mongoSanitize()); // Sanitize user input to prevent NoSQL injection
 
-mongoose.connect(process.env.MONGO_URI, {}).then(() => {
+const mongoUri = process.env.MONGO_URI || `mongodb://127.0.0.1:27017/weeklyupdatesDB`;
+mongoose.connect(mongoUri, {}).then(() => {
   console.log('Connected to MongoDB');
 }).catch(err => {
   console.error('Error connecting to MongoDB', err);
