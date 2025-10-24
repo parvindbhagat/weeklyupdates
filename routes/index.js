@@ -641,7 +641,7 @@ router.get("/oauth/redirect", async (req, res) => {
   }
 });
 
-// Get route for DesignPM to show the list of projects where the logged in user is the designPM
+// Get route for DesignPM to show the list of projects where the logged in user is the designPM  /myprojects
 router.get("/designpm", isAuthenticated, async (req, res) => {
   if (!req.session.user) {
     return res.redirect("/?msg=sessionExpired");
@@ -656,7 +656,7 @@ router.get("/designpm", isAuthenticated, async (req, res) => {
     resourceName = "Gaurav Ahuja"; // for testing in dev environment
   }
   try {
- const projectsGroupedByClient = await taskModel.aggregate([
+  const projectsGroupedByClient = await taskModel.aggregate([
   { $match: { designPM: resourceName } },
   {
     $group: {
@@ -664,8 +664,8 @@ router.get("/designpm", isAuthenticated, async (req, res) => {
         clientName: "$clientName",
         interventionName: "$interventionName"
       },
-      projectPercentWorkCompleted: { $first: "$ProjectPercentWorkCompleted" },
-      projectStatus: { $first: "$ProjectStatus" }
+      ProjectPercentWorkCompleted: { $max: "$ProjectPercentWorkCompleted" },
+      ProjectStatus: { $first: "$ProjectStatus" } // or $max/$last depending on your data
     }
   },
   {
@@ -679,6 +679,9 @@ router.get("/designpm", isAuthenticated, async (req, res) => {
         }
       }
     }
+  },  
+  {
+    $sort: { "_id": 1 } // Sort by clientName alphabetically
   },
   {
     $project: {
@@ -686,9 +689,10 @@ router.get("/designpm", isAuthenticated, async (req, res) => {
       projects: 1,
       _id: 0
     }
-  } 
+  }
 ]);
-// console.log("Projects grouped by client for DesignPM:", projectsGroupedByClient);
+// console.log("Projects grouped by client for DesignPM:",projectsGroupedByClient.length, JSON.stringify(projectsGroupedByClient, null, 2));
+
     if (projectsGroupedByClient.length === 0) {
       return res.render("designpm", { projects: [],projectsGroupedByClient: [], resourceName, msg: "No projects found where you are the Project Manager." });
     }
@@ -701,7 +705,9 @@ router.get("/designpm", isAuthenticated, async (req, res) => {
   }
 });
 
-//GET route for design pm to show all tasks for a selected project where the logged in user is the designPM
+
+
+//GET route for design pm to show all tasks for a selected project where the logged in user is the designPM 
 router.get("/designpm/:project", isAuthenticated, async (req, res) => {
   if (!req.session.user) {
     return res.redirect("/?msg=sessionExpired");
@@ -1948,9 +1954,24 @@ router.get('/escalation', isLeadership,  async (req, res, next) => {
 // route to get the chrysalis Projects Portfolio dashboard
 router.get('/reports', isLeadership, async (req, res) => {
   try {
-    const selectedStatus = req.query.status || 'In Progress'; // Get the selected status from query parameters, default to 'In Progress'
-    const allTasks = await taskModel.find({ProjectStatus: selectedStatus});
+     const { selectedStatus, selectedPm } = req.query; // Get filters from query parameters
 
+    // Build the query object dynamically
+    const query = {};
+    if (selectedStatus) {
+      query.ProjectStatus = req.query.selectedStatus || 'In Progress';      
+    }
+    if (selectedPm) {
+      query.designPM = req.query.selectedPm;
+    }
+    // const selectedStatus = req.query.status || 'In Progress'; // Get the selected status from query parameters, default to 'In Progress'
+    const allTasks = await taskModel.find(query).sort({ projectName: 1, taskIndex: 1 });
+    //from alltasks, need to get all unique designPM for filter dropdown
+    let allDesignPMs = await taskModel.distinct('designPM').sort({designPM: 1});
+    //remove any null or undefined or empty string from allDesignPMs
+    allDesignPMs = allDesignPMs.filter(pm => pm && pm.trim() !== '');
+
+    // console.log("All Design PMs: ", allDesignPMs);
     // Group by clientName, then by interventionName
     const groupedByClient = {};
 
@@ -2040,6 +2061,8 @@ router.get('/reports', isLeadership, async (req, res) => {
       totalNonBillableHours: overallNonBillableHours,
       totalPlannedHours: overallPlannedHours,
       selectedStatus,
+      selectedPm,
+      allDesignPMs
     });
   } catch (error) {
     console.error("Error generating reports:", error);

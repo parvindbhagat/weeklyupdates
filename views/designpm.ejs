@@ -51,8 +51,21 @@
           <% group.projects.forEach(project => { %>
              <li class="list-group-item">
                <a class="text-decoration-none" href="/designpm/<%= encodeURIComponent(project.interventionName) %>"><%= project.interventionName %></a>
-               <!-- <p>Status: <%= project.ProjectStatus %></p> -->
-               <!-- <p>Completion: <%= project.ProjectPercentCompleted %> %</p> -->
+               <p>Status: <%= project.ProjectStatus %></p>
+                       <!-- Progress Bar -->
+                <div class="progress " style="height: 20px;">
+                  <div class="progress-bar 
+                              <% if (project.ProjectPercentWorkCompleted < 50) { %> bg-danger 
+                              <% } else if (project.ProjectPercentWorkCompleted < 80) { %> bg-warning 
+                              <% } else { %> bg-success <% } %>" 
+                       role="progressbar" 
+                       style="width: <%= project.ProjectPercentWorkCompleted %>%;" 
+                       aria-valuenow="<%= project.ProjectPercentWorkCompleted %>" 
+                       aria-valuemin="0" 
+                       aria-valuemax="100">
+                    <%= project.ProjectPercentWorkCompleted %>%
+                  </div>
+                </div>
               </li>
           <% }) %>
         </ol>

@@ -39,20 +39,26 @@
       </a>
     </div>
 
-    <div class="status-filter d-flex justify-content-center mb-4">
-      <form  action="/reports" method="get" class="d-flex">
-        <label for="status" class="mx-2">Status:</label>
-        <select
-          id="status"
-          name="status"
-          class="form-select me-2 py-0"
-          onchange="this.form.submit()"
-        >
-          <option value="In Progress" <% if (selectedStatus === 'In Progress') { %>selected<% } %>>In Progress</option>
-          <option value="Completed" <% if (selectedStatus === 'Completed') { %>selected<% } %>>Completed</option>
-          <option value="On Hold" <% if (selectedStatus === 'On Hold') { %>selected<% } %>>On Hold</option>
-        </select>
-      </form>
+        <!-- Filter Section -->
+    <div class="d-flex justify-content-center gap-3 my-3">
+      <!-- Dropdown for Project Name -->
+      <select id="statusFilter" class="form-select w-auto">
+        <option value="">All Projects</option>
+        <option value="In Progress" <% if (selectedStatus === 'In Progress') { %>selected<% } %>>In Progress</option>
+        <option value="Completed" <% if (selectedStatus === 'Completed') { %>selected<% } %>>Completed</option>
+        <option value="On Hold" <% if (selectedStatus === 'On Hold') { %>selected<% } %>>On Hold</option>
+      </select>
+
+      <!-- Dropdown for Resource Name -->
+      <select id="resourceFilter" class="form-select w-auto">
+        <option value="">All PMs</option>
+        <% allDesignPMs.forEach(pm => { %>
+          <option value="<%= pm %>" <%= pm === selectedPm ? "selected" : "All PMs" %>><%= pm %></option>
+        <% }); %>
+      </select>
+
+      <!-- Reset Filters Button -->
+      <button id="resetFilters" class="btn btn-secondary">Reset Filters</button>
     </div>
     
     <div class="container mt-4">
@@ -167,6 +173,40 @@
       </table>
       <% } %>
     </div>
+
+        <!-- JavaScript for Filtering -->
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const statusFilter = document.getElementById("statusFilter");
+        const resourceFilter = document.getElementById("resourceFilter");
+        const resetFilters = document.getElementById("resetFilters");
+
+        // Function to apply filters
+        const applyFilters = () => {
+          const projectValue = statusFilter.value;
+          const resourceValue = resourceFilter.value;
+
+          // Build the query string
+          const queryParams = new URLSearchParams();
+          if (projectValue) queryParams.append("selectedStatus", projectValue);
+          if (resourceValue) queryParams.append("selectedPm", resourceValue);
+
+          // Redirect to the backend route with query parameters
+          window.location.href = `/reports?${queryParams.toString()}`;
+        };
+
+        // Event Listeners for Filters
+        statusFilter.addEventListener("change", applyFilters);
+        resourceFilter.addEventListener("change", applyFilters);
+
+        // Reset Filters
+        resetFilters.addEventListener("click", () => {
+          statusFilter.value = "";
+          resourceFilter.value = "";
+          window.location.href = "/reports"; // Redirect to the route without filters
+        });
+      });
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   </body>
 </html>
