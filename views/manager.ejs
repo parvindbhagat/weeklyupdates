@@ -114,10 +114,10 @@
             <tr class="tableData" id="<%= activity._id %>">
               <td class="border border-gray-300 px-1 py-1 "><%= activity.projectName %></td>
               <td class="border border-gray-300 px-1 py-1 "><%= activity.taskName %></td>
-              <td class="border border-gray-300 px-1 py-1 "><%= new Date(activity.start).toLocaleDateString('en-in') %></td>
-              <td class="border border-gray-300 px-1 py-1 "><%= new Date(activity.Finish).toLocaleDateString('en-in') %></td>
-              <td class="border border-gray-300 px-1 py-1 "><%= activity.actualStart ? new Date(activity.actualStart).toLocaleDateString('en-in') : " " %></td>
-              <td class="border border-gray-300 px-1 py-1 "><%= activity.actualFinish ? new Date(activity.actualFinish).toLocaleDateString('en-in') : " " %></td>
+              <td class="border border-gray-300 px-1 py-1 "><%= new Date(activity.start).toLocaleDateString('en-GB') %></td>
+              <td class="border border-gray-300 px-1 py-1 "><%= new Date(activity.Finish).toLocaleDateString('en-GB') %></td>
+              <td class="border border-gray-300 px-1 py-1 "><%= activity.actualStart ? new Date(activity.actualStart).toLocaleDateString('en-GB') : " " %></td>
+              <td class="border border-gray-300 px-1 py-1 "><%= activity.actualFinish ? new Date(activity.actualFinish).toLocaleDateString('en-GB') : " " %></td>
               <td class="border border-gray-300 px-1 py-1 "><%= activity.actualWork %></td>
               <!-- <td class="border border-gray-300 px-1 py-1 "><%= activity.submitted %></td> -->
               <td class="border border-gray-300 px-1 py-1 "><%= (activity.leapComplete < 100) ? "No" : "Yes" %></td>

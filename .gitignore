@@ -1,7 +1,7 @@
 node_modules
 nginx
-todo.txt
-docker-compose.yaml
+*.txt
+*.yaml
 .env
-like.py
-test.html
+*.py
+*.html

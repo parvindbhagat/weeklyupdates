@@ -85,7 +85,7 @@
               %>
               <% options.forEach(function(opt) { %>
                 <option value="<%= opt %>" <%= (selMonthStr === opt) ? 'selected' : '' %>>
-                  <%= new Date(opt + '-01').toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }) %>
+                  <%= new Date(opt + '-01').toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }) %>
                 </option>
               <% }); %>
             </select>
@@ -95,7 +95,7 @@
 
       <h1 class="text-center mb-4">
         My Report Calendar for 
-        <%= new Date(selMonthStr + '-01').toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }) %>
+        <%= new Date(selMonthStr + '-01').toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }) %>
       </h1>
       <% 
          // Use the selected month to build the calendar.
@@ -235,7 +235,7 @@
           var modalDate = document.getElementById('modalDate');
           var modalBody = document.getElementById('modalBody');
           
-          modalDate.innerText = new Date(date).toLocaleDateString('en-IN', {
+          modalDate.innerText = new Date(date).toLocaleDateString('en-GB', {
             year: 'numeric',
             month: 'long',
             day: 'numeric'
@@ -280,7 +280,7 @@
          <% if (Object.keys(groupedProjects).length > 0) { %>
           <br>
     <div class="container my-4 py-4">
-      <h1 class="text-center mb-4">My Projects report for <%= new Date(selMonthStr + '-01').toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }) %> </h1>
+      <h1 class="text-center mb-4">My Projects report for <%= new Date(selMonthStr + '-01').toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }) %> </h1>
 
       
       <table class="table table-bordered">

@@ -4,6 +4,6 @@ nginx
 .gitignore
 Dockerfile
 docker-compose.yaml
-todo.txt
-like.py
-test.html
+*.txt
+*.py
+*.html

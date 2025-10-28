@@ -155,8 +155,8 @@
                   <td><%= activity.interventionName %></td>
                   <td><%= activity.parentTaskName %></td>
                   <td><%= activity.taskName %></td>
-                  <td><%= new Date(activity.start).toLocaleDateString('en-uk') %></td>
-                  <td><%= new Date(activity.Finish).toLocaleDateString('en-uk') %></td>
+                  <td><%= new Date(activity.start).toLocaleDateString('en-GB') %></td>
+                  <td><%= new Date(activity.Finish).toLocaleDateString('en-GB') %></td>
                   <td><%= activity.resourceName %></td>
                   <td><%= (activity.isDelayed) ? activity.delayStatus : (activity.taskCompletePercent < 100) ? "On Going" : "Completed" %></td>
                 </tr>

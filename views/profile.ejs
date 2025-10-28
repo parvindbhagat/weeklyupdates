@@ -248,7 +248,7 @@ document.addEventListener('DOMContentLoaded', function() {
   
   
   <div class="tablediv mb-50 p-2 ">
-    <h3 style="text-align: center; margin: 2rem;">My Tasks this week (<%= startDate.toLocaleDateString('en-in') %> To <%= endDate.toLocaleDateString('en-in') %>)</h3>
+    <h3 style="text-align: center; margin: 2rem;">My Tasks this week (<%= startDate.toLocaleDateString('en-GB') %> To <%= endDate.toLocaleDateString('en-GB') %>)</h3>
       <table class="table-striped table-auto m-2 border border-gray-300" >
         <thead >
           <tr>
@@ -273,10 +273,10 @@ document.addEventListener('DOMContentLoaded', function() {
               <td class="border border-gray-300 px-1 py-1 "><%= activity.clientName %></td>
               <td class="border border-gray-300 px-1 py-1 "><%= activity.interventionName %></td>
               <td class="border border-gray-300 px-1 py-1 "><%= activity.taskName %></td>
-              <td class="border border-gray-300 px-1 py-1 "><%= new Date(activity.start).toLocaleDateString('en-in') %></td>
-              <td class="border border-gray-300 px-1 py-1 "><%= new Date(activity.Finish).toLocaleDateString('en-in') %></td>
-              <td class="border border-gray-300 px-1 py-1 "><%= activity.actualStart ? new Date(activity.actualStart).toLocaleDateString('en-in') : " " %></td>
-              <td class="border border-gray-300 px-1 py-1 "><%= activity.actualFinish ? new Date(activity.actualFinish).toLocaleDateString('en-in') : " " %></td>
+              <td class="border border-gray-300 px-1 py-1 "><%= new Date(activity.start).toLocaleDateString('en-GB') %></td>
+              <td class="border border-gray-300 px-1 py-1 "><%= new Date(activity.Finish).toLocaleDateString('en-GB') %></td>
+              <td class="border border-gray-300 px-1 py-1 "><%= activity.actualStart ? new Date(activity.actualStart).toLocaleDateString('en-GB') : " " %></td>
+              <td class="border border-gray-300 px-1 py-1 "><%= activity.actualFinish ? new Date(activity.actualFinish).toLocaleDateString('en-GB') : " " %></td>
               <td class="border border-gray-300 px-1 py-1 "><%= activity.actualWork %></td>
               <td class="border border-gray-300 px-1 py-1 "><%= activity.submitted ? "Yes" : "No" %></td>
               <td class="border border-gray-300 px-1 py-1 "><%= (activity.leapComplete < 100) ? "No" : "Yes" %></td>
