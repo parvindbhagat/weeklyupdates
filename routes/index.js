@@ -1,6 +1,6 @@
 var express = require("express");
 var router = express.Router();
-const {task: taskModel, taskArchive: taskArchiveModel }= require("../model/task");
+const {task: taskModel, taskArchive }= require("../model/task");
 const resourceModel = require("../model/resource");
 const workModel = require("../model/work");
 const WorkLog = require("../model/workLog");
@@ -15,6 +15,8 @@ const Counter = require("../model/counter");
 const momenttz = require("moment-timezone");
 // const { resource } = require("../app");
 
+// Tracks the state of the /refreshdatabase background job
+let dbRefreshStatus = { state: 'idle', message: 'Ready' }; // states: idle | running | done | error
 
 // function to check user is logged in with MSAL Auth flow
 function isAuthenticated(req, res, next) {
@@ -446,6 +448,69 @@ async function delete90DaysOldTasks(accessToken, req, res) {
   }
 }
 
+
+//Function to archive tasks which are older than 90 days of project completion using projectactualFinishdate by moving them to taskArchive collection and then delete them from task collection
+async function archive90DaysOldTasks(accessToken) {
+  const today = new Date();
+  const archiveDate = new Date(today);
+  archiveDate.setDate(today.getDate() - 90);
+
+  const year = archiveDate.getFullYear();
+  const month = (archiveDate.getMonth() + 1).toString().padStart(2, '0');
+  const day = archiveDate.getDate().toString().padStart(2, '0');
+  const formattedArchiveDate = `${year}-${month}-${day}T00:00:00Z`;
+  const filterQuery = `$filter=ProjectActualFinishDate lt datetime'${formattedArchiveDate}'&$select=ProjectId`;
+
+  if (!accessToken) {
+    console.log("Access token is missing.");
+    return 0;
+  }
+
+  try {
+    // Find projects finished more than 90 days ago
+    const projectAPIresponse = await axios.get(
+      `https://chrysalishrd.sharepoint.com/pwa/_api/ProjectData/Projects?${filterQuery}`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: "application/json",
+        },
+      }
+    );
+
+    const projectsToArchive = projectAPIresponse.data.value;
+    const projectIds = projectsToArchive.map(project => project.ProjectId);
+
+    if (projectIds.length === 0) {
+      console.log("No projects to archive.");
+      return 1;
+    }
+
+    // Fetch tasks from the main collection that belong to those projects
+    const tasksToArchive = await taskModel.find({ projectId: { $in: projectIds } }).lean();
+
+    if (tasksToArchive.length === 0) {
+      console.log("No tasks found to archive.");
+      return 1;
+    }
+
+    // Insert into taskArchive (ignore duplicates via insertMany with ordered: false)
+    await taskArchive.insertMany(tasksToArchive, { ordered: false }).catch(err => {
+      if (err.code !== 11000) throw err; // Ignore duplicate key errors, rethrow others
+    });
+
+    // Delete the archived tasks from the main collection
+    const result = await taskModel.deleteMany({ projectId: { $in: projectIds } });
+
+    console.log(`Archived ${tasksToArchive.length} tasks and deleted ${result.deletedCount} from main collection.`);
+    return 1;
+
+  } catch (error) {
+    console.error("Error archiving old tasks:", error);
+    return 0;
+  }
+}
+
 //GET APP HOME
 router.get("/", async (req, res) => {  
     let msg = req.query.msg || ""; // Get the message from the query string 
@@ -610,7 +675,7 @@ router.get("/login", async (req, res) => {
       redirectUri: process.env.REDIRECT_URI,
     });
     // console.log(authUrl);
-
+    console.log("Redirecting to MSAL auth URL", authUrl);
     res.redirect(authUrl);
   } catch (error) {
     console.log(error);
@@ -628,7 +693,8 @@ router.get("/oauth/redirect", async (req, res) => {
 
   try {
     const response = await msal.acquireTokenByCode(tokenRequest);
-    // console.log('oauth/redirect: API response JSON is: ', JSON.stringify(response, null, 2));
+
+    console.log('oauth/redirect: API response JSON is: ', JSON.stringify(response, null, 2));
     req.session.user = response.account;
     req.session.token = response.accessToken;
     // console.log('session data req.session.user after log in is: ', req.session.user);
@@ -1293,80 +1359,31 @@ router.get('/refreshresourcelist', isAdmin, async (req, res) => {
 });
 
 // REFRESH DATABASE TASKS BY ADMIN  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-router.get("/refreshdatabase", isAdmin, async (req, res) => {
+// Status endpoint polled by the loading page
+router.get("/refreshdatabase/status", isAdmin, (req, res) => {
+  res.json(dbRefreshStatus);
+});
+
+router.get("/refreshdatabase", isAdmin, (req, res) => {
   const accessToken = req.session.token;
   const user = req.session.user;
-  if(!user || !accessToken){
+
+  if (!user || !accessToken) {
     console.log("Either User or Access Token is missing.");
-    res.render('index', { msg: "Please login to proceed with the action."});
+    return res.render('index', { msg: "Please login to proceed with the action." });
   }
-  // Function to fetch Data from all 3 APIs required for the data sync
-  async function fetchDataFromAPIs() {
-    //Get data from Project API 
-    const projectAPIresponse = await axios.get(
-      "https://chrysalishrd.sharepoint.com/pwa/_api/ProjectData/Projects",
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          Accept: "application/json",
-        },
-      }
-    );
-    const allprojects = projectAPIresponse.data.value;
 
-    // Filter out completed projects
-    const inCompleteProjects = allprojects.filter(
-          (project) => project.ProjectStatus !== "Completed"
-        );
-    const completedProjects = allprojects.filter(
-          (project) => project.ProjectStatus === "Completed"
-        );
-    const leapProjects = await taskModel.distinct("projectName");
-    //recently completed projects that are common in compeltedProjects and leapProjects 
-    const recentlyCompletedProjects = completedProjects.filter(
-      (project) => leapProjects.includes(project.ProjectName)
-    );
-    // now we nee to have nonCompleteprojects as combination of incompleteProjects and recentlyCompletedProjects
-    const nonCompleteProjects = [...inCompleteProjects, ...recentlyCompletedProjects];
+  // If already running, just show the loading page (don't start a second job)
+  if (dbRefreshStatus.state !== 'running') {
+    dbRefreshStatus = { state: 'running', message: 'Connecting to SharePoint APIs...' };
 
-    //log DesignPM field value for all non-complete projects
-    for (const project of nonCompleteProjects) {
-      console.log("stat for projects", project.ProjectName, project.DesignPM);
-    }
-    
-    //get data from Tasks API
-    const tasksPromises = nonCompleteProjects.map(async (project) => {
-      const projectId = project.ProjectId;
-      const tasksResponse = await axios.get(
-        `https://chrysalishrd.sharepoint.com/pwa/_api/ProjectData/Projects(guid'${projectId}')/Tasks`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            Accept: "application/json",
-          },
-        }
-      );      
-      return tasksResponse.data.value;
-    });
-    const taskarray = await Promise.all(tasksPromises);
-    
-    const alltasks = taskarray.flat();
-    const activeTasks = alltasks.filter(
-      (task) => task.TaskIsActive === true
-    );
-    const leapTasks = activeTasks.filter(
-      (task) =>
-        task.LEAPApplicationSync === "Yes" ||
-          task.LEAPApplicationSync === "yes"
-    );
-        
-    // get data from Assignments API
-  
-    const assignmentsPromises = nonCompleteProjects.map(
-      async (project) => {
-        const projectId = project.ProjectId;
-        const assignmentsResponse = await axios.get(
-          `https://chrysalishrd.sharepoint.com/pwa/_api/ProjectData/Projects(guid'${projectId}')/Assignments`,
+    // Fire off all work as a detached promise — response is sent immediately below
+    (async () => {
+      // Function to fetch Data from all 3 APIs required for the data sync
+      async function fetchDataFromAPIs() {
+        dbRefreshStatus.message = 'Fetching project list from SharePoint...';
+        const projectAPIresponse = await axios.get(
+          "https://chrysalishrd.sharepoint.com/pwa/_api/ProjectData/Projects",
           {
             headers: {
               Authorization: `Bearer ${accessToken}`,
@@ -1374,134 +1391,242 @@ router.get("/refreshdatabase", isAdmin, async (req, res) => {
             },
           }
         );
+        const allprojects = projectAPIresponse.data.value;
 
-        return assignmentsResponse.data.value;
+        const inCompleteProjects = allprojects.filter(
+          (project) => project.ProjectStatus !== "Completed"
+        );
+        const completedProjects = allprojects.filter(
+          (project) => project.ProjectStatus === "Completed"
+        );
+        const leapProjects = await taskModel.distinct("projectName");
+        const recentlyCompletedProjects = completedProjects.filter(
+          (project) => leapProjects.includes(project.ProjectName)
+        );
+        const nonCompleteProjects = [...inCompleteProjects, ...recentlyCompletedProjects];
+
+        for (const project of nonCompleteProjects) {
+          console.log("stat for projects", project.ProjectName, project.DesignPM);
+        }
+
+        dbRefreshStatus.message = `Fetching tasks for ${nonCompleteProjects.length} projects...`;
+        const tasksPromises = nonCompleteProjects.map(async (project) => {
+          const projectId = project.ProjectId;
+          const tasksResponse = await axios.get(
+            `https://chrysalishrd.sharepoint.com/pwa/_api/ProjectData/Projects(guid'${projectId}')/Tasks`,
+            {
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+                Accept: "application/json",
+              },
+            }
+          );
+          return tasksResponse.data.value;
+        });
+        const taskarray = await Promise.all(tasksPromises);
+
+        const alltasks = taskarray.flat();
+        const activeTasks = alltasks.filter((task) => task.TaskIsActive === true);
+        const leapTasks = activeTasks.filter(
+          (task) => task.LEAPApplicationSync === "Yes" || task.LEAPApplicationSync === "yes"
+        );
+
+        dbRefreshStatus.message = 'Fetching resource assignments...';
+        const assignmentsPromises = nonCompleteProjects.map(async (project) => {
+          const projectId = project.ProjectId;
+          const assignmentsResponse = await axios.get(
+            `https://chrysalishrd.sharepoint.com/pwa/_api/ProjectData/Projects(guid'${projectId}')/Assignments`,
+            {
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+                Accept: "application/json",
+              },
+            }
+          );
+          return assignmentsResponse.data.value;
+        });
+        const assignments = await Promise.all(assignmentsPromises);
+        const allassignments = assignments.flat();
+
+        return { projects: nonCompleteProjects, tasks: leapTasks, resources: allassignments };
       }
-    );
-    const assignments = await Promise.all(assignmentsPromises);
-    const allassignments = assignments.flat();
-  
-    return { projects: nonCompleteProjects, tasks: leapTasks, resources: allassignments  }; 
-  }
-  
 
-  async function updateOrInsertTasks() {
-    try {
-      const { projects, tasks, resources } = await fetchDataFromAPIs();
+      async function updateOrInsertTasks() {
+        const { projects, tasks, resources } = await fetchDataFromAPIs();
 
-      const newTaskIds = tasks.map(task => task.TaskId);
-      await taskModel.deleteMany({ taskId: { $nin: newTaskIds }, source: "PWA" }); //delete tasks from database that are deleted by PM
+        dbRefreshStatus.message = `Syncing ${tasks.length} tasks to database...`;
+        const newTaskIds = tasks.map(task => task.TaskId);
+        await taskModel.deleteMany({ taskId: { $nin: newTaskIds }, source: "PWA" });
 
-  
-      for (const task of tasks) {
-        const project = projects.find(proj => proj.ProjectId === task.ProjectId);
-        if (project) {
-          task.ClientName = project.ClientName;
-          task.InterventionName = project.InterventionName;
-          task.ProjectStatus = project.ProjectStatus;
-          task.ProjectPercentWorkCompleted = project.ProjectPercentWorkCompleted;
-          task.DesignPM = project.DesignPM
-        }
-  
-        const resource = resources.find(res => res.TaskId === task.TaskId);
-        if (resource) {
-          task.ResourceId = resource.ResourceId;
-          task.ResourceName = resource.ResourceName;
-        }
-  
-        const existingTask = await taskModel.findOne({ taskId: task.TaskId });
-  
-        if (existingTask) {
-          // Update existing task
-          if (existingTask.typeofActivity === "Facilitation") {
-            existingTask.actualWork = task.TaskActualWork; // Update actualWork for Facilitation tasks
+        for (const task of tasks) {
+          const project = projects.find(proj => proj.ProjectId === task.ProjectId);
+          if (project) {
+            task.ClientName = project.ClientName;
+            task.InterventionName = project.InterventionName;
+            task.ProjectStatus = project.ProjectStatus;
+            task.ProjectPercentWorkCompleted = project.ProjectPercentWorkCompleted;
+            task.DesignPM = project.DesignPM;
           }
-          existingTask.start = task.TaskStartDate;
-          existingTask.Finish = task.TaskFinishDate;
-          existingTask.taskCompletePercent = task.TaskPercentWorkCompleted;
-          existingTask.LeapSync = task.LEAPApplicationSync;
-          existingTask.clientName = task.ClientName;
-          existingTask.interventionName = task.InterventionName;
-          existingTask.resourceId = task.ResourceId;
-          existingTask.resourceName = task.ResourceName;
-          existingTask.parentTaskName = task.ParentTaskName;
-          existingTask.typeofActivity = task.TypeofActivity;
-          existingTask.taskIsActive = task.TaskIsActive;
-          existingTask.taskName = task.TaskName;
-          existingTask.taskWork = task.TaskWork;
-          existingTask.ProjectPercentWorkCompleted = task.ProjectPercentWorkCompleted;
-          existingTask.ProjectStatus = task.ProjectStatus;
-          existingTask.projectName = task.ProjectName;
-          existingTask.designPM = task.DesignPM;
-          existingTask.consultingDay = task.ConsultingDay;
-          existingTask.taskIndex = task.TaskIndex;
-          // console.log(`Updating existing task: ${existingTask.projectName} - ${existingTask.designPM}`);
-          await existingTask.save();
-        } else {
-          // Insert new task
-          const newTask = new taskModel({
-            projectId: task.ProjectId,
-            projectName: task.ProjectName,
-            ProjectPercentWorkCompleted: task.ProjectPercentWorkCompleted,
-            ProjectStatus: task.ProjectStatus,
-            designPM: task.DesignPM,
-            taskId: task.TaskId,
-            taskName: task.TaskName,
-            parentTaskName: task.ParentTaskName,
-            start: task.TaskStartDate,
-            Finish: task.TaskFinishDate,
-            taskWork: task.TaskWork,
-            typeofActivity: task.TypeofActivity,
-            taskCompletePercent: task.TaskPercentWorkCompleted,
-            LeapSync: task.LEAPApplicationSync,
-            resourceId: task.ResourceId,
-            resourceName: task.ResourceName,
-            clientName: task.ClientName,
-            interventionName: task.InterventionName,
-            consultingDay: task.ConsultingDay,
-            taskIndex: task.TaskIndex,
-            taskIsActive: task.TaskIsActive,
-          });
-          // console.log(`Inserting new task: ${newTask.projectName} - ${newTask.designPM}`);
-          await newTask.save();
+
+          const resource = resources.find(res => res.TaskId === task.TaskId);
+          if (resource) {
+            task.ResourceId = resource.ResourceId;
+            task.ResourceName = resource.ResourceName;
+          }
+
+          const existingTask = await taskModel.findOne({ taskId: task.TaskId });
+
+          if (existingTask) {
+            if (existingTask.typeofActivity === "Facilitation") {
+              existingTask.actualWork = task.TaskActualWork;
+            }
+            existingTask.start = task.TaskStartDate;
+            existingTask.Finish = task.TaskFinishDate;
+            existingTask.taskCompletePercent = task.TaskPercentWorkCompleted;
+            existingTask.LeapSync = task.LEAPApplicationSync;
+            existingTask.clientName = task.ClientName;
+            existingTask.interventionName = task.InterventionName;
+            existingTask.resourceId = task.ResourceId;
+            existingTask.resourceName = task.ResourceName;
+            existingTask.parentTaskName = task.ParentTaskName;
+            existingTask.typeofActivity = task.TypeofActivity;
+            existingTask.taskIsActive = task.TaskIsActive;
+            existingTask.taskName = task.TaskName;
+            existingTask.taskWork = task.TaskWork;
+            existingTask.ProjectPercentWorkCompleted = task.ProjectPercentWorkCompleted;
+            existingTask.ProjectStatus = task.ProjectStatus;
+            existingTask.projectName = task.ProjectName;
+            existingTask.designPM = task.DesignPM;
+            existingTask.consultingDay = task.ConsultingDay;
+            existingTask.taskIndex = task.TaskIndex;
+            await existingTask.save();
+          } else {
+            const newTask = new taskModel({
+              projectId: task.ProjectId,
+              projectName: task.ProjectName,
+              ProjectPercentWorkCompleted: task.ProjectPercentWorkCompleted,
+              ProjectStatus: task.ProjectStatus,
+              designPM: task.DesignPM,
+              taskId: task.TaskId,
+              taskName: task.TaskName,
+              parentTaskName: task.ParentTaskName,
+              start: task.TaskStartDate,
+              Finish: task.TaskFinishDate,
+              taskWork: task.TaskWork,
+              typeofActivity: task.TypeofActivity,
+              taskCompletePercent: task.TaskPercentWorkCompleted,
+              LeapSync: task.LEAPApplicationSync,
+              resourceId: task.ResourceId,
+              resourceName: task.ResourceName,
+              clientName: task.ClientName,
+              interventionName: task.InterventionName,
+              consultingDay: task.ConsultingDay,
+              taskIndex: task.TaskIndex,
+              taskIsActive: task.TaskIsActive,
+            });
+            await newTask.save();
+          }
         }
+        console.log('Tasks updated or inserted successfully');
       }
-      console.log('Tasks updated or inserted successfully');
-    } catch (error) {
-      console.error('Error updating or inserting tasks:', error);
-    }
+
+      try {
+        await updateOrInsertTasks();
+        dbRefreshStatus.message = 'Archiving tasks older than 90 days...';
+        await archive90DaysOldTasks(accessToken);
+        dbRefreshStatus = { state: 'done', message: 'Sync complete! Redirecting...' };
+      } catch (err) {
+        console.error('Error during refreshdatabase background job:', err);
+        dbRefreshStatus = { state: 'error', message: err.message || 'An error occurred during sync.' };
+      }
+    })();
   }
 
-  // Call the function to update or insert tasks
-  await updateOrInsertTasks();
+  // Respond immediately with a loading page — does not wait for the job above
+  res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Refreshing Database...</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; background: #f8f9fa; }
+    .spinner-border { width: 4rem; height: 4rem; }
+    #statusMsg { margin-top: 1.5rem; font-size: 1.1rem; color: #555; min-height: 2rem; text-align: center; }
+    #errorBox { display: none; margin-top: 1rem; }
+  </style>
+</head>
+<body>
+  <h2 class="mb-4">Refreshing Tasks Data</h2>
+  <div class="spinner-border text-warning" role="status" id="spinner">
+    <span class="visually-hidden">Loading...</span>
+  </div>
+  <div id="statusMsg">Connecting to SharePoint APIs...</div>
+  <div id="errorBox" class="alert alert-danger mt-3"></div>
 
-  //call function to deleted 90 days older tasks from the taskModel
-  await delete90DaysOldTasks(accessToken); 
-   
+  <script>
+    const statusMsg = document.getElementById('statusMsg');
+    const spinner = document.getElementById('spinner');
+    const errorBox = document.getElementById('errorBox');
 
-  res.redirect('/alltasks');
+    const poll = setInterval(async () => {
+      try {
+        const res = await fetch('/refreshdatabase/status');
+        const data = await res.json();
+        statusMsg.textContent = data.message || '';
 
+        if (data.state === 'done') {
+          clearInterval(poll);
+          window.location.href = '/alltasks';
+        } else if (data.state === 'error') {
+          clearInterval(poll);
+          spinner.style.display = 'none';
+          errorBox.style.display = 'block';
+          errorBox.textContent = 'Error: ' + data.message;
+        }
+      } catch(e) {
+        statusMsg.textContent = 'Checking status...';
+      }
+    }, 2000);
+  </script>
+</body>
+</html>`);
 });
 
 // all tasks for admin  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 router.get("/alltasks", isAdmin, async (req, res) => {
   try {
-    const { projectName, resourceName } = req.query; // Get filters from query parameters
+    const { projectName, resourceName, page } = req.query;
+    const currentPage = Math.max(1, parseInt(page) || 1);
+    const limit = 50;
+    const skip = (currentPage - 1) * limit;
 
     // Build the query object dynamically
     const query = {};
-    if (projectName) {
-      query.projectName = projectName;
-    }
-    if (resourceName) {
-      query.resourceName = resourceName;
-    }
+    if (projectName) query.projectName = projectName;
+    if (resourceName) query.resourceName = resourceName;
 
-    // Fetch filtered tasks from the database
-    const tasks = await taskModel.find(query).sort({ projectName: 1, taskIndex: 1 });
+    // Run paginated fetch, total count, and distinct dropdowns in parallel
+    const [tasks, totalCount, allProjects, allResources] = await Promise.all([
+      taskModel.find(query).sort({ projectName: 1, taskIndex: 1 }).skip(skip).limit(limit),
+      taskModel.countDocuments(query),
+      taskModel.distinct("projectName"),
+      taskModel.distinct("resourceName"),
+    ]);
 
-    // Render the page with filtered tasks and selected filters
-    res.render("alltasks", { tasks, selectedProject: projectName || "", selectedResource: resourceName || "" });
+    const totalPages = Math.ceil(totalCount / limit);
+
+    res.render("alltasks", {
+      tasks,
+      totalPages,
+      currentPage,
+      totalCount,
+      selectedProject: projectName || "",
+      selectedResource: resourceName || "",
+      allProjects: allProjects.filter(Boolean).sort(),
+      allResources: allResources.filter(Boolean).sort(),
+    });
   } catch (error) {
     console.error("Error fetching tasks:", error);
     res.status(500).send("An error occurred while fetching tasks.");

@@ -28,8 +28,7 @@
       <!-- Dropdown for Project Name -->
       <select id="projectFilter" class="form-select w-auto">
         <option value="">All Projects</option>
-        <% const uniqueProjects = [...new Set(tasks.map(task => task.projectName))]; %>
-        <% uniqueProjects.forEach(project => { %>
+        <% allProjects.forEach(project => { %>
           <option value="<%= project %>" <%= project === selectedProject ? "selected" : "" %>><%= project %></option>
         <% }); %>
       </select>
@@ -37,8 +36,7 @@
       <!-- Dropdown for Resource Name -->
       <select id="resourceFilter" class="form-select w-auto">
         <option value="">All Resources</option>
-        <% const uniqueResources = [...new Set(tasks.map(task => task.resourceName))]; %>
-        <% uniqueResources.forEach(resource => { %>
+        <% allResources.forEach(resource => { %>
           <option value="<%= resource %>" <%= resource === selectedResource ? "selected" : "" %>><%= resource %></option>
         <% }); %>
       </select>
@@ -87,6 +85,17 @@
           <% }); %>
         </tbody>
       </table>
+    </div>
+
+    <!-- Pagination Controls -->
+    <div class="d-flex justify-content-center align-items-center gap-2 my-3 flex-wrap">
+      <% if (currentPage > 1) { %>
+        <a href="/alltasks?page=<%= currentPage - 1 %><%= selectedProject ? '&projectName=' + encodeURIComponent(selectedProject) : '' %><%= selectedResource ? '&resourceName=' + encodeURIComponent(selectedResource) : '' %>" class="btn btn-secondary btn-sm">← Prev</a>
+      <% } %>
+      <span class="fw-bold">Page <%= currentPage %> of <%= totalPages %> &nbsp;|&nbsp; Showing <%= (currentPage - 1) * 50 + 1 %>–<%= Math.min(currentPage * 50, totalCount) %> of <%= totalCount %> tasks</span>
+      <% if (currentPage < totalPages) { %>
+        <a href="/alltasks?page=<%= currentPage + 1 %><%= selectedProject ? '&projectName=' + encodeURIComponent(selectedProject) : '' %><%= selectedResource ? '&resourceName=' + encodeURIComponent(selectedResource) : '' %>" class="btn btn-secondary btn-sm">Next →</a>
+      <% } %>
     </div>
 
     <div class="footer" >

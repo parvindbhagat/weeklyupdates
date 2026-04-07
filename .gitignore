@@ -5,3 +5,4 @@ nginx
 .env
 *.py
 *.html
+*.log

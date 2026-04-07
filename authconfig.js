@@ -27,9 +27,10 @@ let cachedToken = null;
 let tokenExpiry = null;
 
 // Function to get access token for a given scope.
-async function getAccessToken() {
+async function getAccessToken(req) {
     const now = new Date();
     if (cachedToken && tokenExpiry && now < tokenExpiry) {
+      console.log("Using cached access token:", cachedToken, "Expires on:", tokenExpiry);
         return cachedToken; // Return cached token if it's still valid
     }
 
@@ -38,9 +39,12 @@ async function getAccessToken() {
     };
 
     try {
+      console.log("Acquiring new access token...");
         const response = await cca.acquireTokenByClientCredential(tokenRequest);
         cachedToken = response.accessToken;
         tokenExpiry = response.expiresOn; // Update token expiry
+        console.log("Acquired new access token:", cachedToken, "Expires on:", tokenExpiry);
+        console.log(`refresh token if aqcuired: ${JSON.stringify(response)}`);
         return cachedToken;
     } catch (error) {
         console.error("Error acquiring access token:", error);
