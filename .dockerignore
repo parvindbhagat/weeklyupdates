@@ -7,3 +7,4 @@ docker-compose.yaml
 *.txt
 *.py
 *.html
+*.log
