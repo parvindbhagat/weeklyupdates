@@ -694,7 +694,7 @@ router.get("/oauth/redirect", async (req, res) => {
   try {
     const response = await msal.acquireTokenByCode(tokenRequest);
 
-    console.log('oauth/redirect: API response JSON is: ', JSON.stringify(response, null, 2));
+    // console.log('oauth/redirect: API response JSON is: ', JSON.stringify(response, null, 2));
     req.session.user = response.account;
     req.session.token = response.accessToken;
     // console.log('session data req.session.user after log in is: ', req.session.user);
