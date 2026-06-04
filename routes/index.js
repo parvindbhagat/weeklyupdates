@@ -13,6 +13,8 @@ const initializeResources = require("../controller/resourcecontrol");
 const {assignTaskIdsToTaskArchive, assignTaskIdsToTasks, processUserComments} = require("../controller/onetimescript");
 const Counter = require("../model/counter");
 const momenttz = require("moment-timezone");
+const etlRunStateModel = require("../model/etlRunState");
+const { main: runEtl } = require("../controller/etl");
 // const { resource } = require("../app");
 
 // Tracks the state of the /refreshdatabase background job
@@ -70,6 +72,22 @@ async function isAdmin(req, res, next) {
     // );
     res.redirect("/login");
   }
+}
+
+// Middleware: allow only users listed in ZOHOETL_USERS env var
+function isZohoETLUser(req, res, next) {
+  if (!req.session || !req.session.user) {
+    return res.status(401).json({ success: false, message: 'Not authenticated' });
+  }
+  const allowedUsers = (process.env.ZOHOETL_USERS || '')
+    .split(',')
+    .map(u => u.trim().replace(/^'|'$/g, '').trim())
+    .filter(Boolean);
+  const userName = req.session.user.name;
+  if (allowedUsers.includes(userName)) {
+    return next();
+  }
+  return res.status(403).json({ success: false, message: 'Access denied' });
 }
 
 //function to check if user is a MANAGER also allow Admin role to go to this page
@@ -554,20 +572,82 @@ router.get("/leap", isAuthenticated, isFTE, async (req, res) => {
 res.render("leap", { msg, isLeader, ispm  }); // Render the leap page with the resource details and isLeader status
 });
 
-router.get("/home", isAuthenticated, redirectBasedOnGroup, async (req, res) => {  
+router.get("/home", isAuthenticated, redirectBasedOnGroup, async (req, res) => {
   const accessToken = req.session.token;
   const user = req.session.user;
   const resourceName = user.name;
   const resource = await resourceModel.findOne({ resourceName: resourceName }, { resourceRole: 1 }).lean();
   const resourceRole = resource ? resource.resourceRole : null;
-  // console.log(`User role is: ${resourceRole}`);
-  // await assignTaskIdsToTaskArchive(); // Assign task IDs to taskArchive collection
-  // await assignTaskIdsToTasks(); // Assign task IDs to tasks collection
   if (resourceRole === "Admin") {
-  await initializeResources(accessToken); // Initialize resources if needed
+    await initializeResources(accessToken); // Initialize resources if needed
   }
+
+  // Determine if current user can trigger Zoho ETL
+  const allowedUsers = (process.env.ZOHOETL_USERS || '')
+    .split(',')
+    .map(u => u.trim().replace(/^'|'$/g, '').trim())
+    .filter(Boolean);
+  const canRunZohoETL = allowedUsers.includes(user.name);
+
+  // Fetch last run state to show on the tile
+  const etlState = await etlRunStateModel.findById('zohoEtlState').lean();
+
   let msg = "";
-res.render("home", { msg });
+  res.render("home", { msg, canRunZohoETL, etlState });
+});
+
+// POST /zoho-etl/run — run the Zoho ETL process (ZOHOETL_USERS only)
+router.post("/zoho-etl/run", isAuthenticated, isZohoETLUser, async (req, res) => {
+  const user = req.session.user;
+  const now = new Date();
+
+  // Read last successful run from DB; default to today at midnight on first run
+  let etlState = await etlRunStateModel.findById('zohoEtlState').lean();
+  let fromDate = etlState?.lastSuccessfulRun
+    ? new Date(etlState.lastSuccessfulRun)
+    : (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; })();
+
+  console.log(`[ZohoETL] Run triggered by ${user.name}. fromDate: ${fromDate.toISOString()}`);
+
+  // Record the attempt
+  await etlRunStateModel.findByIdAndUpdate(
+    'zohoEtlState',
+    { lastAttemptedAt: now, lastRunBy: user.name },
+    { upsert: true, new: true }
+  );
+
+  try {
+    const result = await runEtl(fromDate);
+    console.log(`[ZohoETL] Completed. Status: ${result.status}`);
+
+    if (result.status === 'Error') {
+      // Do NOT update lastSuccessfulRun — next run will retry from the same fromDate window
+      await etlRunStateModel.findByIdAndUpdate(
+        'zohoEtlState',
+        { lastStatus: 'Error' },
+        { upsert: true, new: true }
+      );
+      return res.status(500).json({ success: false, message: result.error || 'ETL failed', result });
+    }
+
+    // Success or PartialSuccess — advance lastSuccessfulRun so next run picks up from here
+    await etlRunStateModel.findByIdAndUpdate(
+      'zohoEtlState',
+      { lastSuccessfulRun: now, lastStatus: result.status, lastRunBy: user.name, recordsInserted: result.successCount, failedRecords: result.failedCount },
+      { upsert: true, new: true }
+    );
+
+    return res.json({ success: true, message: `ETL ${result.status}`, result });
+
+  } catch (err) {
+    console.error(`[ZohoETL] Unexpected error: ${err.message}`);
+    await etlRunStateModel.findByIdAndUpdate(
+      'zohoEtlState',
+      { lastStatus: 'Error' },
+      { upsert: true, new: true }
+    );
+    return res.status(500).json({ success: false, message: err.message });
+  }
 });
 
 //admin page

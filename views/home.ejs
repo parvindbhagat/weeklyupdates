@@ -15,7 +15,7 @@
             align-items: center;
             justify-content: center;
             height: 100vh;
-            padding-top: 60px; /* Adjust for navbar height */
+            padding-top: 120px; /* Adjust for navbar height */
             background-image: url("/images/BG_Home.jpg");
       /* image path */
       background-size: cover;
@@ -31,7 +31,7 @@
             background-color:var(--primary-color);
             color: white;
             padding: 15px;
-            text-align: center;
+            /* text-align: center; */
             width: 100%;
             position: fixed;
             top: 0;
@@ -102,7 +102,82 @@
             <img src="/images/SharepointLofo.png" alt="MyChrysalis">
             <p>My Chrysalis</p>
         </a>
+        <% if (canRunZohoETL) { %>
+        <div class="tile" id="zohoEtlTile" onclick="runZohoETL()" style="cursor:pointer;">
+            <img src="/images/logo-ic.png" alt="Zoho Export Icon">
+            <p>Zoho Export</p>
+            <% if (etlState && etlState.lastSuccessfulRun) { %>
+            <small style="color:#fff;font-size:0.6rem;display:block;margin-top:4px;">
+                Last run: <%= new Date(etlState.lastSuccessfulRun).toLocaleString('en-IN', {timeZone:'Asia/Kolkata'}) %>
+            </small>
+            <% if (etlState.lastRunBy) { %>
+            <small style="color:#fff;font-size:0.6rem;display:block;">
+                By: <%= etlState.lastRunBy %>
+            </small>
+            <% } %>
+            <% } else { %>
+            <small style="color:#fff;font-size:0.6rem;display:block;margin-top:4px;">Never run</small>
+            <% } %>
+            <% if (etlState.lastSuccessfulRun && etlState.recordsInserted !== undefined) { %>
+            <small style="color:#fff;font-size:0.6rem;display:block;">
+                Records Inserted: <%= etlState.recordsInserted %>
+            </small>
+            <% if (etlState.failedRecords !== undefined) { %>
+            <small style="color:#fff;font-size:0.6rem;display:block;">
+                Failed Records: <%= etlState.failedRecords %>
+            </small>
+            <% } %>
+            <%  } %>
+        </div>
+        <% } %>
         <!-- Add more tiles as needed -->
     </div>
+
+    <% if (canRunZohoETL) { %>
+    <!-- Status overlay shown while ETL is running -->
+    <div id="etlOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;flex-direction:column;color:#fff;font-size:1.2rem;">
+        <div id="etlSpinner" style="font-size:2rem;margin-bottom:1rem;">&#8987;</div>
+        <div id="etlMessage">Running Zoho Export, please wait&hellip;</div>
+    </div>
+
+    <script>
+    async function runZohoETL() {
+        const tile = document.getElementById('zohoEtlTile');
+        const overlay = document.getElementById('etlOverlay');
+        const msgEl = document.getElementById('etlMessage');
+
+        tile.style.pointerEvents = 'none';
+        tile.style.opacity = '0.6';
+        overlay.style.display = 'flex';
+
+        try {
+            const res = await fetch('/zoho-etl/run', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const data = await res.json();
+
+            if (res.ok && data.success) {
+                msgEl.textContent = 'Zoho Export completed successfully! Refreshing…';
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                msgEl.textContent = 'Export failed: ' + (data.message || 'Unknown error');
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                    tile.style.pointerEvents = '';
+                    tile.style.opacity = '';
+                }, 4000);
+            }
+        } catch (err) {
+            msgEl.textContent = 'Network error: ' + err.message;
+            setTimeout(() => {
+                overlay.style.display = 'none';
+                tile.style.pointerEvents = '';
+                tile.style.opacity = '';
+            }, 4000);
+        }
+    }
+    </script>
+    <% } %>
 </body>
 </html>
