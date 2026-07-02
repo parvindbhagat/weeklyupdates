@@ -48,7 +48,7 @@ const ClientSchema = new Schema(
       comment:  '6-digit unique client ID from SharePoint (your master PK)',
     },
 
-    shortName: {
+    clientName: {
       type:     String,
       required: [true, 'Short name is required'],
       trim:     true,
@@ -56,7 +56,7 @@ const ClientSchema = new Schema(
       comment:  'e.g. "HDFC Bank" — used for fuzzy matching in CA report',
     },
 
-    fullName: {
+    clientFullName: {
       type:     String,
       required: [true, 'Full name is required'],
       trim:     true,
@@ -118,8 +118,8 @@ const ClientSchema = new Schema(
 
 // ── Pre-save: compute normalisedName ──────────────────────────────────────
 ClientSchema.pre('save', function (next) {
-  if (this.isModified('shortName') || this.isNew) {
-    this.normalisedName = normalise(this.shortName);
+  if (this.isModified('clientName') || this.isNew) {
+    this.normalisedName = normalise(this.clientName);
   }
   next();
 });

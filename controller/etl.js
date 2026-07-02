@@ -75,7 +75,7 @@ async function getZohoData(zohoAccessToken, fromDate) {
         return [];
     }
     console.log('[ZohoETL] Total workbooks fetched:', workbooks.length);
-
+    console.log('[ZohoETL] Sample workbook:', workbooks[0]);
     // Filter workbooks by name and modified time >= fromDate
     const now = new Date();
     console.log(`[ZohoETL] Filtering workbooks modified between ${fromDate.toISOString()} and ${now.toISOString()}`);
@@ -83,7 +83,9 @@ async function getZohoData(zohoAccessToken, fromDate) {
     const filteredWorkbooks = workbooks.filter(workbook => {
         const hasCorrectName = workbook.workbook_name.toLowerCase().includes('intervention feedback form');
         const modifiedTime = new Date(workbook.last_modified_time);
+        console.log(`[ZohoETL] Workbook: ${workbook.workbook_name}, Modified: ${modifiedTime.toISOString()}, Matches Name: ${hasCorrectName}`);
         const isModifiedAfterFromDate = modifiedTime >= fromDate && modifiedTime <= now;
+        console.log(`[ZohoETL] Workbook: ${workbook.workbook_name}, Modified: ${modifiedTime.toISOString()}, Matches Date: ${isModifiedAfterFromDate}`);
         return hasCorrectName && isModifiedAfterFromDate;
     });
 

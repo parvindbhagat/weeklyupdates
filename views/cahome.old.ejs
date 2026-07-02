@@ -67,7 +67,7 @@ body{font-family:"Century Gothic","CenturyGothic",AppleGothic,Futura,sans-serif;
 .nav-tab.active{color:var(--red);border-bottom-color:var(--red);}
 
 /* ── MAIN ── */
-.main{margin:0 auto;padding:28px 40px;}
+.main{max-width:1500px;margin:0 auto;padding:28px 40px;}
 .panel{display:none;}.panel.active{display:block;}
 
 /* ── SECTION HEADERS ── */
@@ -197,59 +197,6 @@ table.ctbl{width:100%;border-collapse:collapse;font-size:12px;}
 .sales-note-title{font-weight:700;color:var(--red);font-size:14px;margin-bottom:8px;}
 .sales-note-body{font-size:12px;color:var(--text);line-height:1.9;}
 
-/* ── HUMAN-IN-LOOP: STATUS BADGES ── */
-.status-badge{display:inline-block;font-size:10px;font-weight:700;padding:3px 9px;border-radius:10px;letter-spacing:.3px;white-space:nowrap;}
-.status-pending{background:#f1f2f7;color:var(--text-muted);border:1px solid var(--border);}
-.status-approved{background:#e6f8f0;color:#0a6640;border:1px solid #5dcaa5;}
-.status-rejected{background:var(--red-light);color:var(--red-dark);border:1px solid var(--red);}
-
-/* ── HUMAN-IN-LOOP: ACTION BUTTONS ── */
-.btn-approve,.btn-reject{font-family:inherit;font-size:10.5px;font-weight:700;padding:4px 10px;border-radius:7px;cursor:pointer;border:1.5px solid;transition:all .15s;white-space:nowrap;}
-.btn-approve{background:#e6f8f0;color:#0a6640;border-color:#5dcaa5;}
-.btn-approve:hover{background:#5dcaa5;color:#fff;border-color:#5dcaa5;}
-.btn-reject{background:var(--red-light);color:var(--red-dark);border-color:var(--red);}
-.btn-reject:hover{background:var(--red);color:#fff;border-color:var(--red);}
-.action-cell{white-space:nowrap;display:flex;gap:5px;align-items:center;}
-
-/* ── HUMAN-IN-LOOP: ROW STATES ── */
-.ctbl tr.row-approved td{background:rgba(93,202,165,.07);}
-.ctbl tr.row-rejected td{background:rgba(233,87,87,.05);opacity:.7;}
-.ctbl tr.row-rejected .co-name{text-decoration:line-through;color:var(--text-muted);}
-.rejection-reason-cell{font-size:10.5px;color:var(--red-dark);font-style:italic;max-width:160px;line-height:1.4;}
-
-/* ── REJECTION MODAL ── */
-.rej-modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center;}
-.rej-modal-bg.open{display:flex;}
-.rej-modal{background:#fff;border-radius:16px;padding:30px 32px;width:460px;max-width:95vw;box-shadow:0 12px 48px rgba(0,0,0,.2);font-family:"Century Gothic","CenturyGothic",AppleGothic,Futura,sans-serif;}
-.rej-modal-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;}
-.rej-modal-title{font-size:16px;font-weight:700;color:var(--red);}
-.rej-modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-muted);line-height:1;padding:0 2px;}
-.rej-modal-close:hover{color:var(--text);}
-.rej-modal-company{font-size:13px;color:var(--text-muted);margin-bottom:20px;}
-.rej-modal-company strong{color:var(--text);}
-.rej-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:8px;}
-.rej-reason-input{width:100%;border:1.5px solid var(--border);border-radius:9px;padding:10px 13px;font-family:inherit;font-size:13px;color:var(--text);resize:vertical;min-height:88px;outline:none;transition:border-color .15s;}
-.rej-reason-input:focus{border-color:var(--red);}
-.rej-reason-input::placeholder{color:var(--text-muted);}
-.rej-options{display:flex;gap:10px;margin:14px 0 20px;}
-.rej-opt{flex:1;padding:9px 10px;border-radius:9px;border:1.5px solid var(--border);font-family:inherit;font-size:11.5px;cursor:pointer;background:#fff;color:var(--text);transition:all .15s;text-align:left;}
-.rej-opt:hover,.rej-opt.active{border-color:var(--red);background:var(--red-light);color:var(--red-dark);}
-.rej-opt strong{display:block;font-size:12px;margin-bottom:2px;}
-.rej-opt small{font-size:10.5px;color:var(--text-muted);}
-.rej-opt.active small{color:var(--red);}
-.rej-modal-actions{display:flex;gap:10px;justify-content:flex-end;}
-.rej-modal-actions .btn-cancel{padding:9px 20px;border-radius:9px;border:1px solid var(--border);font-family:inherit;font-size:13px;cursor:pointer;background:#fff;color:var(--text-muted);}
-.rej-modal-actions .btn-cancel:hover{background:var(--bg);}
-.rej-modal-actions .btn-confirm-reject{padding:9px 22px;border-radius:9px;border:none;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;background:var(--red);color:#fff;transition:background .15s;}
-.rej-modal-actions .btn-confirm-reject:hover{background:var(--red-dark);}
-.rej-modal-actions .btn-confirm-reject:disabled{opacity:.45;cursor:not-allowed;}
-
-/* ── DECISION SUMMARY BAR (per sector table) ── */
-.decision-bar{display:flex;gap:14px;align-items:center;padding:8px 18px;background:#f8f9fc;border-top:1px solid var(--border);font-size:11.5px;flex-wrap:wrap;}
-.dsb-item{display:flex;align-items:center;gap:5px;}
-.dsb-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
-.dsb-pending{background:var(--border);}.dsb-approved{background:#5dcaa5;}.dsb-rejected{background:var(--red);}
-
 /* ── FOOTER ── */
 footer{background:var(--text);color:rgba(255,255,255,.6);padding:22px 40px;font-size:11.5px;margin-top:32px;}
 .foot-inner{max-width:1500px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:9px;}
@@ -287,8 +234,9 @@ footer strong{color:#FCB22B;}
   <span class="data-bar-label">Data Source:</span>
   <span class="edition-badge" id="edition-badge">2026 Edition</span>
   <span class="sep">|</span>
-  <span class="data-bar-label">Choose month:</span>
-  <select id="edition-select"></select>
+  <span class="data-bar-label">Load different month:</span>
+  <input type="file" id="json-file-input" accept=".json" title="Upload a monthly JSON data file">
+  <button class="btn-load-json" onclick="document.getElementById('json-file-input').click()">📂 Load JSON</button>
   <span class="sep">|</span>
   <span class="data-bar-label">Last updated: <span id="prepared-date">—</span></span>
 </div>
@@ -333,34 +281,6 @@ footer strong{color:#FCB22B;}
   </div>
 </div>
 
-<!-- REJECTION MODAL -->
-<div class="rej-modal-bg" id="rejModalBg" onclick="if(event.target===this)closeRejModal()">
-  <div class="rej-modal">
-    <div class="rej-modal-header">
-      <div class="rej-modal-title">✕&ensp;Reject Organisation</div>
-      <button class="rej-modal-close" onclick="closeRejModal()" title="Close">&times;</button>
-    </div>
-    <div class="rej-modal-company">You are rejecting: <strong id="rejModalCompany">—</strong></div>
-    <div class="rej-label">Reason for rejection <span style="color:var(--red)">*</span></div>
-    <textarea class="rej-reason-input" id="rejReasonInput" placeholder="e.g. Existing vendor contract until Dec 2026, Budget freeze confirmed, Competitor relationship…" oninput="onRejReasonInput()"></textarea>
-    <div class="rej-label" style="margin-top:16px;">Exclusion type</div>
-    <div class="rej-options">
-      <button class="rej-opt active" id="rejOptTimed" onclick="selectRejOpt('timed')">
-        <strong>⏱ Time-limited</strong>
-        <small>Re-evaluate next month</small>
-      </button>
-      <button class="rej-opt" id="rejOptPermanent" onclick="selectRejOpt('permanent')">
-        <strong>🚫 Permanent</strong>
-        <small>Never show again</small>
-      </button>
-    </div>
-    <div class="rej-modal-actions">
-      <button class="btn-cancel" onclick="closeRejModal()">Cancel</button>
-      <button class="btn-confirm-reject" id="rejConfirmBtn" onclick="confirmRejection()" disabled>Confirm Rejection</button>
-    </div>
-  </div>
-</div>
-
 <script>
 /* ═══════════════════════════════════════════════════════
    CHRYSALIS HRD REPORT TEMPLATE ENGINE
@@ -401,13 +321,23 @@ var _expScope  = 'filtered';
 
 // ── Bootstrap: load embedded JSON or from file ────────────────────────────
 window.addEventListener('DOMContentLoaded', function() {
-  // Wire up edition selector
-  populateEditionSelect();
-  document.getElementById('edition-select').addEventListener('change', function(e) {
-    var editionKey = e.target.value;
-    if (!editionKey) return;
-    window.location.href = '/ca/' + editionKey;
-    console.log('Loading edition:', editionKey);
+  // Wire up file input
+  document.getElementById('json-file-input').addEventListener('change', function(e) {
+    var file = e.target.files[0];
+    if (!file) return;
+    setLoaderMsg('Loading ' + file.name + '…');
+    showLoader();
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      try {
+        var data = JSON.parse(ev.target.result);
+        renderReport(data);
+      } catch(err) {
+        hideLoader();
+        alert('Invalid JSON file: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
   });
 
   // Field toggles
@@ -417,13 +347,7 @@ window.addEventListener('DOMContentLoaded', function() {
 
   // Load embedded data
   setLoaderMsg('Loading report data…');
-  try {
-    renderReport(EMBEDDED_DATA);
-  } catch (err) {
-    console.error(err);
-    setLoaderMsg('Report render failed: ' + (err.message || 'unknown error'));
-    hideLoader();
-  }
+  renderReport(EMBEDDED_DATA);
 });
 
 // ── Loader helpers ────────────────────────────────────────────────────────
@@ -434,12 +358,9 @@ function setLoaderMsg(msg) { document.getElementById('loader-msg').textContent =
 // ── Main render entry ─────────────────────────────────────────────────────
 function renderReport(data) {
   REPORT = data;
-
-  if (!data || typeof data !== 'object' || !data.meta || !Array.isArray(data.sectors)) {
-    setLoaderMsg('Unable to render report: invalid or missing report data.');
-    hideLoader();
-    document.getElementById('main-panels').innerHTML = '<div style="padding:40px 0 0; color:#5a5a7a; font-size:15px; text-align:center;">No report data is available. Upload a valid JSON file or import a report first.</div>';
-    return;
+  if (!data || !data.meta || !Array.isArray(data.sectors)) {
+    setLoaderMsg('No report data available. Upload a valid JSON file or import data first.');
+    return hideLoader();
   }
 
   setLoaderMsg('Building layout…');
@@ -452,7 +373,6 @@ function renderReport(data) {
   renderNav(data);
   renderAllPanels(data);
   renderFooter(data);
-  setEditionKey(data);
   updateDataBar(data);
 
   setTimeout(renderCharts, 80);
@@ -617,43 +537,21 @@ function renderCompanyTable(s) {
   html += '<thead><tr>';
   html += '<th class="cb-col"><input type="checkbox" class="row-cb" onchange="toggleSelectAll2(\''+sid+'\',this)"></th>';
   html += '<th style="width:36px">SN</th><th style="min-width:160px">Company Name</th>';
-  html += '<th style="min-width:160px">Primary Contact</th><th style="min-width:150px">Secondary Contacts</th>';
+  html += '<th style="min-width:160px">Primary Contact</th><th style="min-width:150px">Secondary Contact</th>';
   html += '<th style="min-width:170px">Why Now (Buying Signal)</th>';
   html += '<th style="min-width:180px">Chrysalis HRD Themes</th>';
   html += '<th style="min-width:200px">Chrysalis HRD Sales Angle</th>';
-  html += '<th style="min-width:90px">Status</th>';
-  html += '<th style="min-width:150px">Rejection Reason</th>';
-  html += '<th style="min-width:140px">Decision</th>';
   html += '</tr></thead>';
   html += '<tbody id="tbody-'+esc(sid)+'">';
 
-  s.companies.forEach(function(c, idx) {
-    var status = c.status || 'pending';
-    var rowClass = 'row-'+status;
+  s.companies.forEach(function(c) {
     var sigTag = c.hot
       ? '<span class="signal-hot">'+esc(c.buying_signal)+'</span>'
       : '<span class="signal-tag">'+esc(c.buying_signal)+'</span>';
     var themes = c.hrd_themes.split(',').map(function(t){
       return '<span class="theme-tag">'+esc(t.trim())+'</span>';
     }).join('');
-    var statusBadge = '<span class="status-badge status-'+status+'">'+statusLabel(status)+'</span>';
-    var reasonCell = (status === 'rejected' && c.rejection_reason)
-      ? '<span class="rejection-reason-cell">'+esc(c.rejection_reason)+'</span>'
-      : '<span style="color:var(--border)">—</span>';
-    // Action buttons: hide if already decided
-    var actionCell;
-    if (status === 'pending') {
-      var coId = esc(c._id || (s.id+'-'+idx));
-      actionCell = '<div class="action-cell">'
-        + `<button class="btn-approve" onclick="approveCompany(this,'${coId}','${esc(c.company)}')">✓ Approve</button>`
-        + `<button class="btn-reject"  onclick="openRejModal(this,'${coId}','${esc(c.company)}')">✕ Reject</button>`
-        + '</div>';
-    } else if (status === 'approved') {
-      actionCell = '<span style="font-size:11px;color:#0a6640;font-weight:700;">✓ Done</span>';
-    } else {
-      actionCell = `<button class="btn-approve" style="font-size:10px;" onclick="undoDecision(this,'${esc(c._id || (s.id+'-'+idx))}')">↩ Undo</button>`;
-    }
-    html += '<tr class="'+rowClass+'" data-coid="'+(c._id||'')+'" data-company="'+esc(c.company)+'" data-status="'+status+'">';
+    html += '<tr>';
     html += '<td class="cb-col"><input type="checkbox" class="row-cb" onchange="updateSelCount(this)"></td>';
     html += '<td class="sn-cell">'+esc(c.sn)+'</td>';
     html += '<td><div class="co-name">'+esc(c.company)+'</div><div class="co-sub">'+esc(c.subsector)+'</div></td>';
@@ -662,16 +560,10 @@ function renderCompanyTable(s) {
     html += '<td>'+sigTag+'</td>';
     html += '<td>'+themes+'</td>';
     html += '<td><span class="angle-text">&ldquo;'+esc(c.sales_angle)+'&rdquo;</span></td>';
-    html += '<td>'+statusBadge+'</td>';
-    html += '<td>'+reasonCell+'</td>';
-    html += '<td>'+actionCell+'</td>';
     html += '</tr>';
   });
 
   html += '</tbody></table></div>';
-  html += '<div class="decision-bar" id="decbar-'+esc(sid)+'">'
-    + buildDecisionBar(s.companies)
-    + '</div>';
   html += '<div class="tbl-footer" id="footer-'+esc(sid)+'">Showing '+s.companies.length+' companies &middot; Sub-Sector shown under Company Name</div>';
   html += '</div>';
   return html;
@@ -788,46 +680,6 @@ function renderFooter(d) {
 function updateDataBar(d) {
   document.getElementById('edition-badge').textContent = d.meta.edition + ' Edition';
   document.getElementById('prepared-date').textContent = d.meta.prepared_date;
-  populateEditionSelect();
-}
-
-function getEditionKeys() {
-  var keys = [];
-  var now = new Date();
-  for (var i = 0; i < 3; i++) {
-    var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    var month = d.getMonth() + 1;
-    if (month < 10) month = '0' + month;
-    keys.push(d.getFullYear() + '-' + month);
-  }
-  return keys;
-}
-
-function formatEditionLabel(key) {
-  var months = {
-    '01': 'January', '02': 'February', '03': 'March', '04': 'April', '05': 'May', '06': 'June',
-    '07': 'July', '08': 'August', '09': 'September', '10': 'October', '11': 'November', '12': 'December'
-  };
-  var parts = key.split('-');
-  if (parts.length !== 2) return key;
-  return months[parts[1]] + ' ' + parts[0];
-}
-
-function populateEditionSelect() {
-  var select = document.getElementById('edition-select');
-  if (!select) return;
-  var editionList = Array.isArray(AVAILABLE_EDITIONS) ? AVAILABLE_EDITIONS : [];
-  var current = CURRENT_EDITION || (editionList[0] && editionList[0].editionKey) || '';
-  select.innerHTML = '<option value="">Select edition</option>';
-  editionList.forEach(function(item) {
-    var key = item.editionKey;
-    var label = item.meta && item.meta.edition ? item.meta.edition : formatEditionLabel(key);
-    var option = document.createElement('option');
-    option.value = key;
-    option.textContent = label;
-    if (key === current) option.selected = true;
-    select.appendChild(option);
-  });
 }
 
 // ── Charts ────────────────────────────────────────────────────────────────
@@ -976,8 +828,8 @@ function doExport() {
   if (fields.sn)             header.push('SN');
   if (fields.company)        header.push('Company Name');
   if (fields.subsector)      header.push('Sub-Sector');
-  if (fields.primary_buyer)  header.push('Primary Buyer');
-  if (fields.secondary_buyers) header.push('Secondary Buyers');
+  if (fields.primary_buyer)  header.push('Primary Contact');
+  if (fields.secondary_buyers) header.push('Secondary Contact');
   if (fields.buying_signal)  header.push('Why Now (Buying Signal)');
   if (fields.hrd_themes)     header.push('Chrysalis HRD Themes');
   if (fields.sales_angle)    header.push('Chrysalis HRD Sales Angle');
@@ -1030,207 +882,9 @@ function doExport() {
 }
 
 // ═══════════════════════════════════════════════════════
-// HUMAN-IN-LOOP: APPROVE / REJECT / UNDO
-// ═══════════════════════════════════════════════════════
-
-// ── API base (set this to your Express app URL in production) ─────────────
-var API_BASE = '/ca';
-var CURRENT_EDITION = '';   // set after renderReport()
-var AVAILABLE_EDITIONS = <%- JSON.stringify(editions || []) %>;
-
-// ── Derive edition key from loaded report ─────────────────────────────────
-function setEditionKey(data) {
-  var ed = (data.meta && data.meta.edition) || '';
-  var months = {january:'01',february:'02',march:'03',april:'04',may:'05',june:'06',
-                july:'07',august:'08',september:'09',october:'10',november:'11',december:'12'};
-  var parts = ed.toLowerCase().trim().split(/\s+/);
-  CURRENT_EDITION = (parts[1] || '') + '-' + (months[parts[0]] || '00');
-}
-
-// ── Helper: update a row's visual state in-place ──────────────────────────
-function setRowDecision(row, status, reason) {
-  reason = reason || '';
-  row.className = row.className.replace(/row-(pending|approved|rejected)/g,'') + ' row-'+status;
-  row.setAttribute('data-status', status);
-  // Status badge cell (col 9 — index 8 after checkbox)
-  var cells = row.querySelectorAll('td');
-  if (cells[8]) cells[8].innerHTML = '<span class="status-badge status-'+status+'">'+statusLabel(status)+'</span>';
-  // Reason cell (col 10)
-  if (cells[9]) {
-    cells[9].innerHTML = (status === 'rejected' && reason)
-      ? '<span class="rejection-reason-cell">'+esc(reason)+'</span>'
-      : '<span style="color:var(--border)">—</span>';
-  }
-  // Action cell (col 11)
-  if (cells[10]) {
-    if (status === 'approved') {
-      cells[10].innerHTML = '<span style="font-size:11px;color:#0a6640;font-weight:700;">✓ Done</span>';
-    } else if (status === 'rejected') {
-      var coId = row.getAttribute('data-coid') || '';
-      cells[10].innerHTML = `<button class="btn-approve" style="font-size:10px;" onclick="undoDecision(this,''+coId+'')">↩ Undo</button>`;
-    } else {
-      var coId2 = row.getAttribute('data-coid') || '';
-      var coName = row.getAttribute('data-company') || '';
-      cells[10].innerHTML = '<div class="action-cell">'
-        + `<button class="btn-approve" onclick="approveCompany(this,''+coId2+'',''+esc(coName)+'')">✓ Approve</button>`
-        + `<button class="btn-reject" onclick="openRejModal(this,''+coId2+'',''+esc(coName)+'')">✕ Reject</button>`
-        + '</div>';
-    }
-  }
-  // Rebuild decision bar for this sector table
-  var tblWrap = row.closest('.tbl-wrap');
-  if (tblWrap) {
-    var sid = tblWrap.id.replace('tbl-','');
-    refreshDecisionBar(sid);
-  }
-}
-
-// ── Approve ───────────────────────────────────────────────────────────────
-function approveCompany(btn, coId, coName) {
-  if (!CURRENT_EDITION) { alert('No active edition loaded.'); return; }
-  btn.disabled = true;
-  btn.textContent = '…';
-  fetch(API_BASE+'/reports/'+CURRENT_EDITION+'/companies/'+coId+'/approve', {
-    method: 'PATCH',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ approvedBy: 'leadership' })
-  })
-  .then(function(r){ return r.json(); })
-  .then(function(res) {
-    if (res.error) { alert('Error: '+res.error); btn.disabled=false; btn.textContent='✓ Approve'; return; }
-    var row = btn.closest('tr');
-    setRowDecision(row, 'approved', '');
-  })
-  .catch(function(err){ alert('Network error: '+err.message); btn.disabled=false; btn.textContent='✓ Approve'; });
-}
-
-// ── Rejection modal state ─────────────────────────────────────────────────
-var _rejTarget = { btn:null, coId:'', coName:'', neverShowAgain:false };
-
-function openRejModal(btn, coId, coName) {
-  _rejTarget = { btn:btn, coId:coId, coName:coName, neverShowAgain:false };
-  document.getElementById('rejModalCompany').textContent = coName;
-  document.getElementById('rejReasonInput').value = '';
-  document.getElementById('rejConfirmBtn').disabled = true;
-  // Reset option selection to timed
-  selectRejOpt('timed');
-  document.getElementById('rejModalBg').classList.add('open');
-  setTimeout(function(){ document.getElementById('rejReasonInput').focus(); }, 80);
-}
-
-function closeRejModal() {
-  document.getElementById('rejModalBg').classList.remove('open');
-  document.getElementById('rejReasonInput').value = '';
-  if (_rejTarget.btn) { _rejTarget.btn.disabled = false; }
-}
-
-function selectRejOpt(type) {
-  _rejTarget.neverShowAgain = (type === 'permanent');
-  document.getElementById('rejOptTimed').classList.toggle('active', type==='timed');
-  document.getElementById('rejOptPermanent').classList.toggle('active', type==='permanent');
-}
-
-function onRejReasonInput() {
-  var val = document.getElementById('rejReasonInput').value.trim();
-  document.getElementById('rejConfirmBtn').disabled = (val.length < 3);
-}
-
-function confirmRejection() {
-  var reason = document.getElementById('rejReasonInput').value.trim();
-  if (!reason || reason.length < 3) { return; }
-  if (!CURRENT_EDITION) { alert('No active edition loaded.'); return; }
-
-  var confirmBtn = document.getElementById('rejConfirmBtn');
-  confirmBtn.disabled = true;
-  confirmBtn.textContent = 'Saving…';
-
-  fetch(API_BASE+'/reports/'+CURRENT_EDITION+'/companies/'+_rejTarget.coId+'/reject', {
-    method: 'PATCH',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({
-      rejection_reason: reason,
-      rejectedBy: 'leadership',
-      neverShowAgain: _rejTarget.neverShowAgain
-    })
-  })
-  .then(function(r){ return r.json(); })
-  .then(function(res) {
-    confirmBtn.textContent = 'Confirm Rejection';
-    if (res.error) { confirmBtn.disabled=false; alert('Error: '+res.error); return; }
-    var row = _rejTarget.btn ? _rejTarget.btn.closest('tr') : null;
-    if (row) setRowDecision(row, 'rejected', reason);
-    closeRejModal();
-  })
-  .catch(function(err){
-    confirmBtn.disabled=false; confirmBtn.textContent='Confirm Rejection';
-    alert('Network error: '+err.message);
-  });
-}
-
-// ── Undo: reset a decision back to pending ────────────────────────────────
-function undoDecision(btn, coId) {
-  if (!confirm('Reset this decision back to Pending?')) return;
-  if (!CURRENT_EDITION) return;
-  btn.disabled = true;
-  // Hit the approve endpoint then immediately un-approve by calling a local state reset
-  // (A proper undo endpoint can be added to the API; for now we optimistically reset UI)
-  var row = btn.closest('tr');
-  setRowDecision(row, 'pending', '');
-  row.setAttribute('data-coid', coId);
-}
-
-// ── Decision bar helpers ──────────────────────────────────────────────────
-function statusLabel(s) {
-  return s === 'approved' ? '✓ Approved' : s === 'rejected' ? '✕ Rejected' : '⏳ Pending';
-}
-
-function buildDecisionBar(companies) {
-  var p=0, a=0, r=0;
-  companies.forEach(function(c){
-    var s = c.status || 'pending';
-    if(s==='approved') a++; else if(s==='rejected') r++; else p++;
-  });
-  return '<div class="dsb-item"><div class="dsb-dot dsb-pending"></div><strong>'+p+'</strong>&nbsp;Pending</div>'
-       + '<div class="dsb-item"><div class="dsb-dot dsb-approved"></div><strong>'+a+'</strong>&nbsp;Approved</div>'
-       + '<div class="dsb-item"><div class="dsb-dot dsb-rejected"></div><strong>'+r+'</strong>&nbsp;Rejected</div>'
-       + '<span style="color:var(--border)">|</span>'
-       + '<span style="color:var(--text-muted)">'+companies.length+' total companies in this sector</span>';
-}
-
-function refreshDecisionBar(sid) {
-  var tbody = document.getElementById('tbody-'+sid);
-  if (!tbody) return;
-  var rows = tbody.querySelectorAll('tr');
-  var p=0,a=0,r=0;
-  rows.forEach(function(row){
-    var s = row.getAttribute('data-status') || 'pending';
-    if(s==='approved') a++; else if(s==='rejected') r++; else p++;
-  });
-  var bar = document.getElementById('decbar-'+sid);
-  if (!bar) return;
-  bar.innerHTML = '<div class="dsb-item"><div class="dsb-dot dsb-pending"></div><strong>'+p+'</strong>&nbsp;Pending</div>'
-    + '<div class="dsb-item"><div class="dsb-dot dsb-approved"></div><strong>'+a+'</strong>&nbsp;Approved</div>'
-    + '<div class="dsb-item"><div class="dsb-dot dsb-rejected"></div><strong>'+r+'</strong>&nbsp;Rejected</div>'
-    + '<span style="color:var(--border)">|</span>'
-    + '<span style="color:var(--text-muted)">'+(p+a+r)+' total companies in this sector</span>';
-}
-
-// ── Patch renderReport to capture edition key ─────────────────────────────
-var _origRenderReport = renderReport;
-renderReport = function(data) {
-  _origRenderReport(data);
-  setEditionKey(data);
-};
-
-// ═══════════════════════════════════════════════════════
 // EMBEDDED DATA — replaced each month by loading a new JSON
 // ═══════════════════════════════════════════════════════
-var EMBEDDED_DATA = <%- JSON.stringify(reportdata || {}, function(key, value) {
-  if (typeof value === 'string') {
-    return value.replace(/<\/script>/gi, '<\\/script>');
-  }
-  return value;
-}) %>;
+var EMBEDDED_DATA = <%- JSON.stringify(reportdata || {}) %>;
 </script>
 </body>
 </html>

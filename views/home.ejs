@@ -87,7 +87,10 @@
     <div class="navbar">
         <a class="navbar-brand" href="/home">
             <img src="/images/logo.png" alt="Chrysalis logo" >
-          </a>   
+          </a>  
+          <% if (canAccessCA) { %>
+          <a class="btn" href="/ca" style="margin: 36px; cursor: pointer; float: inline-end;">CA Reports</a> 
+          <% } %>
     </div>
     <div class="container">
         <a href="/leap" class="tile">
@@ -102,6 +105,7 @@
             <img src="/images/SharepointLofo.png" alt="MyChrysalis">
             <p>My Chrysalis</p>
         </a>
+
         <% if (canRunZohoETL) { %>
         <div class="tile" id="zohoEtlTile" onclick="runZohoETL()" style="cursor:pointer;">
             <img src="/images/logo-ic.png" alt="Zoho Export Icon">

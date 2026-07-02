@@ -35,10 +35,31 @@
 
 const express        = require('express');
 const router         = express.Router();
+const createError    = require('http-errors');
 const jsonbig        = express.json({ limit: '2mb' }); // for large report payloads
 const CAReport       = require('../model/ca/report');
 const RejectionStore = require('../model/ca/rejectionstore');
 const Client         = require('../model/ca/clients');
+
+//--- Middleware: require authentication for all /ca routes, they should be authenticated and be one of the CA_USERS from .env ---
+router.use((req, res, next) => {
+  // Allow machine-to-machine import route; it is protected by verifyImportKey.
+  if (req.method === 'POST' && req.path === '/reports/import') {
+    return next();
+  }
+
+  if (!req.session.user) {
+     req.session.originalUrl = req.originalUrl; // Store the original URL.
+    return res.redirect('/login');
+  }
+
+  const caUsers = process.env.CA_USERS ? process.env.CA_USERS.split(',') : [];
+  if (!caUsers.includes(req.session.user.name)) {
+    return next(createError(403, 'Forbidden: you do not have access to CA Section'));
+  }
+
+  next();
+});
 
 // ── Middleware: verify Power Automate secure key ──────────────────────────
 // Set IMPORT_SECRET_KEY in your .env file.
@@ -199,7 +220,7 @@ router.post('/reports/import', jsonbig, verifyImportKey, async (req, res) => {
 });
 
 /**
- * GET /api/ca/reports
+ * GET /ca/reports
  * Returns all editions (meta + status only, no companies)
  */
 router.get('/reports', async (req, res) => {
@@ -217,7 +238,7 @@ router.get('/reports', async (req, res) => {
 });
 
 /**
- * GET /api/ca/reports/:editionKey
+ * GET /ca/reports/:editionKey
  * Returns the full report document — used to hydrate the dashboard.
  */
 router.get('/reports/:editionKey', async (req, res) => {
@@ -231,7 +252,7 @@ router.get('/reports/:editionKey', async (req, res) => {
 });
 
 /**
- * PATCH /api/ca/reports/:editionKey/publish
+ * PATCH /ca/reports/:editionKey/publish
  */
 router.patch('/reports/:editionKey/publish', async (req, res) => {
   try {
@@ -317,7 +338,7 @@ router.patch('/reports/:editionKey/companies/:companyId/reject', resolveCompany,
 // REJECTION STORE
 // ══════════════════════════════════════════════════════════════════════════
 
-/** GET /api/ca/rejections — active block-list */
+/** GET /ca/rejections — active block-list */
 router.get('/rejections', async (req, res) => {
   try {
     const list = await RejectionStore.getActiveBlockList();
@@ -327,7 +348,7 @@ router.get('/rejections', async (req, res) => {
   }
 });
 
-/** DELETE /api/ca/rejections/:id — pardon a company */
+/** DELETE /ca/rejections/:id — pardon a company */
 router.delete('/rejections/:id', async (req, res) => {
   try {
     const doc = await RejectionStore.findByIdAndUpdate(
@@ -346,7 +367,7 @@ router.delete('/rejections/:id', async (req, res) => {
 // CLIENTS (SharePoint)
 // ══════════════════════════════════════════════════════════════════════════
 
-/** GET /api/ca/clients */
+/** GET /ca/clients */
 router.get('/clients', async (req, res) => {
   try {
     const { industry, search } = req.query;
@@ -364,7 +385,7 @@ router.get('/clients', async (req, res) => {
   }
 });
 
-/** POST /api/ca/clients — manual add */
+/** POST /ca/clients — manual add */
 router.post('/clients', async (req, res) => {
   try {
     const client = new Client(req.body);
@@ -403,7 +424,7 @@ router.patch('/clients/sync', async (req, res) => {
 // ══════════════════════════════════════════════════════════════════════════
 
 /**
- * GET /api/ca/reports/:editionKey/apollo-queue
+ * GET /ca/reports/:editionKey/apollo-queue
  * Returns companies that are approved but not yet enriched.
  */
 router.get('/reports/:editionKey/apollo-queue', async (req, res) => {
@@ -433,7 +454,7 @@ router.get('/reports/:editionKey/apollo-queue', async (req, res) => {
 });
 
 /**
- * PATCH /api/ca/reports/:editionKey/companies/:companyId/apollo
+ * PATCH /ca/reports/:editionKey/companies/:companyId/apollo
  * Body: { email, phone, linkedinUrl, confidenceScore }
  * Called by your Apollo.io enrichment job after resolving contacts.
  */
@@ -457,7 +478,7 @@ router.patch('/reports/:editionKey/companies/:companyId/apollo', resolveCompany,
 // ══════════════════════════════════════════════════════════════════════════
 
 /**
- * GET /api/ca/prompt-context/:editionKey
+ * GET /ca/prompt-context/:editionKey
  * Returns a JSON payload the Claude prompt can read directly:
  *  - active rejection block-list (from RejectionStore)
  *  - existing client names (from ca_clients)

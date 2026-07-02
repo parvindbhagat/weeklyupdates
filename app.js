@@ -8,15 +8,17 @@ const favicon = require('serve-favicon');
 const mongoose = require('mongoose');
 const mongoSanitize = require('express-mongo-sanitize');
 // const cors = require('cors');
-// const MongoStore = require('connect-mongo');
+const { MongoStore } = require('connect-mongo');
 const indexRouter = require('./routes/index');
+const caRouter = require('./routes/ca');
 const { title } = require('process');
 // var resourceRouter = require('./routes/resource');
 // var taskRouter = require('./routes/task');
 var app = express();
+app.disable('x-powered-by');
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: false, limit: '10mb' }));
 
 app.use(mongoSanitize()); // Sanitize user input to prevent NoSQL injection
 
@@ -40,17 +42,24 @@ if (!process.env.EXPRESS_SESSION_SECRET) {
   throw new Error('EXPRESS_SESSION_SECRET is not defined');
 }
 
+app.set('trust proxy', 1); // trust first proxy (nginx)
+
 app.use(session({
   secret: process.env.EXPRESS_SESSION_SECRET,
   resave: false,
-  saveUninitialized: true,
+  saveUninitialized: false,
+  proxy: true,
+  store: MongoStore.create({
+    mongoUrl: mongoUri,
+    ttl: 60 * 60, // session expiry in seconds (1 hour)
+    // touchAfter: 24 * 3600 // only update session in DB once per 24 hours
+  }),
   cookie: { 
     maxAge: 60 * 60 * 1000, // 60 minutes
     httpOnly: true,
-    // domain: '.chrysalistechnologies.in', // Makes the cookie accessible to all subdomains
-    // path: '/',
-    // secure: true,
-    // sameSite: 'None', // Allows cross-site cookie sharing
+    secure: process.env.NODE_ENV === 'production',
+    // Use Lax so OAuth redirect flow can carry the session cookie in production.
+    sameSite: 'lax',
    } 
 }));
 
@@ -66,7 +75,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
-// app.use('/resource', resourceRouter);
+app.use('/ca', caRouter);
 // app.use('/task', taskRouter);
 app.use((req, res, next) => {
   console.log(`Instance: ${process.env.APP_NAME}, User: ${req.ip}`);
@@ -89,12 +98,13 @@ app.use((err, req, res, next) => {
 
   // Set locals, only providing error details in development
   const isDevelopment = req.app.get('env') === 'development';
+  const statusCode = err.status || 500;
   const errorDetails = isDevelopment
-    ? { errorCode: err.status || 500, errorName: err.name, errorMessage: err.message }
-    : { errorCode: err.status || 500, errorName: 'Internal Server Error', errorMessage: 'Something went wrong!' };
+    ? { errorCode: statusCode, errorName: err.name, errorMessage: err.message }
+    : { errorCode: statusCode, errorName: 'Internal Server Error', errorMessage: 'Something went wrong!' };
 
   // Render the error page
-  res.status(err.status || 500).render('error', errorDetails);
+  res.status(statusCode).render('error', errorDetails);
 });
 
 module.exports = app;

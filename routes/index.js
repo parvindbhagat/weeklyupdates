@@ -589,11 +589,26 @@ router.get("/home", isAuthenticated, redirectBasedOnGroup, async (req, res) => {
     .filter(Boolean);
   const canRunZohoETL = allowedUsers.includes(user.name);
 
+  //check if user is in the list of CA_USERS env var to show the CA tile on home page
+  const caUsers = (process.env.CA_USERS || '')
+    .split(',')
+    .map(u => u.trim().replace(/^'|'$/g, '').trim())
+    .filter(Boolean);
+  const canAccessCA = caUsers.includes(user.name);
   // Fetch last run state to show on the tile
-  const etlState = await etlRunStateModel.findById('zohoEtlState').lean();
+  let etlState = await etlRunStateModel.findById('zohoEtlState').lean();
+
+  // Initialize singleton ETL state once using schema defaults.
+  if (!etlState) {
+    etlState = await etlRunStateModel.findByIdAndUpdate(
+      'zohoEtlState',
+      { $setOnInsert: { _id: 'zohoEtlState' } },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    ).lean();
+  }
 
   let msg = "";
-  res.render("home", { msg, canRunZohoETL, etlState });
+  res.render("home", { msg, canRunZohoETL, etlState, canAccessCA });
 });
 
 // POST /zoho-etl/run — run the Zoho ETL process (ZOHOETL_USERS only)
@@ -603,9 +618,15 @@ router.post("/zoho-etl/run", isAuthenticated, isZohoETLUser, async (req, res) =>
 
   // Read last successful run from DB; default to today at midnight on first run
   let etlState = await etlRunStateModel.findById('zohoEtlState').lean();
-  let fromDate = etlState?.lastSuccessfulRun
-    ? new Date(etlState.lastSuccessfulRun)
-    : (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; })();
+  let fromDate = (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; })();
+  if (etlState?.lastSuccessfulRun) {
+    const parsedLastRun = new Date(etlState.lastSuccessfulRun);
+    if (!Number.isNaN(parsedLastRun.getTime())) {
+      fromDate = parsedLastRun;
+    } else {
+      console.warn(`[ZohoETL] Invalid lastSuccessfulRun value found: ${etlState.lastSuccessfulRun}. Falling back to start of today.`);
+    }
+  }
 
   console.log(`[ZohoETL] Run triggered by ${user.name}. fromDate: ${fromDate.toISOString()}`);
 
@@ -777,10 +798,17 @@ router.get("/oauth/redirect", async (req, res) => {
     // console.log('oauth/redirect: API response JSON is: ', JSON.stringify(response, null, 2));
     req.session.user = response.account;
     req.session.token = response.accessToken;
-    // console.log('session data req.session.user after log in is: ', req.session.user);
     const redirectUrl = req.session.originalUrl || "/leap";
     delete req.session.originalUrl; // Clear the stored URL
-    res.redirect(redirectUrl);
+
+    // Persist session before redirect to avoid race with external session store.
+    req.session.save((saveErr) => {
+      if (saveErr) {
+        console.error("Session save failed in /oauth/redirect:", saveErr);
+        return res.status(500).send("Failed to establish session. Please try again.");
+      }
+      return res.redirect(redirectUrl);
+    });
   } catch (error) {
     console.log(error);
     res.status(500).send(error);
