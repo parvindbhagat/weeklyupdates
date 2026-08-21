@@ -44,6 +44,9 @@ body{font-family:"Century Gothic","CenturyGothic",AppleGothic,Futura,sans-serif;
 .header h1 span{color:#FCB22B;}
 .header-sub{color:rgba(255,255,255,.78);font-size:13px;}
 .header-stats{display:flex;gap:14px;flex-wrap:wrap;}
+.btn-home{position:absolute;top:18px;right:24px;z-index:2;display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:9px;background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.22);color:var(--yellow);text-decoration:none;transition:background .15s;}
+.btn-home:hover{background:rgba(255,255,255,.24);}
+.btn-home svg{width:18px;height:18px;}
 .hstat{background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.22);border-radius:10px;padding:13px 18px;text-align:center;min-width:100px;}
 .hstat .val{display:block;font-size:20px;font-weight:700;color:#FCB22B;line-height:1;margin-bottom:5px;}
 .hstat .lbl{font-size:10px;color:rgba(255,255,255,.7);text-transform:uppercase;letter-spacing:.5px;}
@@ -474,7 +477,9 @@ function colorClass(c) {
 function renderHeader(d) {
   var m = d.meta;
   document.getElementById('app-header').innerHTML =
-    '<div class="header"><div class="header-inner"><div>' +
+    '<div class="header">' +
+    '<a class="btn-home" href="/home" title="Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg></a>' +
+    '<div class="header-inner"><div>' +
     '<div class="header-badge">Market Intelligence Report ' + esc(m.edition) + '</div>' +
     '<h1>Chrysalis HRD <span>Market Intelligence</span></h1>' +
     '<p class="header-sub">'+esc(m.total_companies)+' Strategic Targets &middot; '+esc(m.sectors_count)+' Priority Sectors &middot; Complete Decision-Maker Mapping &middot; Prepared '+esc(m.prepared_date)+'</p>' +
