@@ -144,109 +144,95 @@ async function isLeadership(req, res, next) {
 }
 }
 
-//function to check if user is a MEMBER of the FTE or PTE group and redirect to the correct page
-async function redirectBasedOnGroup(req, res, next) {
-  console.log("redirectBasedOnGroup function called");
-    const user = req.session.user;
-    // console.log('user data  is: ', { user });
-    const userId = user.localAccountId;
-    const FTEGroupID = process.env.FTE_ID;
-    const PTEGroupID = process.env.PTE_ID;
-
-    try {
-        const accessToken = await getAccessToken();
-        req.session.gToken = accessToken;
-        // console.log({ accessToken });
-
-        const fteUrl = `https://graph.microsoft.com/v1.0/users/${userId}/memberOf?$filter=id eq '${FTEGroupID}'`;
-        const pteUrl = `https://graph.microsoft.com/v1.0/users/${userId}/memberOf?$filter=id eq '${PTEGroupID}'`;
-
-        const [fteResponse, pteResponse] = await Promise.all([
-            fetch(fteUrl, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`,
-                    'Content-Type': 'application/json'
-                }
-            }),
-            fetch(pteUrl, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${accessToken}`,
-                    'Content-Type': 'application/json'
-                }
-            })
-        ]);
-
-        // if (!fteResponse.ok || !pteResponse.ok) {
-        //     throw new Error(`HTTP error! status: ${fteResponse.status} or ${pteResponse.status}`);
-        // }
-
-        const fteData = await fteResponse.json();
-        const pteData = await pteResponse.json();
-
-        // Check if the user is a member of either group
-        const isFTE = fteData.value && fteData.value.length > 0;
-        const isPTE = pteData.value && pteData.value.length > 0;
-
-        if (isFTE) {
-            return next();
-        } else if (isPTE) {
-            res.redirect(process.env.PTE_URL);
-        } else {
-            res.status(403).send('User is not a member of the Chrysalis group');
-        }
-    } catch (error) {
-        console.error('Error checking group membership:', error);
-        res.status(500).send('Internal Server Error');
-    }
+function getTokenDiagnostics(accessToken) {
+  try {
+    const payload = JSON.parse(Buffer.from(accessToken.split('.')[1], 'base64url').toString('utf8'));
+    return {
+      audience: payload.aud,
+      tenantId: payload.tid,
+      appId: payload.azp || payload.appid,
+      roles: payload.roles,
+      scopes: payload.scp,
+      expiresAt: payload.exp ? new Date(payload.exp * 1000).toISOString() : undefined
+    };
+  } catch {
+    return { token: 'unreadable' };
+  }
 }
 
-//is member of the PTE group .
-async function isFTE(req, res, next) {
-  console.log("isFTE function called");
-    const user = req.session.user;
-    let accessToken;
-    // console.log('isFTE got user from session', {user});
-    const userId = user.localAccountId;
-    const groupId = process.env.FTE_ID; //process.env.PTE_ID; depends on group id to be checked
-    // const url = `https://graph.microsoft.com/v1.0/me/memberOf?$filter=id eq '${groupId}'`;
-    const url = `https://graph.microsoft.com/v1.0/users/${userId}/memberOf?$filter=id eq '${groupId}'`;
+// Query both groups once per login session and reuse the decision for protected routes.
+async function getGroupMembership(req) {
+  const cached = req.session.groupMembership;
+  if (cached && cached.checkedAt && Date.now() - cached.checkedAt < 60 * 60 * 1000) {
+    return cached;
+  }
 
-    try {
-      if (req.session.gToken) {
-        accessToken = req.session.gToken;
-      } else {
-        accessToken = await getAccessToken();
-        // console.log({ accessToken });
-      }
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'Content-Type': 'application/json'
-            }
-        });
-        // console.log({ response });
+  const userId = req.session.user.localAccountId;
+  const fteGroupId = process.env.FTE_ID;
+  const url = `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(userId)}/memberOf/microsoft.graph.group?$select=id&$filter=id eq '${fteGroupId}'`;
+  const accessToken = await getAccessToken();
+  const response = await fetch(url, {
+    headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json' }
+  });
+  const responseText = await response.text();
+  let body;
+  try {
+    body = responseText ? JSON.parse(responseText) : {};
+  } catch {
+    body = { raw: responseText.slice(0, 1000) };
+  }
 
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        // Check if the user is a member of the group
-        const isMember = data.value && data.value.length > 0;
-
-        if (isMember) {
-            return next();
-        } else {
-            res.status(403).send(`You are not a member of the valid group. Please visit the correct link: ${process.env.PTE_URL}`);
-        }
-    } catch (error) {
-        console.error('Error checking group membership:', error);
-        res.status(500).send(`Failed to verify group membership.  You can log in then try again. If you are a member of X team, please visit :  ${process.env.PTE_URL}`);
+  if (!response.ok) {
+    console.error('Microsoft Graph group membership check failed', {
+      status: response.status,
+      statusText: response.statusText,
+      method: 'GET',
+      url,
+      userId,
+      scope: process.env.G_SCOPE,
+      token: getTokenDiagnostics(accessToken),
+      graphError: body.error,
+      requestId: response.headers.get('request-id'),
+      clientRequestId: response.headers.get('client-request-id')
+    });
+    if (response.status === 401 || response.status === 403) {
+      delete req.session.groupMembership;
     }
+    throw new Error(`Microsoft Graph membership check failed with HTTP ${response.status}`);
+  }
+
+  const memberIds = new Set((body.value || []).map(group => group.id));
+  const membership = {
+    isFTE: memberIds.has(fteGroupId),
+    checkedAt: Date.now()
+  };
+  req.session.groupMembership = membership;
+  return membership;
+}
+
+// Allow FTE users into this app; send everyone else to the PTE application.
+async function redirectBasedOnGroup(req, res, next) {
+  console.log('redirectBasedOnGroup function called');
+  try {
+    const membership = await getGroupMembership(req);
+    if (membership.isFTE) return next();
+    return res.redirect(process.env.PTE_URL);
+  } catch (error) {
+    console.error('Error checking group membership:', error);
+    return res.status(502).send('Unable to verify group membership. Please try again later.');
+  }
+}
+
+async function isFTE(req, res, next) {
+  console.log('isFTE function called');
+  try {
+    const membership = await getGroupMembership(req);
+    if (membership.isFTE) return next();
+    return res.redirect(process.env.PTE_URL);
+  } catch (error) {
+    console.error('Error checking group membership:', error);
+    return res.status(502).send('Unable to verify group membership. Please try again later.');
+  }
 }
 
 const checkPendingSubmissions = async (loggedInUserName) => {
@@ -412,13 +398,13 @@ function isDelayed(activity) {
   }
 }
 
-//function to delete all tasks in task collection which are older than 90 days of project completion using projectactualFinishdate
+//function to delete all tasks in task collection which are older than 180 -90- days of project completion using projectactualFinishdate
 async function delete90DaysOldTasks(accessToken, req, res) {
   
   let result;
   const today = new Date();
   const archiveDate = new Date(today);
-  archiveDate.setDate(today.getDate() - 120); // Set the archive date to 90 days ago
+  archiveDate.setDate(today.getDate() - 180); // Set the archive date to 180 from 90 days ago
   
   // Format the archiveDate to 'YYYY-MM-DDTHH:MM:SSZ'
   const year = archiveDate.getFullYear();
@@ -448,15 +434,15 @@ async function delete90DaysOldTasks(accessToken, req, res) {
       console.log("No projects to delete.");
       // return res.json({ message: "No projects to archive." });
     } else {
-      result = await taskModel.deleteMany({     //  choose the Model task or task archive to delete tasks which are older than 90 days
+      result = await taskModel.deleteMany({     //  choose the Model task or task archive to delete tasks which are older than 180 -90- days
       projectId: { $in: projectIds }
       });
-      console.log(`Deleted ${result.deletedCount} tasks for projects older than 90 days.`);
+      console.log(`Deleted ${result.deletedCount} tasks for projects older than 180 -90- days.`);
     }
 
     // console.log("Projects to archive: ", {projectIds});
     // res.json(projectIds);
-    // res.send(`Deleted ${result.deletedCount} tasks for projects older than 90 days.`);
+    // res.send(`Deleted ${result.deletedCount} tasks for projects older than 180 -90- days.`);
     return 1; 
 
   } catch (error) {
@@ -467,11 +453,11 @@ async function delete90DaysOldTasks(accessToken, req, res) {
 }
 
 
-//Function to archive tasks which are older than 90 days of project completion using projectactualFinishdate by moving them to taskArchive collection and then delete them from task collection
+//Function to archive tasks which are older than 180 -90- days of project completion using projectactualFinishdate by moving them to taskArchive collection and then delete them from task collection
 async function archive90DaysOldTasks(accessToken) {
   const today = new Date();
   const archiveDate = new Date(today);
-  archiveDate.setDate(today.getDate() - 90);
+  archiveDate.setDate(today.getDate() - 180);
 
   const year = archiveDate.getFullYear();
   const month = (archiveDate.getMonth() + 1).toString().padStart(2, '0');
@@ -529,6 +515,9 @@ async function archive90DaysOldTasks(accessToken) {
   }
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 //GET APP HOME
 router.get("/", async (req, res) => {  
     let msg = req.query.msg || ""; // Get the message from the query string 
@@ -545,8 +534,14 @@ router.get("/", async (req, res) => {
 router.get("/leap", isAuthenticated, isFTE, async (req, res) => {
   let isLeader;
   let ispm = false;
-  const leaders = process.env.PM_LEADERSHIP.split(",").map(name => name.trim());
   const user = req.session.user;
+    //check if user is in the list of CA_USERS env var to show the CA tile on home page
+  const caUsers = (process.env.CA_USERS || '')
+    .split(',')
+    .map(u => u.trim().replace(/^'|'$/g, '').trim())
+    .filter(Boolean);
+  const canAccessCA = caUsers.includes(user.name) || false; // Default to false if caUsers is undefined
+  const leaders = process.env.PM_LEADERSHIP.split(",").map(name => name.trim());
   //check if the resourceDetails.resourceName exist in leaders array
   if (!user) {
     console.log("Resource details not found, redirecting to root.");
@@ -569,7 +564,7 @@ router.get("/leap", isAuthenticated, isFTE, async (req, res) => {
   }
 
   let msg = "";
-res.render("leap", { msg, isLeader, ispm  }); // Render the leap page with the resource details and isLeader status
+res.render("leap", { msg, isLeader, ispm, canAccessCA  }); // Render the leap page with the resource details and isLeader status
 });
 
 router.get("/home", isAuthenticated, redirectBasedOnGroup, async (req, res) => {
@@ -594,7 +589,7 @@ router.get("/home", isAuthenticated, redirectBasedOnGroup, async (req, res) => {
     .split(',')
     .map(u => u.trim().replace(/^'|'$/g, '').trim())
     .filter(Boolean);
-  const canAccessCA = caUsers.includes(user.name);
+  const canAccessCA = caUsers.includes(user.name) || false; // Default to false if caUsers is undefined
   // Fetch last run state to show on the tile
   let etlState = await etlRunStateModel.findById('zohoEtlState').lean();
 
@@ -616,19 +611,17 @@ router.post("/zoho-etl/run", isAuthenticated, isZohoETLUser, async (req, res) =>
   const user = req.session.user;
   const now = new Date();
 
-  // Read last successful run from DB; default to today at midnight on first run
-  let etlState = await etlRunStateModel.findById('zohoEtlState').lean();
-  let fromDate = (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; })();
-  if (etlState?.lastSuccessfulRun) {
-    const parsedLastRun = new Date(etlState.lastSuccessfulRun);
-    if (!Number.isNaN(parsedLastRun.getTime())) {
-      fromDate = parsedLastRun;
-    } else {
-      console.warn(`[ZohoETL] Invalid lastSuccessfulRun value found: ${etlState.lastSuccessfulRun}. Falling back to start of today.`);
-    }
+  const { fromDateTime, timeZone } = req.body || {};
+  if (!fromDateTime || !timeZone || !momenttz.tz.zone(timeZone)) {
+    return res.status(400).json({ success: false, message: 'A valid from date and time is required.' });
   }
+  const fromDate = momenttz(fromDateTime, 'YYYY-MM-DDTHH:mm', true).tz(timeZone, true);
+  if (!fromDate.isValid()) {
+    return res.status(400).json({ success: false, message: 'A valid from date and time is required.' });
+  }
+  const fromDateUtc = fromDate.toDate();
 
-  console.log(`[ZohoETL] Run triggered by ${user.name}. fromDate: ${fromDate.toISOString()}`);
+  console.log(`[ZohoETL] Run triggered by ${user.name}. Local fromDate: ${fromDate.format()} (${timeZone}), UTC: ${fromDateUtc.toISOString()}`);
 
   // Record the attempt
   await etlRunStateModel.findByIdAndUpdate(
@@ -638,7 +631,7 @@ router.post("/zoho-etl/run", isAuthenticated, isZohoETLUser, async (req, res) =>
   );
 
   try {
-    const result = await runEtl(fromDate);
+    const result = await runEtl(fromDateUtc);
     console.log(`[ZohoETL] Completed. Status: ${result.status}`);
 
     if (result.status === 'Error') {
@@ -675,7 +668,7 @@ router.post("/zoho-etl/run", isAuthenticated, isZohoETLUser, async (req, res) =>
 router.get("/admin", isAdmin, async (req, res) => {
   const user = req.session.user;
   // console.log("logged in user to /admin page is: ", user.name);
-  const tasks = await taskModel.find({ProjectStatus: { $ne: "Completed" } }).lean(); // Fetch all tasks except Completed ones
+  const tasks = await taskModel.find({ ProjectStatus: { $ne: "Completed" }, projectName: { $ne: "Administrative" } }).lean(); // Fetch all tasks except Completed ones and Administrative projects
 
   // Process data to get the count of tasks per projectName and their completion status
   const taskData = tasks.reduce((acc, task) => {
@@ -797,6 +790,7 @@ router.get("/oauth/redirect", async (req, res) => {
 
     // console.log('oauth/redirect: API response JSON is: ', JSON.stringify(response, null, 2));
     req.session.user = response.account;
+    console.log ("User logged in successfully JSON IS:", JSON.stringify(response.account,null,2));
     req.session.token = response.accessToken;
     const redirectUrl = req.session.originalUrl || "/leap";
     delete req.session.originalUrl; // Clear the stored URL
@@ -816,7 +810,7 @@ router.get("/oauth/redirect", async (req, res) => {
 });
 
 // Get route for DesignPM to show the list of projects where the logged in user is the designPM  /myprojects
-router.get("/designpm", isAuthenticated, async (req, res) => {
+router.get("/designpm", isAuthenticated, isFTE, async (req, res) => {
   if (!req.session.user) {
     return res.redirect("/?msg=sessionExpired");
   }
@@ -920,7 +914,7 @@ router.get("/designpm/:project", isAuthenticated, async (req, res) => {
 
 
 //profile page to land after access token authenticated also initialize resource MOdel if empty  /////////////////////////////////////////////////////////////////////
-router.get("/profile", isAuthenticated,  async (req, res, next) => {
+router.get("/profile", isAuthenticated, isFTE, async (req, res, next) => {
   if (!req.session.user) {
     return res.redirect("/?msg=sessionExpired");
   }
@@ -1029,7 +1023,7 @@ router.get("/profile", isAuthenticated,  async (req, res, next) => {
 });
 
 // Report page to show show actualWork hours for logged in user for the current month and weekly total. /////////////////////////////////////////////////////////////////////////////////////////////////
-router.get("/myreport", isAuthenticated, async (req, res) => {
+router.get("/myreport", isAuthenticated, isFTE, async (req, res) => {
   if (!req.session.user) {
     return res.render("/?msg=sessionExpired");
   }
