@@ -258,7 +258,7 @@ router.patch('/reports/:editionKey/publish', async (req, res) => {
   try {
     const report = await CAReport.findOneAndUpdate(
       { editionKey: req.params.editionKey },
-      { $set: { reportStatus: 'published', publishedAt: new Date(), publishedBy: req.user?.username || 'admin' } },
+      { $set: { reportStatus: 'published', publishedAt: new Date(), publishedBy: req.session.user?.name || 'admin' } },
       { new: true, select: 'editionKey reportStatus publishedAt' }
     );
     if (!report) return res.status(404).json({ error: 'Edition not found' });
@@ -282,7 +282,7 @@ router.patch('/reports/:editionKey/companies/:companyId/approve', resolveCompany
     const co             = req.company;
 
     co.status      = 'approved';
-    co.approved_by = req.user?.username || 'leadership';
+    co.approved_by = req.session.user?.name || 'leadership';
     co.approved_at = new Date();
     co.rejection_reason = '';
 
@@ -308,7 +308,7 @@ router.patch('/reports/:editionKey/companies/:companyId/reject', resolveCompany,
     const co = req.company;
     co.status           = 'rejected';
     co.rejection_reason = rejection_reason.trim();
-    co.rejected_by      = req.user?.username || 'leadership';
+    co.rejected_by      = req.session.user?.name || 'leadership';
     co.rejected_at      = new Date();
 
     // Write to persistent block-list
@@ -353,7 +353,7 @@ router.delete('/rejections/:id', async (req, res) => {
   try {
     const doc = await RejectionStore.findByIdAndUpdate(
       req.params.id,
-      { $set: { isActive: false, pardonedAt: new Date(), pardonedBy: req.user?.username || 'admin' } },
+      { $set: { isActive: false, pardonedAt: new Date(), pardonedBy: req.session.user?.name || 'admin' } },
       { new: true }
     );
     if (!doc) return res.status(404).json({ error: 'Rejection record not found' });
