@@ -2,6 +2,7 @@ const axios = require('axios');
 const { Client } = require('@microsoft/microsoft-graph-client');
 const { TokenCredentialAuthenticationProvider } = require('@microsoft/microsoft-graph-client/authProviders/azureTokenCredentials');
 const { ClientSecretCredential } = require('@azure/identity');
+const momenttz = require('moment-timezone');
 
 // dotenv already loaded by app.js
 const isDev = process.env.NODE_ENV === 'development';
@@ -90,7 +91,7 @@ async function getZohoData(zohoAccessToken, fromDate) {
     });
 
     if (filteredWorkbooks.length === 0) {
-        console.log('[ZohoETL] No workbooks matched name + date criteria.');
+        console.log('[ZohoETL] No workbooks matched name + modified date criteria.');
         return [];
     }
     console.log('[ZohoETL] Workbooks matching criteria:', filteredWorkbooks.length);
@@ -124,7 +125,7 @@ async function getZohoData(zohoAccessToken, fromDate) {
         const [datePart, timePart, meridian] = responseTimeStr.split(' ');
         const [day, month, year] = datePart.split('/');
         const formattedDateStr = `${month}/${day}/${year} ${timePart} ${meridian}`;
-        const responseDate = new Date(formattedDateStr);
+        const responseDate = momenttz(`${year}-${month}-${day} ${timePart} ${meridian}`, 'YYYY-MM-DD h:mm:ss A', true).tz('Asia/Kolkata', true).toDate();
         return responseDate >= fromDate && responseDate <= runEndTime;
     });
 
@@ -271,7 +272,8 @@ async function insertIntoSharePoint(finalData) {
                     };
 
                     if (isDev) {
-                        console.log(`[ZohoETL] Mapped fields for ${item['Participant Name']}:`, JSON.stringify(mappedFields, null, 2));
+                        // console.log(`[ZohoETL] Mapped fields for ${item['Participant Name']}:`, JSON.stringify(mappedFields, null, 2));
+                        console.log(`[ZohoETL] Mapped fields for ${item['Participant Name']}:`);
                     }
 
                     await client.api(
