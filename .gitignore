@@ -6,3 +6,4 @@ nginx
 *.py
 *.html
 *.log
+deleteitems.js
