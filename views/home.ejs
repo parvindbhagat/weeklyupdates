@@ -88,9 +88,6 @@
         <a class="navbar-brand" href="/home">
             <img src="/images/logo.png" alt="Chrysalis logo" >
           </a>  
-          <% if (canAccessCA) { %>
-          <a class="btn" href="/ca" style="margin: 36px; cursor: pointer; float: inline-end;">CA Reports</a> 
-          <% } %>
     </div>
     <div class="container">
         <a href="/leap" class="tile">
@@ -144,11 +141,63 @@
         <div id="etlMessage">Running Zoho Export, please wait&hellip;</div>
     </div>
 
+    <dialog id="zohoEtlDateDialog" data-last-successful-run="<%= etlState && etlState.lastSuccessfulRun ? new Date(etlState.lastSuccessfulRun).getTime() : '' %>">
+        <form method="dialog" id="zohoEtlDateForm">
+            <label for="zohoEtlFromDateTime">From date and time</label>
+            <input type="datetime-local" id="zohoEtlFromDateTime" required>
+            <small id="zohoEtlTimeZone"></small>
+            <div>
+                <button type="button" id="zohoEtlCancel">Cancel</button>
+                <button type="submit">Continue</button>
+            </div>
+        </form>
+    </dialog>
+
     <script>
+    function formatLocalDateTime(date) {
+        const pad = value => String(value).padStart(2, '0');
+        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    }
+
+    function getZohoEtlFromDateTime() {
+        const dialog = document.getElementById('zohoEtlDateDialog');
+        const input = document.getElementById('zohoEtlFromDateTime');
+        const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+        const lastSuccessfulRun = Number(dialog.dataset.lastSuccessfulRun) || null;
+        input.value = lastSuccessfulRun ? formatLocalDateTime(new Date(lastSuccessfulRun)) : formatLocalDateTime(new Date());
+        document.getElementById('zohoEtlTimeZone').textContent = `Local time zone: ${timeZone}`;
+
+        return new Promise(resolve => {
+            const finish = value => {
+                dialog.close();
+                resolve(value);
+            };
+            document.getElementById('zohoEtlCancel').onclick = () => finish(null);
+            dialog.querySelector('form').onsubmit = event => {
+                event.preventDefault();
+                const selectedDate = new Date(input.value);
+                if (!input.value || Number.isNaN(selectedDate.getTime())) {
+                    input.reportValidity();
+                    return;
+                }
+                if (!window.confirm(`Use ${selectedDate.toLocaleString()} in ${timeZone}?`)) {
+                    return;
+                }
+                finish({ value: input.value, timeZone });
+            };
+            dialog.showModal();
+        });
+    }
+
     async function runZohoETL() {
         const tile = document.getElementById('zohoEtlTile');
         const overlay = document.getElementById('etlOverlay');
         const msgEl = document.getElementById('etlMessage');
+        const selectedDateTime = await getZohoEtlFromDateTime();
+
+        if (!selectedDateTime) {
+            return;
+        }
 
         tile.style.pointerEvents = 'none';
         tile.style.opacity = '0.6';
@@ -157,7 +206,11 @@
         try {
             const res = await fetch('/zoho-etl/run', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    fromDateTime: selectedDateTime.value,
+                    timeZone: selectedDateTime.timeZone
+                })
             });
             const data = await res.json();
 
