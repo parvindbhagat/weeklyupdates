@@ -976,7 +976,7 @@ router.get("/profile", isAuthenticated, isFTE, async (req, res, next) => {
             ]
         },
         { resourceName: resourceName },
-        {ProjectStatus: { $ne: "On Hold" }},
+        {ProjectStatus: { $nin: ["On Hold", "Completed"] }},
         {approvalStatus: { $ne: "Approved" }}
       ]
   }).sort({interventionName: 1, taskIndex: 1});
@@ -2087,7 +2087,7 @@ router.get('/escalation', isLeadership,  async (req, res, next) => {
     const tasks = await taskModel.find({
       Finish: { $lt: today },
       taskCompletePercent: { $lt: 100 },
-      ProjectStatus: { $ne: "On Hold" },
+      ProjectStatus: { $nin: ["On Hold", "Completed"] },
       source: "PWA"
     });
     tasks.forEach(task => {
@@ -2586,11 +2586,17 @@ Object.keys(groupedByFunction)
 
 router.get('/workloadreport', isLeadership, async (req, res) => {
   try {
+        let startDate, endDate;
     // Read query parameters
     const selectedResourceName = req.query.resourceName || '';
-    const timePeriod = req.query.timePeriod || 'allTime';
+    const timePeriod = req.query.timePeriod || 'allTime';  // if timePeriod is "custom" then expect startDate and endDate to be provided in query parameters
+    if (timePeriod === 'custom') {
+      startDate = req.query.startDate ? new Date(req.query.startDate) : null;
+      endDate = req.query.endDate ? new Date(req.query.endDate) : null;
+    }
     const searchTerm = req.query.search || '';
 
+    // console.log("Workload report request received. Selected resource:", selectedResourceName, "Time period:", timePeriod, "Search term:", searchTerm, "Start date:", startDate, "End date:", endDate);
 
     // If no resource is selected, render view with a message
     if (!selectedResourceName && !searchTerm) {
@@ -2654,7 +2660,6 @@ router.get('/workloadreport', isLeadership, async (req, res) => {
     }
 
     // Determine startDate and endDate based on timePeriod
-    let startDate, endDate;
     const today = new Date();
     let groupedProjects;
     let overallPlanned;
@@ -2680,6 +2685,11 @@ router.get('/workloadreport', isLeadership, async (req, res) => {
       case 'currentYear':
         startDate = new Date(today.getFullYear(), 0, 1);
         endDate = new Date(today.getFullYear(), 11, 31);
+        break;
+      case 'custom':
+        // Expect startDate and endDate to be provided in query parameters
+        startDate = req.query.startDate ? new Date(req.query.startDate) : null;
+        endDate = req.query.endDate ? new Date(req.query.endDate) : null;
         break;
       // Add other time periods as needed.
       case 'allTime':

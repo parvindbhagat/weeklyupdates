@@ -74,17 +74,72 @@
       <form class="my-2" method="GET" action="/workloadreport">
         <input type="hidden" name="resourceName" value="<%= selectedResourceName || '' %>">
         <label for="timePeriod">Select Time Period:</label>
-        <select class="rounded" id="timePeriod" name="timePeriod" onchange="this.form.submit()">
+        <select class="rounded" id="timePeriod" name="timePeriod">
           <option value="allTime" <%= timePeriod === 'allTime' ? 'selected' : '' %>>All Time</option>
           <option value="currentMonth" <%= timePeriod === 'currentMonth' ? 'selected' : '' %>>Current Month</option>
           <option value="lastMonth" <%= timePeriod === 'lastMonth' ? 'selected' : '' %>>Last Month</option>
           <option value="lastQuarter" <%= timePeriod === 'lastQuarter' ? 'selected' : '' %>>Last Quarter</option>
           <option value="currentYear" <%= timePeriod === 'currentYear' ? 'selected' : '' %>>Current Year</option>
+          <option value="custom" <%= timePeriod === 'custom' ? 'selected' : '' %>>Custom Range</option>
         </select>
-      </form>
+        <div id="customDateRange" class="my-2" <%= timePeriod === 'custom' ? '' : 'hidden' %>>
+          <label for="startDate">Start Date:</label>
+          <input type="date" id="startDate" name="startDate" value="<%= startDate || '' %>">
+          <label for="endDate">End Date:</label>
+          <input type="date" id="endDate" name="endDate" value="<%= endDate || '' %>">
+          <button type="submit">Apply</button>
+        </div>
     <% } %>
+      </form>
     </div>
     </div>
+    <script>
+      const timePeriodForm = document.querySelector('.time-period-selection form');
+      const timePeriodSelect = document.getElementById('timePeriod');
+      const customDateRange = document.getElementById('customDateRange');
+      const startDateInput = document.getElementById('startDate');
+      const endDateInput = document.getElementById('endDate');
+      let previousTimePeriod = timePeriodSelect.value;
+
+      function formatDateInput(date) {
+        return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
+      }
+
+      function setLastMonthDates() {
+        const today = new Date();
+        const lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
+        startDateInput.value = formatDateInput(lastMonthStart);
+        endDateInput.value = formatDateInput(lastMonthEnd);
+      }
+
+      function updateCustomDateRange() {
+        const isCustom = timePeriodSelect.value === 'custom';
+        customDateRange.hidden = !isCustom;
+        startDateInput.required = isCustom;
+        endDateInput.required = isCustom;
+      }
+
+      timePeriodSelect.addEventListener('change', () => {
+        if (timePeriodSelect.value === 'custom' && previousTimePeriod !== 'custom') {
+          setLastMonthDates();
+        }
+        previousTimePeriod = timePeriodSelect.value;
+        updateCustomDateRange();
+        if (timePeriodSelect.value !== 'custom') {
+          timePeriodForm.submit();
+        }
+      });
+
+      timePeriodForm.addEventListener('submit', (event) => {
+        updateCustomDateRange();
+        if (timePeriodSelect.value === 'custom' && (!startDateInput.value || !endDateInput.value)) {
+          event.preventDefault();
+        }
+      });
+
+      updateCustomDateRange();
+    </script>
     <% if (Object.keys(groupedProjects).length > 0) { %>
     <div class="container my-4">
       <h1>Workload Report</h1>

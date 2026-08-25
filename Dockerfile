@@ -1,3 +1,4 @@
+
 # Use the official Node.js image as the base image
 FROM node:23
 
@@ -11,7 +12,8 @@ COPY package*.json ./
 ENV NODE_ENV=production
 
 # Install only production dependencies
-RUN npm install --only=production
+# RUN npm install --only=production
+RUN npm ci --omit=dev
 
 # Copy the rest of the application code
 COPY . .
