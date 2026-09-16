@@ -9,4 +9,5 @@ docker-compose.yaml
 *.py
 *.html
 *.log
+.claude
 deleteitems.js

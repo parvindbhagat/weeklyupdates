@@ -116,25 +116,96 @@ async function getZohoData(zohoAccessToken, fromDate) {
     // Filter records by response time within [fromDate, now]
     const runEndTime = new Date();
     console.log(`[ZohoETL] Filtering records with response time between ${fromDate.toISOString()} and ${runEndTime.toISOString()}`);
+    console.log('[ZohoETL] Sample record for debugging:', allRecords[0]);
 
-    const recordsInWindow = allRecords.filter(record => {
-        let responseTimeStr = record['Response end time'] || record['Response completion time'];
-        if (!responseTimeStr) return false;
+    // Zoho Sheet normally returns this column as a formatted "d/m/yyyy HH:mm:ss AM/PM"
+    // string, but if the sheet column's display format changes, it can instead return
+    // a raw spreadsheet serial date-time number (days since 1899-12-30, fractional part
+    // = time of day). Handle both shapes and log rather than silently dropping records
+    // we can't parse.
+    const SHEET_EPOCH_UTC_MS = Date.UTC(1899, 11, 30);
+    function parseZohoDateTime(rawValue, recordLabel) {
+        if (rawValue === undefined || rawValue === null || rawValue === '') return null;
 
-        // Convert "d/m/yyyy HH:mm:ss AM/PM" → JS-parseable "MM/DD/YYYY HH:mm:ss AM/PM"
+        const looksNumeric = typeof rawValue === 'number' || /^\d+(\.\d+)?$/.test(String(rawValue).trim());
+        if (looksNumeric) {
+            const serial = Number(rawValue);
+            if (Number.isNaN(serial)) {
+                console.warn(`[ZohoETL] Non-numeric value "${rawValue}" failed serial date conversion for record ${recordLabel} — skipping.`);
+                return null;
+            }
+            // Round to the nearest second to avoid floating-point drift (e.g. ...:35.999 vs ...:36).
+            const roundedMs = Math.round((SHEET_EPOCH_UTC_MS + serial * 86400000) / 1000) * 1000;
+            const naive = new Date(roundedMs);
+            const responseMoment = momenttz.tz({
+                year: naive.getUTCFullYear(),
+                month: naive.getUTCMonth(),
+                day: naive.getUTCDate(),
+                hour: naive.getUTCHours(),
+                minute: naive.getUTCMinutes(),
+                second: naive.getUTCSeconds()
+            }, 'Asia/Kolkata');
+            if (!responseMoment.isValid()) {
+                console.warn(`[ZohoETL] Serial date value "${rawValue}" produced an invalid date for record ${recordLabel} — skipping.`);
+                return null;
+            }
+            return responseMoment.toDate();
+        }
+
+        // Formatted "d/m/yyyy HH:mm:ss AM/PM" string.
+        const responseTimeStr = String(rawValue);
         const [datePart, timePart, meridian] = responseTimeStr.split(' ');
-        const [day, month, year] = datePart.split('/');
-        const formattedDateStr = `${month}/${day}/${year} ${timePart} ${meridian}`;
-        const responseDate = momenttz(`${year}-${month}-${day} ${timePart} ${meridian}`, 'YYYY-MM-DD h:mm:ss A', true).tz('Asia/Kolkata', true).toDate();
+        const dateSegments = datePart ? datePart.split('/') : [];
+        if (dateSegments.length !== 3 || !timePart || !meridian) {
+            console.warn(`[ZohoETL] Unrecognised response time format "${responseTimeStr}" for record ${recordLabel} — skipping.`);
+            return null;
+        }
+        const [day, month, year] = dateSegments;
+        const responseMoment = momenttz(`${year}-${month}-${day} ${timePart} ${meridian}`, 'YYYY-MM-DD h:mm:ss A', true).tz('Asia/Kolkata', true);
+        if (!responseMoment.isValid()) {
+            console.warn(`[ZohoETL] Unparseable response time "${responseTimeStr}" for record ${recordLabel} — skipping.`);
+            return null;
+        }
+        return responseMoment.toDate();
+    }
+
+    const recordsInWindow = allRecords.filter((record, index) => {
+        const recordLabel = record['Response ID'] || `${record['First Name'] || ''} ${record['Last Name'] || ''}`.trim() || `#${index}`;
+        const hasEndTime = record['Response end time'] !== undefined && record['Response end time'] !== null && record['Response end time'] !== '';
+        const rawValue = hasEndTime ? record['Response end time'] : record['Response completion time'];
+        const responseDate = parseZohoDateTime(rawValue, recordLabel);
+        if (!responseDate) return false;
         return responseDate >= fromDate && responseDate <= runEndTime;
     });
 
-    // Normalise Date of Intervention from d/m/yyyy to dd-mm-yyyy
+    // Normalise Date of Intervention from d/m/yyyy to dd-mm-yyyy. Like the response-time
+    // column above, Zoho can return this as a raw spreadsheet serial date number (days
+    // since 1899-12-30, no time-of-day component for a plain date field) instead of the
+    // formatted string — handle both shapes.
     for (const obj of recordsInWindow) {
         const raw = obj['Date of Intervention'];
-        if (raw) {
-            const [d, m, y] = raw.split('/');
+        if (raw === undefined || raw === null || raw === '') continue;
+
+        const looksNumeric = typeof raw === 'number' || /^\d+(\.\d+)?$/.test(String(raw).trim());
+        if (looksNumeric) {
+            const serial = Number(raw);
+            if (Number.isNaN(serial)) {
+                console.warn(`[ZohoETL] Could not convert "Date of Intervention" value "${raw}" — leaving as-is.`);
+                continue;
+            }
+            const naive = new Date(SHEET_EPOCH_UTC_MS + Math.round(serial) * 86400000);
+            const d = String(naive.getUTCDate()).padStart(2, '0');
+            const m = String(naive.getUTCMonth() + 1).padStart(2, '0');
+            obj['Date of Intervention'] = `${d}-${m}-${naive.getUTCFullYear()}`;
+            continue;
+        }
+
+        const parts = String(raw).split('/');
+        if (parts.length === 3) {
+            const [d, m, y] = parts;
             obj['Date of Intervention'] = `${d.padStart(2, '0')}-${m.padStart(2, '0')}-${y}`;
+        } else {
+            console.warn(`[ZohoETL] Unrecognised "Date of Intervention" format "${raw}" — leaving as-is.`);
         }
     }
 

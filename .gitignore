@@ -6,4 +6,5 @@ nginx
 *.py
 *.html
 *.log
+.claude
 deleteitems.js

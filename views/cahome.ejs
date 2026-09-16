@@ -585,12 +585,12 @@ function renderSectorPanel(s) {
 
   // Tailwinds / Headwinds
   html += '<div class="hw-grid">';
-  html += '<div class="hw-card"><div class="hw-head tw">📈 Tailwinds Driving Chrysalis HRD Investment</div>';
+  html += '<div class="hw-card"><div class="hw-head tw">📈 Tailwinds</div>';
   s.tailwinds.forEach(function(t) {
     html += '<div class="hw-row"><div class="hw-dot t"></div><div><div class="hwtitle">'+esc(t.title)+'</div><div class="hwdesc">'+esc(t.desc)+'</div></div></div>';
   });
   html += '</div>';
-  html += '<div class="hw-card"><div class="hw-head hw">⚠️ Headwinds Limiting Spend</div>';
+  html += '<div class="hw-card"><div class="hw-head hw">⚠️ Headwinds</div>';
   s.headwinds.forEach(function(h) {
     html += '<div class="hw-row"><div class="hw-dot h"></div><div><div class="hwtitle">'+esc(h.title)+'</div><div class="hwdesc">'+esc(h.desc)+'</div></div></div>';
   });
